@@ -1,6 +1,8 @@
 import 'dart:ui';
 import 'dart:typed_data'; // for Uint8List
 import 'package:share_plus/share_plus.dart';
+import 'package:url_launcher/url_launcher.dart'; // import url_launcher
+import 'package:flutter/foundation.dart'; // for kIsWeb
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
@@ -117,17 +119,88 @@ class _ResultScreenState extends State<ResultScreen> {
     String textToShare = _viewMode == ResultViewMode.text ? _decryptionText : _veryDetailedText;
     
     // Remove Markdown
-    // Remove bold/italic (* or _) using replaceAllMapped
     textToShare = textToShare.replaceAllMapped(RegExp(r'(\*\*|__)(.*?)\1'), (match) => match.group(2) ?? '');
     textToShare = textToShare.replaceAllMapped(RegExp(r'(\*|_)(.*?)\1'), (match) => match.group(2) ?? '');
-    
-    // Remove links [text](url) -> text
     textToShare = textToShare.replaceAllMapped(RegExp(r'\[(.*?)\]\(.*?\)'), (match) => match.group(1) ?? '');
     
     // Add Footer
     textToShare += '\n\nРасчет сделан с помощью бота Индивидуальная диагностика потенциала https://t.me/id_potential_bot';
-    
-    Share.share(textToShare, subject: 'Результат диагностики: ${widget.calculation.name}');
+
+    if (kIsWeb) {
+      _showWebShareDialog(textToShare);
+    } else {
+      Share.share(textToShare, subject: 'Результат диагностики: ${widget.calculation.name}');
+    }
+  }
+
+  void _showWebShareDialog(String text) {
+    showModalBottomSheet(
+      context: context,
+      builder: (BuildContext context) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: const Icon(Icons.copy),
+                title: const Text('Скопировать текст'),
+                onTap: () async {
+                  await Clipboard.setData(ClipboardData(text: text));
+                  if (mounted) {
+                    Navigator.pop(context);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Текст скопирован в буфер обмена'), backgroundColor: Colors.green),
+                    );
+                  }
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.send, color: Colors.blue),
+                title: const Text('Telegram'),
+                onTap: () {
+                  Navigator.pop(context);
+                  _launchSocial('https://t.me/share/url?url=${Uri.encodeComponent('https://idpotential.github.io')}&text=${Uri.encodeComponent(text)}');
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.message, color: Colors.green),
+                title: const Text('WhatsApp'),
+                onTap: () {
+                   Navigator.pop(context);
+                   _launchSocial('https://wa.me/?text=${Uri.encodeComponent(text)}');
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.share),
+                title: const Text('Другое (Email / Apps)'),
+                onTap: () {
+                  Navigator.pop(context);
+                  Share.share(text, subject: 'Результат диагностики: ${widget.calculation.name}');
+                },
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _launchSocial(String urlString) async {
+    try {
+      final uri = Uri.parse(urlString);
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+      } else {
+        // Fallback or error (likely text too long)
+        if (mounted) {
+           ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Не удалось открыть приложение (возможно текст слишком длинный)'), backgroundColor: Colors.orange),
+          );
+        }
+      }
+    } catch (e) {
+      debugPrint('Launch error: $e');
+    }
   }
 
   @override
