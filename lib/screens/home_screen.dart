@@ -69,6 +69,12 @@ class HomeScreen extends StatelessWidget {
                     icon: const Icon(Icons.calculate),
                     label: const Text('Начать новый расчет'),
                   ),
+                  const SizedBox(height: 20),
+                  const Text(
+                    'v1.2 (Web Updated)', 
+                    style: TextStyle(color: Colors.grey, fontSize: 10),
+                  ),
+                  const SizedBox(height: 20),
                 ],
               ),
             ),
