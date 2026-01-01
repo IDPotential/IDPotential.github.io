@@ -3,6 +3,7 @@ import 'dart:typed_data'; // for Uint8List
 import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart'; // import url_launcher
 import 'package:flutter/foundation.dart'; // for kIsWeb
+import 'package:flutter/services.dart'; // for Clipboard
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
