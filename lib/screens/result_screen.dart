@@ -64,7 +64,8 @@ class _ResultScreenState extends State<ResultScreen> {
       final pngBytes = await _capturePng();
       if (pngBytes == null) throw Exception('Не удалось захватить изображение');
       
-      final fileName = 'diagnostic_${widget.calculation.name}_${DateTime.now().millisecondsSinceEpoch}.png';
+      final cleanDate = widget.calculation.birthDate.replaceAll(RegExp(r'\D'), ''); // Remove non-digits (12.05.1990 -> 12051990)
+      final fileName = 'diagnostic_${widget.calculation.name}_$cleanDate.png';
       
       final message = await FileSaver.saveImage(pngBytes, fileName);
       
