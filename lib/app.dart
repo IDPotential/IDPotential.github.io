@@ -32,25 +32,7 @@ class _AppHomeState extends State<AppHome> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: _selectedIndex == 0 
-      ? AppBar(
-        title: Text(_titles[_selectedIndex]),
-        actions: _selectedIndex == 0 
-            ? [
-                IconButton(
-                  icon: const Icon(Icons.calculate),
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const CalculationScreen(),
-                      ),
-                    );
-                  },
-                )
-              ]
-            : null,
-      ) : null, // Hide AppBar for other tabs
+      appBar: null, // Let individual screens handle their own AppBars to avoid double headers
       body: _screens[_selectedIndex],
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _selectedIndex,

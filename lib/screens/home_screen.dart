@@ -122,10 +122,7 @@ class HomeScreen extends StatelessWidget {
                     style: TextStyle(color: Colors.grey, fontSize: 13),
                   ),
                   const SizedBox(height: 8),
-                  const Text(
-                    'Индивидуальная Диагностика Потенциала',
-                    style: TextStyle(color: Colors.grey, fontSize: 13),
-                  ),
+
                   ElevatedButton.icon(
                     onPressed: () {
                       Navigator.push(
@@ -141,7 +138,7 @@ class HomeScreen extends StatelessWidget {
 
                   const SizedBox(height: 20),
                   const Text(
-                    'v1.7 (Final Fixed)', 
+                    'v1.8 (No Duplicates)', 
                     style: TextStyle(color: Colors.grey, fontSize: 10),
                   ),
                   const SizedBox(height: 20),
