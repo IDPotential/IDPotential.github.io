@@ -78,7 +78,7 @@ ${nums[11]}        ${nums[9]}
     int x = numbers[3] + numbers[10];
     // Fix: Python logic uses data[6] (num7) for Female, data[5] (num6) for Male
     // numbers indices: num6 is index 5, num7 is index 6
-    x += gender == 'Ж' ? numbers[5] : numbers[6];
+    x += gender == 'Ж' ? numbers[6] : numbers[5];
     x = reduceNumber(x);
     
     // Расчет Y (баланс в стрессе)

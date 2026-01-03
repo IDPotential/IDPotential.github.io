@@ -161,3 +161,8 @@ app.*.symbols
 google-services.json
 key.jks
 key.properties
+
+# Security Keys
+*.pk
+*.pem
+*.key

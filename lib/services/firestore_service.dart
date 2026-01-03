@@ -27,15 +27,29 @@ class FirestoreService {
 
   // --- Calculations ---
 
-  Future<void> saveCalculation(Calculation calc) async {
+  Future<String> saveCalculation(Calculation calc) async {
     final user = _auth.currentUser;
     if (user == null) throw Exception("User not logged in");
 
-    await _db
+    final docRef = await _db
         .collection('users')
         .doc(user.uid)
         .collection('calculations')
         .add(calc.toMap());
+        
+    return docRef.id;
+  }
+  
+  Future<void> updateCalculation(String id, Calculation calc) async {
+      final user = _auth.currentUser;
+      if (user == null) return;
+      
+      await _db
+        .collection('users')
+        .doc(user.uid)
+        .collection('calculations')
+        .doc(id)
+        .update(calc.toMap());
   }
   
   // Game Profile (Single active profile for the game context)
@@ -83,6 +97,36 @@ class FirestoreService {
         .collection('calculations')
         .doc(docId)
         .delete();
+  }
+
+  Future<List<Map<String, dynamic>>> getCalculationsRaw() async {
+    final user = _auth.currentUser;
+    if (user == null) return [];
+    
+    final query = await _db
+        .collection('users')
+        .doc(user.uid)
+        .collection('calculations')
+        .orderBy('createdAt', descending: true)
+        .get();
+        
+    return query.docs.map((d) {
+      final data = d.data();
+      data['id'] = d.id; // Inject ID
+      return data;
+    }).toList();
+  }
+
+  Future<void> updateGroup(String calculationId, String? groupName) async {
+      final user = _auth.currentUser;
+      if (user == null) return;
+      
+      await _db
+        .collection('users')
+        .doc(user.uid)
+        .collection('calculations')
+        .doc(calculationId)
+        .update({'group': groupName}); // 'group' field in Model
   }
 
   // --- Credits & Payments ---
@@ -168,11 +212,26 @@ class FirestoreService {
     });
   }
   
-  Future<void> replyToQuestion(String requestId, String answer) async {
+  Future<void> answerRequest(String requestId, String answer) async {
     await _db.collection('requests').doc(requestId).update({
       'status': 'answered',
       'answer': answer,
     });
+  }
+
+  // Helper alias for compatibility
+  Future<bool> consumeCredit(int amount) => consumeCredits(amount);
+
+  Future<void> setCalculationPaid(String calculationId) async {
+      final user = _auth.currentUser;
+      if (user == null) return;
+      
+      await _db
+        .collection('users')
+        .doc(user.uid)
+        .collection('calculations')
+        .doc(calculationId)
+        .update({'isPaid': true});
   }
 
   // --- Game Host Features ---
