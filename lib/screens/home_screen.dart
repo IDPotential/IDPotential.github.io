@@ -56,28 +56,37 @@ class HomeScreen extends StatelessWidget {
                          credits = snapshot.data!.data()?['credits'] ?? 0;
                       }
 
-                      return Container(
-                        margin: const EdgeInsets.only(bottom: 20),
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                        decoration: BoxDecoration(
-                          color: Colors.blueAccent.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(color: Colors.blueAccent.withOpacity(0.3)),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Icon(Icons.account_balance_wallet, color: Colors.blueAccent, size: 20),
-                            const SizedBox(width: 8),
-                            Text(
-                              '$credits кр.',
-                              style: const TextStyle(
-                                fontSize: 16, 
-                                fontWeight: FontWeight.bold,
-                                color: Colors.blueAccent
+                      return InkWell(
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (context) => const ProfileScreen()),
+                          );
+                        },
+                        borderRadius: BorderRadius.circular(20),
+                        child: Container(
+                          margin: const EdgeInsets.only(bottom: 20),
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                          decoration: BoxDecoration(
+                            color: Colors.blueAccent.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(color: Colors.blueAccent.withOpacity(0.3)),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(Icons.account_balance_wallet, color: Colors.blueAccent, size: 20),
+                              const SizedBox(width: 8),
+                              Text(
+                                '$credits кр.',
+                                style: const TextStyle(
+                                  fontSize: 16, 
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.blueAccent
+                                ),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
                       );
                     },
@@ -125,6 +134,7 @@ class HomeScreen extends StatelessWidget {
                     icon: const Icon(Icons.calculate),
                     label: const Text('Начать новый расчет'),
                   ),
+
                   const SizedBox(height: 20),
                   const Text(
                     'v1.4.0 (Personal Account & Admin)', 
