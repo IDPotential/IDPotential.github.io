@@ -107,7 +107,14 @@ def fb_deduct_credits(user_id, amount=5):
     
     @firestore.transactional
     def deduct_in_transaction(transaction, ref):
-        snapshot = transaction.get(ref)
+        # Transaction.get() might return a generator
+        results = transaction.get(ref)
+        try:
+            snapshot = next(results)
+        except TypeError:
+            # Not a generator, it's the snapshot itself
+            snapshot = results
+            
         if not snapshot.exists: 
             print(f"[DEBUG] User {user_id} document does NOT exist.")
             return False
