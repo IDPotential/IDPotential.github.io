@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../utils/registry.dart'; // Import registry
 import '../services/calculator_service.dart';
 import '../services/firestore_service.dart';
 import '../services/knowledge_service.dart';
@@ -24,6 +25,7 @@ class _GameScreenState extends State<GameScreen> {
   
   // Game State
   int? _selectedRole;
+  bool _isVideoActive = false; // Restore state variable
   String _roomName = '';
 
   @override
@@ -179,7 +181,13 @@ class _GameScreenState extends State<GameScreen> {
                     ],
                   ),
                   const SizedBox(height: 24),
-                  ElevatedButton(onPressed: _saveProfile, padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 15), child: const Text('Войти в игру')),
+                  ElevatedButton(
+                    onPressed: _saveProfile,
+                    style: ElevatedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 15),
+                    ),
+                    child: const Text('Войти в игру'),
+                  ),
                 ],
               ),
             ),
@@ -192,39 +200,40 @@ class _GameScreenState extends State<GameScreen> {
   Widget _buildSplitScreenGame() {
     return Column(
       children: [
-        // Video Section (simulated with button)
+        // Video Section
         Expanded(
           flex: 4,
           child: Container(
             color: Colors.black87,
-            width: double.infinity,
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Icon(Icons.video_call, size: 60, color: Colors.white54),
-                const SizedBox(height: 20),
-                Text(
-                  "Комната: ...${_roomName.length > 20 ? _roomName.substring(_roomName.length - 20) : _roomName}", 
-                  style: const TextStyle(color: Colors.white70),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 30),
-                ElevatedButton.icon(
-                  icon: const Icon(Icons.videocam, color: Colors.white),
-                  label: const Text("Открыть видеозвонок (Jitsi)", style: TextStyle(color: Colors.white)),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.blueAccent,
-                    padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 15),
+            child: _isVideoActive 
+              ? _buildJitsiIframe()
+              : Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.video_call, size: 50, color: Colors.white54),
+                      const SizedBox(height: 10),
+                      Text("Комната: $_roomName", style: const TextStyle(color: Colors.white70)),
+                      const SizedBox(height: 20),
+                      ElevatedButton.icon(
+                        icon: const Icon(Icons.videocam),
+                        label: const Text("Подключиться к видео"),
+                        onPressed: () {
+                          setState(() {
+                             _isVideoActive = true;
+                          });
+                        },
+                      ),
+                       const SizedBox(height: 10),
+                      TextButton(
+                        onPressed: () {
+                           _showRoomDialog();
+                        },
+                        child: const Text("Сменить комнату", style: TextStyle(color: Colors.blueAccent)),
+                      )
+                    ],
                   ),
-                  onPressed: _launchVideo,
                 ),
-                const SizedBox(height: 10),
-                TextButton(
-                  onPressed: _showRoomDialog,
-                  child: const Text("Сменить комнату", style: TextStyle(color: Colors.white54)),
-                )
-              ],
-            ),
           ),
         ),
         
@@ -261,15 +270,31 @@ class _GameScreenState extends State<GameScreen> {
     );
   }
 
-  Future<void> _launchVideo() async {
-    final url = Uri.parse('https://meet.jit.si/$_roomName');
-    if (await canLaunchUrl(url)) {
-      await launchUrl(url, mode: LaunchMode.externalApplication);
-    } else {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Could not launch video')));
-      }
+  Widget _buildJitsiIframe() {
+    final String viewType = 'jitsi-meet-$_roomName';
+    
+    // Register the view factory using our helper util
+    try {
+      registerJitsiViewFactory(viewType, 'https://meet.jit.si/$_roomName');
+    } catch(e) {
+      debugPrint("Registry error (ignore if already registered): $e");
     }
+
+    return Stack(
+      children: [
+        HtmlElementView(viewType: viewType),
+        Positioned(
+          top: 10,
+          right: 10,
+          child: FloatingActionButton(
+            mini: true,
+            backgroundColor: Colors.red,
+            child: const Icon(Icons.call_end),
+            onPressed: () => setState(() => _isVideoActive = false),
+          ),
+        )
+      ],
+    );
   }
 
   Widget _buildRolesGrid() {
@@ -412,6 +437,7 @@ class _GameScreenState extends State<GameScreen> {
     if (result != null && result.isNotEmpty) {
       setState(() {
         _roomName = result;
+        _isVideoActive = false;
       });
     }
   }
