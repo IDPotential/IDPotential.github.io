@@ -60,9 +60,23 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<void> _pasteToken() async {
-    final data = await Clipboard.getData(Clipboard.kTextPlain);
-    if (data?.text != null) {
-      _tokenController.text = data!.text!;
+    try {
+      final data = await Clipboard.getData(Clipboard.kTextPlain);
+      if (data?.text != null) {
+        _tokenController.text = data!.text!;
+      } else {
+        if (mounted) {
+           ScaffoldMessenger.of(context).showSnackBar(
+             const SnackBar(content: Text('Буфер обмена пуст или недоступен. Используйте Ctrl+V.')),
+           );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+         ScaffoldMessenger.of(context).showSnackBar(
+           const SnackBar(content: Text('Не удалось вставить: Браузер блокирует доступ. Нажмите Ctrl+V')),
+         );
+      }
     }
   }
 

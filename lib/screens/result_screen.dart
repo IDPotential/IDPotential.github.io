@@ -146,14 +146,23 @@ class _ResultScreenState extends State<ResultScreen> {
               ListTile(
                 leading: const Icon(Icons.copy),
                 title: const Text('Скопировать текст'),
-                onTap: () async {
-                  await Clipboard.setData(ClipboardData(text: text));
-                  if (mounted) {
-                    Navigator.pop(context);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Текст скопирован в буфер обмена'), backgroundColor: Colors.green),
-                    );
-                  }
+                onTap: () {
+                  // Don't wait, just do it. 
+                  Clipboard.setData(ClipboardData(text: text)).then((_) {
+                     if (mounted) {
+                        Navigator.pop(context);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Текст скопирован!'), backgroundColor: Colors.green),
+                        );
+                     }
+                  }).catchError((e) {
+                     if (mounted) {
+                        Navigator.pop(context);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Ошибка копирования. Используйте выделение текста.'), backgroundColor: Colors.red),
+                        );
+                     }
+                  });
                 },
               ),
               ListTile(
@@ -161,7 +170,13 @@ class _ResultScreenState extends State<ResultScreen> {
                 title: const Text('Telegram'),
                 onTap: () {
                   Navigator.pop(context);
-                  _launchSocial('https://t.me/share/url?url=${Uri.encodeComponent('https://idpotential.github.io')}&text=${Uri.encodeComponent(text)}');
+                  // Use only 'url' or 'text'. combining them:
+                  // For Telegram Web Share: https://t.me/share/url?url={url}&text={text}
+                  // If we only have text, we can try putting it all in text, or use a dummy URL.
+                  // BETTER: Use just text param if no URL.
+                  // BUT: t.me/share/url REQUIRES url param usually. 
+                  // Let's use the app URL as the shared URL and the result in text.
+                  _launchSocial('https://t.me/share/url?url=${Uri.encodeComponent("https://idpotential.github.io")}&text=${Uri.encodeComponent(text)}');
                 },
               ),
               ListTile(
