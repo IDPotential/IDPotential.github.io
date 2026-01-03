@@ -295,14 +295,32 @@ class FirestoreService {
       if (type == 'credits' || type == 'deposit' || type == 'subscription' || type == 'bonus') {
         if (value != null && value > 0) {
            transaction.update(userRef, {'credits': FieldValue.increment(value)});
+           
+           // Add notification message to the request itself
+           transaction.update(requestRef, {
+             'status': 'completed',
+             'processedBy': uid,
+             'processedAt': FieldValue.serverTimestamp(),
+             'answer': 'Баланс пополнен на $value кр.', // System notification
+             'is_answered': 1,
+           });
+           return; // Return early as we did the update above
         }
       } else if (type == 'upgrade') {
          transaction.update(userRef, {'pgmd': 2}); // Set to Researcher
-         // Optional: Add bonus credits for upgrade? Bot adds 20.
          transaction.update(userRef, {'credits': FieldValue.increment(20)});
+         
+         transaction.update(requestRef, {
+             'status': 'completed',
+             'processedBy': uid,
+             'processedAt': FieldValue.serverTimestamp(),
+             'answer': 'Статус повышен до "Исследователь". Начислено 20 кр.',
+             'is_answered': 1,
+         });
+         return;
       }
 
-      // Mark request as completion
+      // Default completion for other types or if value was 0
       transaction.update(requestRef, {
         'status': 'completed',
         'processedBy': uid,
@@ -340,7 +358,7 @@ class FirestoreService {
     return _db
         .collection('requests')
         .where('userId', isEqualTo: uid)
-        .where('type', isEqualTo: 'question') // Only questions for now? Or all? User said "question remains".
+        // .where('type', isEqualTo: 'question') // REMOVED filter to show all history (Deposits, Bonuses, etc.)
         .orderBy('createdAt', descending: true)
         .snapshots();
   }

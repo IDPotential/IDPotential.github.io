@@ -281,7 +281,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                    // User Q&A History
                   const Divider(height: 40, thickness: 2),
                    Text(
-                    "Мои вопросы", 
+                    "История обращений", 
                     style: Theme.of(context).textTheme.titleMedium,
                   ),
                   const SizedBox(height: 10),
@@ -494,7 +494,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
          if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
          
          final docs = snapshot.data!.docs;
-         if (docs.isEmpty) return const Text('У вас пока нет вопросов', style: TextStyle(color: Colors.grey));
+         if (docs.isEmpty) return const Text('История запросов пуста', style: TextStyle(color: Colors.grey));
 
          return ListView.builder(
             physics: const NeverScrollableScrollPhysics(),
@@ -505,34 +505,64 @@ class _ProfileScreenState extends State<ProfileScreen> {
                final question = data['text'] ?? '';
                final answer = data['answer'];
                final status = data['status'];
+               final type = data['type'];
                final date = (data['createdAt'] as Timestamp?)?.toDate().toString().split('.')[0] ?? '';
 
+               Color cardColor = Colors.white;
+               IconData icon = Icons.help_outline;
+               
+               if (type == 'deposit' || type == 'bonus' || type == 'subscription') {
+                   cardColor = Colors.green.withOpacity(0.05);
+                   icon = Icons.account_balance_wallet;
+               } else if (type == 'upgrade') {
+                   cardColor = Colors.orange.withOpacity(0.05);
+                   icon = Icons.trending_up;
+               }
+
                return Card(
+                 color: cardColor,
                  margin: const EdgeInsets.only(bottom: 8),
                  child: Padding(
                    padding: const EdgeInsets.all(12.0),
                    child: Column(
                      crossAxisAlignment: CrossAxisAlignment.start,
                      children: [
-                       Text(question, style: const TextStyle(fontWeight: FontWeight.bold)),
+                       Row(
+                         children: [
+                           Icon(icon, size: 16, color: Colors.grey),
+                           const SizedBox(width: 8),
+                           Expanded(child: Text(question, style: const TextStyle(fontWeight: FontWeight.bold))),
+                         ],
+                       ),
                        const SizedBox(height: 4),
                        Text(date, style: const TextStyle(fontSize: 10, color: Colors.grey)),
+                       
                        const Divider(),
-                       if (status == 'answered' && answer != null)
-                          Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Icon(Icons.support_agent, color: Colors.blue, size: 20),
-                              const SizedBox(width: 8),
-                              Expanded(child: Text(answer, style: const TextStyle(color: Colors.black87))),
-                            ],
-                          )
+                       
+                       if (status == 'completed' || status == 'answered') 
+                          if (answer != null)
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Icon(Icons.info_outline, color: Colors.green, size: 20),
+                                const SizedBox(width: 8),
+                                Expanded(child: Text(answer, style: const TextStyle(color: Colors.black87))),
+                              ],
+                            )
+                          else
+                             const Row(
+                              children: [
+                                Icon(Icons.check_circle, size: 16, color: Colors.green),
+                                SizedBox(width: 4),
+                                Text("Выполнено", style: TextStyle(color: Colors.green, fontSize: 12)),
+                              ],
+                            )
                        else
                           const Row(
                             children: [
                               Icon(Icons.hourglass_empty, size: 16, color: Colors.orange),
                               SizedBox(width: 4),
-                              Text("Ожидает ответа...", style: TextStyle(color: Colors.orange, fontSize: 12)),
+                              Text("Ожидает обработки...", style: TextStyle(color: Colors.orange, fontSize: 12)),
                             ],
                           )
                      ],
