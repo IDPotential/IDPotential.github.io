@@ -35,43 +35,312 @@ class _GameScreenState extends State<GameScreen> {
   
   bool _isVideoActive = false; 
   String _roomName = '';
-  // Host State
-  bool _isHost = false;
-  String _gameStage = 'selection'; // 'selection', 'voting'
-  
+  int? _playerNumber; // 1-8
+
   @override
   void initState() {
     super.initState();
     _loadProfile();
     _checkHostStatus();
+    
     if (widget.gameId != null) {
-       _checkParticipantStatus();
-       _listenToGameStage();
+       _targetGameId = widget.gameId;
+       _initGameListeners();
+    } else {
+       _fetchNearestGame();
     }
   }
 
-  void _listenToGameStage() {
-     _firestoreService.getGameStream(widget.gameId!).listen((doc) {
-        if (doc.exists && mounted) {
-           setState(() {
-              _gameStage = doc.data()?['stage'] ?? 'selection';
-           });
-        }
-     });
-  }
+  // ... _fetchNearestGame, _initGameListeners, _listenToGameStage ...
 
   void _checkParticipantStatus() {
      final user = FirebaseAuth.instance.currentUser;
-     if (user == null) return;
+     if (user == null || _targetGameId == null) return;
      
-     _firestoreService.getGameParticipantsStream(widget.gameId!).listen((event) {
+     _firestoreService.getGameParticipantsStream(_targetGameId!).listen((event) {
         final me = event.docs.where((d) => d.id == user.uid).firstOrNull;
         if (mounted) {
            setState(() {
               _participantStatus = me?.data()['status'];
+              _playerNumber = me?.data()['playerNumber'];
            });
         }
      });
+  }
+
+  // ... Host Check ...
+
+  // ... Profile Load ...
+
+  // ... Save Profile ...
+  
+  // ... _buildSetupForm ...
+  
+  // ... _buildRolesGrid ...
+
+  // ... _buildVotingBoard ...
+
+  @override
+  Widget build(BuildContext context) {
+      if (_isHost && _targetGameId != null) {
+         // Host see special layout
+         return Scaffold(
+             extendBodyBehindAppBar: true, 
+             appBar: null, // Host controls everything
+             body: Container(
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(colors: [Color(0xFF0F172A), Color(0xFF1E293B)])
+                ),
+                child: SafeArea(child: _buildHostDashboard()) 
+             )
+         );
+      }
+      
+    // Participant View
+    return Scaffold(
+      extendBodyBehindAppBar: true, 
+      appBar: _gameProfile == null 
+        ? AppBar(title: const Text('Загрузка...'), backgroundColor: Colors.transparent, elevation: 0) 
+        : null,
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [Color(0xFF0F172A), Color(0xFF1E293B)],
+          )
+        ),
+        child: SafeArea(
+          child: _isLoading 
+            ? const Center(child: CircularProgressIndicator())
+            : (_gameProfile == null ? _buildSetupForm() : _buildSplitScreenGame()),
+        ),
+      ),
+    );
+  }
+  
+  Widget _buildHostDashboard() {
+     // Host Dashboard: Grid of Players based on stage
+     return Column(
+        children: [
+           // Host Top Bar Controls
+           Container(
+             color: Colors.black45,
+             padding: const EdgeInsets.all(8),
+             child: Row(
+               children: [
+                 const Text("Ведущий", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                 const Spacer(),
+                 ToggleButtons(
+                    isSelected: [_gameStage == 'selection', _gameStage == 'voting'],
+                    onPressed: (index) {
+                       final newStage = index == 0 ? 'selection' : 'voting';
+                       _firestoreService.updateGameStage(_targetGameId!, newStage);
+                       setState(() => _gameStage = newStage);
+                    },
+                    color: Colors.white60,
+                    selectedColor: Colors.white,
+                    fillColor: Colors.blueAccent,
+                    borderRadius: BorderRadius.circular(8),
+                    children: const [
+                       Padding(padding: EdgeInsets.symmetric(horizontal: 12), child: Text("Выбор")),
+                       Padding(padding: EdgeInsets.symmetric(horizontal: 12), child: Text("Голосование")),
+                    ],
+                 )
+               ],
+             ),
+           ),
+           Expanded(
+             child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+                stream: _firestoreService.getGameParticipantsStream(_targetGameId!),
+                builder: (context, snapshot) {
+                   if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
+                   final docs = snapshot.data!.docs;
+                   
+                   return GridView.builder(
+                      padding: const EdgeInsets.all(8),
+                      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: 3, 
+                        childAspectRatio: 0.75,
+                        crossAxisSpacing: 8, mainAxisSpacing: 8
+                      ),
+                      itemCount: docs.length,
+                      itemBuilder: (context, index) {
+                         final data = docs[index].data();
+                         final name = data['name'] ?? 'Unknown';
+                         final pNum = data['playerNumber'];
+                         final roleId = data['selectedRole'];
+                         final numbers = List<int>.from(data['numbers'] ?? []);
+                         final status = data['status'];
+                         
+                         return Card(
+                            color: Colors.white12,
+                            child: Column(
+                               mainAxisAlignment: MainAxisAlignment.center,
+                               children: [
+                                  // Header: Number + Name
+                                  if (pNum != null)
+                                     CircleAvatar(radius: 12, backgroundColor: Colors.white24, child: Text("$pNum", style: const TextStyle(fontSize: 12, color: Colors.white))),
+                                  const SizedBox(height: 4),
+                                  Text(name, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold), textAlign: TextAlign.center),
+                                  
+                                  const Spacer(),
+                                  if (status == 'pending')
+                                      ElevatedButton(
+                                         style: ElevatedButton.styleFrom(minimumSize: const Size(0,30), backgroundColor: Colors.green),
+                                         onPressed: () => _firestoreService.approveParticipant(_targetGameId!, docs[index].id),
+                                         child: const Text("Принять", style: TextStyle(fontSize: 10))
+                                      )
+                                  else if (_gameStage == 'selection') ...[
+                                      // Show Diagnostic Card preview or placeholder
+                                      if (numbers.isNotEmpty)
+                                         Text("Код: ${numbers.take(3).join('-')}...", style: const TextStyle(color: Colors.grey, fontSize: 10)),
+                                      const SizedBox(height: 4),
+                                      if (roleId != null) 
+                                         Container(
+                                            padding: const EdgeInsets.all(4),
+                                            decoration: BoxDecoration(color: Colors.orange, borderRadius: BorderRadius.circular(4)),
+                                            child: Text("Роль: $roleId", style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold))
+                                         )
+                                      else
+                                         const Text("Выбирает...", style: TextStyle(color: Colors.white54, fontSize: 10))
+                                  ] else ...[
+                                      // Voting Mode: Show Role 
+                                      if (roleId != null)
+                                         Text("Роль: $roleId", style: const TextStyle(color: Colors.orangeAccent, fontSize: 16, fontWeight: FontWeight.bold))
+                                      else
+                                         const Text("?", style: TextStyle(color: Colors.white54))
+                                  ],
+                                  const Spacer(),
+                               ],
+                            ),
+                         );
+                      },
+                   );
+                },
+             ),
+           )
+        ],
+     );
+  }
+
+  Widget _buildTopPanel() {
+    if (_targetGameId == null) {
+      // No game found - Show "No scheduled games"
+      return Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.search_off, size: 50, color: Colors.white54),
+                  const SizedBox(height: 20),
+                  const Text("Нет ближайших игр", style: TextStyle(color: Colors.white70)),
+                  const SizedBox(height: 20),
+                  ElevatedButton(
+                     onPressed: _fetchNearestGame,
+                     child: const Text("Обновить"),
+                  )
+                ],
+              ),
+            );
+    }
+    
+    // Game Session Mode
+    if (_participantStatus == 'approved') {
+       if (_playerNumber == null) {
+          // Need to choose number
+          return _buildNumberSelection();
+       }
+       return _isVideoActive 
+          ? _buildJitsiIframe() 
+          : _buildVideoPlaceholder();
+    } else if (_participantStatus == 'pending') {
+      return Center(
+        child: Column(
+           mainAxisSize: MainAxisSize.min,
+           children: [
+             const Icon(Icons.access_time, size: 50, color: Colors.orange),
+             const SizedBox(height: 20),
+             const Text("Заявка отправлена", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+             
+             // ... Same pending UI ...
+           ],
+        ),
+      );
+    } else {
+      // Not registered
+      return Center(
+        child: Column(
+           mainAxisSize: MainAxisSize.min,
+           children: [
+             // ...
+             Text(_targetGameTitle ?? "Игра: $_targetGameId", style: const TextStyle(color: Colors.white70)),
+             const SizedBox(height: 20),
+             ElevatedButton(
+               style: ElevatedButton.styleFrom(
+                 backgroundColor: Colors.green,
+                 // ...
+               ),
+               onPressed: () async {
+                  // Pass Numbers now!
+                  await _firestoreService.joinGameRequest(_targetGameId!, _gameProfile!.name, null, _gameProfile!.numbers); 
+                  setState(() {
+                    _participantStatus = 'pending';
+                  });
+               },
+               child: const Text("Подать заявку"),
+             )
+           ],
+        ),
+      );
+    }
+  }
+
+  Widget _buildNumberSelection() {
+     return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+        stream: _firestoreService.getGameParticipantsStream(_targetGameId!),
+        builder: (context, snapshot) {
+           final usedNumbers = <int>{};
+           if (snapshot.hasData) {
+              for (var doc in snapshot.data!.docs) {
+                 if (doc.data()['playerNumber'] != null) {
+                    usedNumbers.add(doc.data()['playerNumber']);
+                 }
+              }
+           }
+           
+           return Center(
+              child: Column(
+                 mainAxisSize: MainAxisSize.min,
+                 children: [
+                    const Text("Выберите свой номер игрока (1-8)", style: TextStyle(color: Colors.white, fontSize: 16)),
+                    const SizedBox(height: 20),
+                    Wrap(
+                       spacing: 10, runSpacing: 10,
+                       alignment: WrapAlignment.center,
+                       children: List.generate(8, (index) {
+                          final num = index + 1;
+                          final isTaken = usedNumbers.contains(num);
+                          return ElevatedButton(
+                             style: ElevatedButton.styleFrom(
+                                backgroundColor: isTaken ? Colors.grey : Colors.blue,
+                                shape: const CircleBorder(),
+                                padding: const EdgeInsets.all(20)
+                             ),
+                             onPressed: isTaken ? null : () async {
+                                await _firestoreService.setPlayerNumber(_targetGameId!, num);
+                                setState(() {
+                                   _playerNumber = num;
+                                });
+                             },
+                             child: Text("$num"),
+                          );
+                       }),
+                    )
+                 ],
+              ),
+           );
+        }
+     );
   }
 
   Future<void> _checkHostStatus() async {
@@ -268,8 +537,10 @@ class _GameScreenState extends State<GameScreen> {
   }
 
   Widget _buildVotingBoard() {
+     if (_targetGameId == null) return const Center(child: Text("Нет активной игры"));
+     
      return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-        stream: _firestoreService.getGameParticipantsStream(widget.gameId!),
+        stream: _firestoreService.getGameParticipantsStream(_targetGameId!),
         builder: (context, snapshot) {
            if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
            
@@ -322,7 +593,7 @@ class _GameScreenState extends State<GameScreen> {
                                   minimumSize: const Size(0, 30),
                                 ),
                                 onPressed: () {
-                                   _firestoreService.voteForPlayer(widget.gameId!, uid);
+                                   _firestoreService.voteForPlayer(_targetGameId!, uid);
                                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Голос за $name учтен')));
                                 },
                                 child: const Text("Голос", style: TextStyle(fontSize: 12)),
@@ -360,7 +631,7 @@ class _GameScreenState extends State<GameScreen> {
             : (_gameProfile == null ? _buildSetupForm() : _buildSplitScreenGame()),
         ),
       ),
-      floatingActionButton: (_isHost && widget.gameId != null) 
+      floatingActionButton: (_isHost && _targetGameId != null) 
           ? FloatingActionButton(
               onPressed: _showHostPanel,
               backgroundColor: Colors.purple,
@@ -422,11 +693,25 @@ class _GameScreenState extends State<GameScreen> {
   }
 
   Widget _buildTopPanel() {
-    if (widget.gameId == null) {
-      // Training Mode / Local
+    if (_targetGameId == null) {
+      // No game found - Show "No scheduled games" or Training Mode
       return _isVideoActive 
           ? _buildJitsiIframe() 
-          : _buildVideoPlaceholder();
+          : Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.search_off, size: 50, color: Colors.white54),
+                  const SizedBox(height: 20),
+                  const Text("Нет ближайших игр", style: TextStyle(color: Colors.white70)),
+                  const SizedBox(height: 20),
+                  ElevatedButton(
+                     onPressed: _fetchNearestGame,
+                     child: const Text("Обновить"),
+                  )
+                ],
+              ),
+            );
     }
     
     // Game Session Mode
@@ -468,7 +753,7 @@ class _GameScreenState extends State<GameScreen> {
              const SizedBox(height: 20),
              const Text("Регистрация на игру", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
              const SizedBox(height: 10),
-             Text("Игра: ${widget.gameId}", style: const TextStyle(color: Colors.white70)), // Ideally pass Title
+             Text(_targetGameTitle ?? "Игра: $_targetGameId", style: const TextStyle(color: Colors.white70)),
              const SizedBox(height: 20),
              ElevatedButton(
                style: ElevatedButton.styleFrom(
@@ -476,7 +761,7 @@ class _GameScreenState extends State<GameScreen> {
                  padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 15),
                ),
                onPressed: () async {
-                  await _firestoreService.joinGameRequest(widget.gameId!, _gameProfile!.name, null); // Telegram handle not stored in profile currently
+                  await _firestoreService.joinGameRequest(_targetGameId!, _gameProfile!.name, null); // Telegram handle not stored in profile currently
                   setState(() {
                     _participantStatus = 'pending';
                   });
@@ -610,9 +895,9 @@ class _GameScreenState extends State<GameScreen> {
                 _selectedRole = number;
               });
               
-              if (widget.gameId != null) {
+              if (_targetGameId != null) {
                   // Sync selection
-                  await _firestoreService.updateParticipantRole(widget.gameId!, number);
+                  await _firestoreService.updateParticipantRole(_targetGameId!, number);
                   if (context.mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Выбрана роль: $name (Отправлено ведущему)')));
                   }
@@ -631,7 +916,7 @@ class _GameScreenState extends State<GameScreen> {
   }
 
   void _showHostPanel() {
-    if (widget.gameId == null) return;
+    if (_targetGameId == null) return;
     
     showModalBottomSheet(
       context: context,
@@ -670,7 +955,7 @@ class _GameScreenState extends State<GameScreen> {
                                backgroundColor: _gameStage == 'selection' ? Colors.blue : Colors.blueGrey
                             ),
                             onPressed: () {
-                               _firestoreService.updateGameStage(widget.gameId!, 'selection');
+                               _firestoreService.updateGameStage(_targetGameId!, 'selection');
                                 setSheetState(() {});
                                // Main set state handled by stream listener
                             },
@@ -684,7 +969,7 @@ class _GameScreenState extends State<GameScreen> {
                                backgroundColor: _gameStage == 'voting' ? Colors.purple : Colors.blueGrey
                             ),
                             onPressed: () {
-                               _firestoreService.updateGameStage(widget.gameId!, 'voting');
+                               _firestoreService.updateGameStage(_targetGameId!, 'voting');
                                setSheetState(() {});
                             },
                             child: const Text("Голосование"),
@@ -697,7 +982,7 @@ class _GameScreenState extends State<GameScreen> {
                 const Divider(),
                 Expanded(
                   child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-                    stream: _firestoreService.getGameParticipantsStream(widget.gameId!),
+                    stream: _firestoreService.getGameParticipantsStream(_targetGameId!),
                     builder: (context, snapshot) {
                       if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
                       
@@ -738,7 +1023,7 @@ class _GameScreenState extends State<GameScreen> {
                                       Padding(
                                         padding: const EdgeInsets.only(top: 5),
                                         child: InkWell(
-                                           onTap: () => _firestoreService.approveParticipant(widget.gameId!, userId),
+                                           onTap: () => _firestoreService.approveParticipant(_targetGameId!, userId),
                                            child: Container(
                                               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                                               decoration: BoxDecoration(color: Colors.green, borderRadius: BorderRadius.circular(4)),

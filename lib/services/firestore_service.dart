@@ -294,9 +294,22 @@ class FirestoreService {
         .snapshots();
   }
   
+  Future<QueryDocumentSnapshot<Map<String, dynamic>>?> getNearestGame() async {
+    final snapshot = await _db.collection('games')
+        .where('status', whereIn: ['scheduled', 'active'])
+        .orderBy('scheduledAt')
+        .limit(1)
+        .get();
+        
+    if (snapshot.docs.isNotEmpty) {
+      return snapshot.docs.first;
+    }
+    return null;
+  }
+  
   // --- Game Participation & Roles ---
   
-  Future<void> joinGameRequest(String gameId, String userName, String? telegram) async {
+  Future<void> joinGameRequest(String gameId, String userName, String? telegram, List<int> numbers) async {
      final user = _auth.currentUser;
      if (user == null) return;
      
@@ -304,10 +317,23 @@ class FirestoreService {
        'userId': user.uid,
        'name': userName,
        'telegram': telegram,
+       'numbers': numbers, // Save Diagnostic numbers
        'status': 'pending', // pending, approved
+       'playerNumber': null, // 1-8
        'selectedRole': null,
        'updatedAt': FieldValue.serverTimestamp(),
+       'votes': [],
      }, SetOptions(merge: true));
+  }
+  
+  Future<void> setPlayerNumber(String gameId, int number) async {
+    final user = _auth.currentUser;
+    if (user == null) return;
+    
+    // Transaction to ensure uniqueness? For MVP just update, UI filters used ones.
+    await _db.collection('games').doc(gameId).collection('participants').doc(user.uid).update({
+      'playerNumber': number,
+    });
   }
   
   Future<void> approveParticipant(String gameId, String userId) async {
