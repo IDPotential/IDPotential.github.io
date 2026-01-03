@@ -69,11 +69,15 @@ class _CalculationScreenState extends State<CalculationScreen> {
       
       String id;
       if (widget.existingCalculation != null && widget.existingCalculation!.firebaseId != null) {
-        // UPDATE
+        // UPDATE (No charge)
         id = widget.existingCalculation!.firebaseId!;
         await _firestoreService.updateCalculation(id, calculation);
       } else {
-        // CREATE
+        // CREATE (Charge 5 credits)
+        final bool success = await _firestoreService.consumeCredit(5);
+        if (!success) {
+           throw Exception("Недостаточно кредитов! Требуется 5 кр.");
+        }
         id = await _firestoreService.saveCalculation(calculation);
       }
 

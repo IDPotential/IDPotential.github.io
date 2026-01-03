@@ -12,6 +12,7 @@ import '../services/calculator_service.dart';
 import '../services/knowledge_service.dart';
 import '../widgets/diagnostic_scheme.dart';
 import '../utils/file_saver.dart';
+import '../services/firestore_service.dart'; // import
 import 'role_detail_screen.dart';
 
 class ResultScreen extends StatefulWidget {
@@ -30,16 +31,82 @@ class _ResultScreenState extends State<ResultScreen> {
   late String _decryptionText;
   late String _veryDetailedText;
   ResultViewMode _viewMode = ResultViewMode.text;
+  bool _isDecrypted = false;
   
   @override
   void initState() {
     super.initState();
+    _isDecrypted = widget.calculation.decryption == 1;
     _analysis = CalculatorService.analyzeCalculation(
       widget.calculation.numbers,
       widget.calculation.gender,
     );
     _decryptionText = KnowledgeService.generateDetailedDescription(widget.calculation);
     _veryDetailedText = KnowledgeService.generateVeryDetailedDescription(widget.calculation);
+  }
+
+  Future<void> _handleDetailedView() async {
+    if (_isDecrypted) {
+       setState(() {
+         _viewMode = ResultViewMode.detailed;
+       });
+       return;
+    }
+
+    // Ask for payment
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Открыть подробное описание?'),
+        content: const Text('Стоимость: 20 кредитов.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Отмена'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Открыть (-20 кр.)'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      if (!mounted) return;
+      setState(() => _isSaving = true);
+      
+      try {
+        final success = await FirestoreService().consumeCredit(20);
+        if (!success) {
+           throw Exception("Недостаточно кредитов!");
+        }
+
+        if (widget.calculation.firebaseId != null) {
+          await FirestoreService().setCalculationPaid(widget.calculation.firebaseId!);
+        }
+
+        setState(() {
+          _isDecrypted = true;
+          _viewMode = ResultViewMode.detailed;
+        });
+
+        if (mounted) {
+           ScaffoldMessenger.of(context).showSnackBar(
+             const SnackBar(content: Text('Доступ открыт!'), backgroundColor: Colors.green),
+           );
+        }
+
+      } catch (e) {
+        if (mounted) {
+           ScaffoldMessenger.of(context).showSnackBar(
+             SnackBar(content: Text('Ошибка: $e'), backgroundColor: Colors.red),
+           );
+        }
+      } finally {
+        if (mounted) setState(() => _isSaving = false);
+      }
+    }
   }
   
   final GlobalKey _globalKey = GlobalKey();
@@ -317,15 +384,23 @@ class _ResultScreenState extends State<ResultScreen> {
                 Expanded(
                   child: ElevatedButton(
                     onPressed: () {
-                      setState(() {
-                        _viewMode = ResultViewMode.detailed;
-                      });
+                         if (_viewMode == ResultViewMode.detailed) return;
+                         _handleDetailedView();
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: _viewMode == ResultViewMode.detailed ? Theme.of(context).primaryColor : null,
                       foregroundColor: _viewMode == ResultViewMode.detailed ? Colors.white : null,
                     ),
-                    child: const Text('Подробнее'),
+                    child: Row(
+                       mainAxisAlignment: MainAxisAlignment.center,
+                       children: [
+                         const Text('Подробнее'),
+                         if (!_isDecrypted) ...[
+                            const SizedBox(width: 4),
+                            const Icon(Icons.lock, size: 14),
+                         ]
+                       ],
+                    ),
                   ),
                 ),
               ],

@@ -7,6 +7,8 @@ import 'package:url_launcher/url_launcher.dart';
 // import 'dart:io' show Platform;
 
 import 'calculation_screen.dart';
+import '../services/firestore_service.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -27,6 +29,44 @@ class HomeScreen extends StatelessWidget {
               padding: const EdgeInsets.all(16.0),
               child: Column(
                 children: [
+                  // User Info & Credits
+                  StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
+                    stream: FirestoreService().getUserData(),
+                    builder: (context, snapshot) {
+                      if (snapshot.hasError) return const SizedBox();
+                      
+                      int credits = 0;
+                      if (snapshot.hasData && snapshot.data!.exists) {
+                         credits = snapshot.data!.data()?['credits'] ?? 0;
+                      }
+
+                      return Container(
+                        margin: const EdgeInsets.only(bottom: 20),
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: Colors.blueAccent.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(color: Colors.blueAccent.withOpacity(0.3)),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(Icons.account_balance_wallet, color: Colors.blueAccent, size: 20),
+                            const SizedBox(width: 8),
+                            Text(
+                              '$credits кр.',
+                              style: const TextStyle(
+                                fontSize: 16, 
+                                fontWeight: FontWeight.bold,
+                                color: Colors.blueAccent
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+                  
                   // Logo
                   Container(
                     height: 100, // Reduced from 120

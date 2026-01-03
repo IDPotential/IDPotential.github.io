@@ -130,6 +130,13 @@ class FirestoreService {
     });
   }
 
+  // Set Calculation as Paid (Decrypted)
+  Future<void> setCalculationPaid(String logId) async {
+    final uid = _userId;
+    if (uid == null) return;
+    await _db.collection('users').doc(uid).collection('calculations').doc(logId).update({'decryption': 1});
+  }
+
   // --- User Data ---
 
   // Get user document stream (Credits, Role)
@@ -139,8 +146,8 @@ class FirestoreService {
     return _db.collection('users').doc(uid).snapshots();
   }
 
-  // Consume a credit (Transaction)
-  Future<bool> consumeCredit() async {
+  // Consume credits (Transaction)
+  Future<bool> consumeCredit(int amount) async {
     final uid = _userId;
     if (uid == null) return false;
     
@@ -162,8 +169,8 @@ class FirestoreService {
            return true; // Free pass
         }
 
-        if (currentCredits > 0) {
-          transaction.update(userRef, {'credits': currentCredits - 1});
+        if (currentCredits >= amount) {
+          transaction.update(userRef, {'credits': currentCredits - amount});
           return true;
         } else {
           return false; // Not enough credits
