@@ -310,4 +310,38 @@ class FirestoreService {
       });
     });
   }
+  // Answer Request (Admin Action for Questions)
+  Future<void> answerRequest(String requestId, String answerText) async {
+    final uid = _userId;
+    if (uid == null) return;
+    
+    // Check admin permissions (simplified)
+    final currentUserDoc = await _db.collection('users').doc(uid).get();
+    final role = currentUserDoc.data()?['role'];
+    final pgmd = currentUserDoc.data()?['pgmd'];
+    if (role != 'admin' && pgmd != 100) throw Exception("Unauthorized");
+
+    final requestRef = _db.collection('requests').doc(requestId);
+    
+    await requestRef.update({
+      'status': 'answered',
+      'answer': answerText,
+      'answeredBy': uid,
+      'answeredAt': FieldValue.serverTimestamp(),
+      'is_answered': 1,
+    });
+  }
+
+  // Get User's Requests Stream (for Micro-Chat)
+  Stream<QuerySnapshot<Map<String, dynamic>>> getUserRequests() {
+    final uid = _userId;
+    if (uid == null) return const Stream.empty();
+    
+    return _db
+        .collection('requests')
+        .where('userId', isEqualTo: uid)
+        .where('type', isEqualTo: 'question') // Only questions for now? Or all? User said "question remains".
+        .orderBy('createdAt', descending: true)
+        .snapshots();
+  }
 }

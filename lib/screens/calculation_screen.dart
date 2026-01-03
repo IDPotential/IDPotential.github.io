@@ -312,6 +312,16 @@ class _CalculationScreenState extends State<CalculationScreen> {
                         ),
                 ),
               ),
+              if (widget.existingCalculation == null)
+                const Padding(
+                  padding: EdgeInsets.only(top: 8.0),
+                  child: Center(
+                    child: Text(
+                      'Стоимость расчета: 5 кредитов',
+                      style: TextStyle(color: Colors.grey, fontSize: 12),
+                    ),
+                  ),
+                ),
             ],
           ),
         ),

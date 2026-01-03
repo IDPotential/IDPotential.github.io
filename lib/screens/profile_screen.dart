@@ -268,7 +268,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   ],
                 ),
                 
-                // Admin Panel Section
                 if (isAdmin) ...[
                   const Divider(height: 40, thickness: 2),
                   Text(
@@ -278,6 +277,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   ),
                   const SizedBox(height: 10),
                   _buildAdminRequestsList(),
+                ] else ...[
+                   // User Q&A History
+                  const Divider(height: 40, thickness: 2),
+                   Text(
+                    "Мои вопросы", 
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
+                  const SizedBox(height: 10),
+                  _buildUserRequestsList(),
                 ],
               ],
             ),
@@ -370,6 +378,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         tooltip: 'Telegram: $userContact',
                       ),
                     
+                    if (type == 'question')
+                       IconButton(
+                        icon: const Icon(Icons.reply, color: Colors.blueAccent),
+                        onPressed: () => _replyToQuestion(doc.id),
+                        tooltip: 'Ответить',
+                      ),
+                      
                     if (type != 'question') 
                       IconButton(
                         icon: const Icon(Icons.check_circle, color: Colors.green),
@@ -385,9 +400,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     
                     if (type == 'question')
                        IconButton(
-                        icon: const Icon(Icons.done, color: Colors.grey),
+                        icon: const Icon(Icons.done_all, color: Colors.grey),
                         onPressed: () => _processRequest(doc.id, data['userId'], 'manual_close', 0),
-                        tooltip: 'Отметить прочитанным',
+                        tooltip: 'Закрыть без ответа',
                       ),
                   ],
                 ),
@@ -402,13 +417,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Future<void> _approveRequest(String requestId, String userId, String type, int? initialValue) async {
       int amountToCredit = initialValue ?? 0;
       
-      // If it's a bonus request OR if admin wants to change defaults (optional, but requested for Bonus)
-      // User asked: "ответ на этот запрос администратор сам может написать сумму пополнения"
-      // Let's ALWAYS show amount dialog for 'bonus'. For others, maybe just confirm?
-      // Let's show input for bonus.
-      
       if (type == 'bonus' || type == 'deposit') {
-          final controller = TextEditingController(text: amountToCredit > 0 ? amountToCredit.toString() : '');
+          // ... (existing amount dialog logic) ...
+         final controller = TextEditingController(text: amountToCredit > 0 ? amountToCredit.toString() : '');
           final enteredAmount = await showDialog<int>(
             context: context,
             builder: (context) => AlertDialog(
@@ -432,10 +443,105 @@ class _ProfileScreenState extends State<ProfileScreen> {
             )
           );
           
-          if (enteredAmount == null) return; // Cancelled
+          if (enteredAmount == null) return; 
           amountToCredit = enteredAmount;
       }
 
       await _processRequest(requestId, userId, type, amountToCredit);
+  }
+
+  Future<void> _replyToQuestion(String requestId) async {
+      final controller = TextEditingController();
+      final reply = await showDialog<String>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Ответить пользователю'),
+          content: TextField(
+            controller: controller,
+            decoration: const InputDecoration(hintText: 'Введите ответ...', border: OutlineInputBorder()),
+            maxLines: 5,
+            autofocus: true,
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(context), child: const Text('Отмена')),
+             ElevatedButton(
+              onPressed: () {
+                if (controller.text.trim().isNotEmpty) {
+                   Navigator.pop(context, controller.text.trim());
+                }
+              }, 
+              child: const Text('Отправить')
+            ),
+          ]
+        )
+      );
+
+      if (reply != null && reply.isNotEmpty) {
+          try {
+             await _firestoreService.answerRequest(requestId, reply);
+             if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Ответ отправлен')));
+          } catch(e) {
+             if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Ошибка: $e')));
+          }
+      }
+  }
+
+  Widget _buildUserRequestsList() {
+    return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+      stream: _firestoreService.getUserRequests(),
+      builder: (context, snapshot) {
+         if (snapshot.hasError) return const Text('Ошибка загрузки');
+         if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
+         
+         final docs = snapshot.data!.docs;
+         if (docs.isEmpty) return const Text('У вас пока нет вопросов', style: TextStyle(color: Colors.grey));
+
+         return ListView.builder(
+            physics: const NeverScrollableScrollPhysics(),
+            shrinkWrap: true,
+            itemCount: docs.length,
+            itemBuilder: (context, index) {
+               final data = docs[index].data();
+               final question = data['text'] ?? '';
+               final answer = data['answer'];
+               final status = data['status'];
+               final date = (data['createdAt'] as Timestamp?)?.toDate().toString().split('.')[0] ?? '';
+
+               return Card(
+                 margin: const EdgeInsets.only(bottom: 8),
+                 child: Padding(
+                   padding: const EdgeInsets.all(12.0),
+                   child: Column(
+                     crossAxisAlignment: CrossAxisAlignment.start,
+                     children: [
+                       Text(question, style: const TextStyle(fontWeight: FontWeight.bold)),
+                       const SizedBox(height: 4),
+                       Text(date, style: const TextStyle(fontSize: 10, color: Colors.grey)),
+                       const Divider(),
+                       if (status == 'answered' && answer != null)
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Icon(Icons.support_agent, color: Colors.blue, size: 20),
+                              const SizedBox(width: 8),
+                              Expanded(child: Text(answer, style: const TextStyle(color: Colors.black87))),
+                            ],
+                          )
+                       else
+                          const Row(
+                            children: [
+                              Icon(Icons.hourglass_empty, size: 16, color: Colors.orange),
+                              SizedBox(width: 4),
+                              Text("Ожидает ответа...", style: TextStyle(color: Colors.orange, fontSize: 12)),
+                            ],
+                          )
+                     ],
+                   ),
+                 ),
+               );
+            }
+         );
+      }
+    );
   }
 }
