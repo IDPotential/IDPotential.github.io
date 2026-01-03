@@ -173,7 +173,6 @@ class FirestoreService {
       print("Transaction failed: $e");
       return false;
     }
-    }
   } // End consumeCredit
 
   // --- Game Profile (Territory of Self) ---
