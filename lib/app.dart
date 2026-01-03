@@ -3,6 +3,7 @@ import 'screens/home_screen.dart';
 import 'screens/calculation_screen.dart';
 import 'screens/history_screen.dart';
 import 'screens/library_screen.dart';
+import 'screens/game_screen.dart';
 
 class AppHome extends StatefulWidget {
   const AppHome({super.key});
@@ -18,12 +19,14 @@ class _AppHomeState extends State<AppHome> {
     const HomeScreen(),
     const HistoryScreen(),
     const LibraryScreen(),
+    const GameScreen(),
   ];
   
   final List<String> _titles = [
     'Диагностика',
     'История',
     'Библиотека',
+    'Территория себя',
   ];
 
   @override
@@ -56,6 +59,7 @@ class _AppHomeState extends State<AppHome> {
             _selectedIndex = index;
           });
         },
+        type: BottomNavigationBarType.fixed, // Ensure >3 items show labels
         items: const [
           BottomNavigationBarItem(
             icon: Icon(Icons.home),
@@ -68,6 +72,10 @@ class _AppHomeState extends State<AppHome> {
           BottomNavigationBarItem(
             icon: Icon(Icons.menu_book),
             label: 'Библиотека',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.casino), // Game icon
+            label: 'Игра',
           ),
         ],
       ),

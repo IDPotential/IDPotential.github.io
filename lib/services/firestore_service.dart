@@ -173,5 +173,38 @@ class FirestoreService {
       print("Transaction failed: $e");
       return false;
     }
+  // --- Game Profile (Territory of Self) ---
+  
+  // Get Game Profile
+  Future<Calculation?> getGameProfile() async {
+    final uid = _userId;
+    if (uid == null) return null;
+
+    final doc = await _db.collection('users').doc(uid).collection('game_profile').doc('main').get();
+    if (doc.exists) {
+      final data = doc.data()!;
+      data['id'] = 'main'; // Dummy ID
+      return Calculation.fromMap(data);
+    }
+    return null;
+  }
+
+  // Save Game Profile
+  Future<void> saveGameProfile(Calculation calculation) async {
+    final uid = _userId;
+    if (uid == null) throw Exception("User not logged in");
+
+    final docRef = _db.collection('users').doc(uid).collection('game_profile').doc('main');
+    
+    final data = {
+      'name': calculation.name,
+      'birthDate': calculation.birthDate,
+      'gender': calculation.gender,
+      'numbers': calculation.numbers,
+      'createdAt': calculation.createdAt.toIso8601String(),
+      'updatedAt': FieldValue.serverTimestamp(),
+    };
+
+    await docRef.set(data, SetOptions(merge: true));
   }
 }
