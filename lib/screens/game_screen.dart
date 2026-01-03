@@ -29,9 +29,14 @@ class _GameScreenState extends State<GameScreen> {
   final FirestoreService _firestoreService = FirestoreService();
   
   // Game State
+  String? _targetGameId;
+  String? _targetGameTitle;
+  bool _isHost = false; 
+  String _gameStage = 'selection'; // selection, voting
+
   // Registration State
   String? _participantStatus; // 'pending', 'approved', null
-  int? _selectedRole; // Restored
+  int? _selectedRole;
   
   bool _isVideoActive = false; 
   String _roomName = '';
@@ -51,7 +56,37 @@ class _GameScreenState extends State<GameScreen> {
     }
   }
 
-  // ... _fetchNearestGame, _initGameListeners, _listenToGameStage ...
+  Future<void> _fetchNearestGame() async {
+      final gameDoc = await _firestoreService.getNearestGame();
+      if (gameDoc != null) {
+         if (mounted) {
+            setState(() {
+               _targetGameId = gameDoc.id;
+               _targetGameTitle = gameDoc.data()['title'];
+            });
+            _initGameListeners();
+         }
+      } else {
+         if (mounted) setState(() {});
+      }
+  }
+
+  void _initGameListeners() {
+      if (_targetGameId == null) return;
+      _listenToGameStage();
+      _checkParticipantStatus();
+  }
+
+  void _listenToGameStage() {
+     if (_targetGameId == null) return;
+     _firestoreService.getGameStream(_targetGameId!).listen((doc) {
+        if (!doc.exists) return;
+        final data = doc.data();
+        if (data != null && data['stage'] != null) {
+           if (mounted) setState(() => _gameStage = data['stage']);
+        }
+     });
+  }
 
   void _checkParticipantStatus() {
      final user = FirebaseAuth.instance.currentUser;

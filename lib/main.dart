@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'app.dart';
 import 'screens/login_screen.dart';
 import 'services/database_service.dart';
@@ -29,8 +30,15 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Индивидуальная Диагностика Потенциала',
-      theme: ThemeData(
-        fontFamily: 'DINPro',
+      localizationsDelegates: const [
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      supportedLocales: const [
+        Locale('ru', 'RU'), // Russian
+      ],
+      theme: ThemeData(        fontFamily: 'DINPro',
         useMaterial3: true,
         brightness: Brightness.dark,
         scaffoldBackgroundColor: const Color(0xFF0F172A), // Slate 900

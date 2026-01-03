@@ -286,6 +286,17 @@ class FirestoreService {
     
     return docRef.id;
   }
+  
+  Future<void> updateGame(String gameId, {required String title, required DateTime date}) async {
+    await _db.collection('games').doc(gameId).update({
+      'title': title,
+      'scheduledAt': date.toIso8601String(),
+    });
+  }
+  
+  Future<void> deleteGame(String gameId) async {
+    await _db.collection('games').doc(gameId).delete();
+  }
 
   Stream<QuerySnapshot<Map<String, dynamic>>> getGamesStream() {
     return _db.collection('games')

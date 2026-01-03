@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:intl/intl.dart';
 import '../services/firestore_service.dart';
 import 'game_screen.dart';
 
@@ -12,74 +14,133 @@ class GamesListScreen extends StatefulWidget {
 
 class _GamesListScreenState extends State<GamesListScreen> {
   final FirestoreService _firestoreService = FirestoreService();
+  bool _isAdmin = false;
 
-  void _showCreateGameDialog() {
-    final titleController = TextEditingController();
-    DateTime selectedDate = DateTime.now();
+  @override
+  void initState() {
+    super.initState();
+    _checkAdminStatus();
+  }
+
+  Future<void> _checkAdminStatus() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+    final doc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
+    final data = doc.data();
+    if (data != null) {
+      if (data['role'] == 'admin' || data['pgmd'] == 100) {
+        if (mounted) setState(() => _isAdmin = true);
+      }
+    }
+  }
+
+  void _showGameDialog({String? docId, String? currentTitle, DateTime? currentDate}) {
+    final titleController = TextEditingController(text: currentTitle);
+    DateTime selectedDate = currentDate ?? DateTime.now();
+    bool isEditing = docId != null;
 
     showDialog(
       context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setStateDialog) {
+          return AlertDialog(
+            title: Text(isEditing ? 'Редактировать игру' : 'Создать игру'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: titleController,
+                  decoration: const InputDecoration(labelText: 'Название игры'),
+                ),
+                const SizedBox(height: 16),
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  title: Text(
+                      "Дата: ${DateFormat('dd.MM.yyyy').format(selectedDate)}"),
+                  trailing: const Icon(Icons.calendar_today),
+                  onTap: () async {
+                    final picked = await showDatePicker(
+                      context: context,
+                      initialDate: selectedDate,
+                      firstDate: DateTime.now().subtract(const Duration(days: 1)),
+                      lastDate: DateTime.now().add(const Duration(days: 365)),
+                      locale: const Locale('ru', 'RU'),
+                    );
+                    if (picked != null) {
+                      setStateDialog(() {
+                        selectedDate = picked;
+                      });
+                    }
+                  },
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('Отмена')),
+              ElevatedButton(
+                onPressed: () async {
+                  if (titleController.text.isNotEmpty) {
+                    try {
+                      if (isEditing) {
+                        await _firestoreService.updateGame(
+                          docId!,
+                          title: titleController.text,
+                          date: selectedDate,
+                        );
+                      } else {
+                        await _firestoreService.createGame(
+                          title: titleController.text,
+                          date: selectedDate,
+                        );
+                      }
+                      if (context.mounted) Navigator.pop(context);
+                    } catch (e) {
+                      ScaffoldMessenger.of(context)
+                          .showSnackBar(SnackBar(content: Text('Ошибка: $e')));
+                    }
+                  }
+                },
+                child: Text(isEditing ? 'Сохранить' : 'Создать'),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  Future<void> _deleteGame(String docId, String title) async {
+    final confirm = await showDialog<bool>(
+      context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Создать игру'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: titleController,
-              decoration: const InputDecoration(labelText: 'Название игры'),
-            ),
-            const SizedBox(height: 16),
-            ListTile(
-              title: Text("Дата: ${selectedDate.toLocal().toString().split(' ')[0]}"),
-              trailing: const Icon(Icons.calendar_today),
-              onTap: () async {
-                final picked = await showDatePicker(
-                  context: context,
-                  initialDate: selectedDate,
-                  firstDate: DateTime.now(),
-                  lastDate: DateTime.now().add(const Duration(days: 365)),
-                );
-                if (picked != null) {
-                   setState(() { // This setState won't update Dialog UI without StatefulBuilder
-                      selectedDate = picked;
-                   });
-                   // For simplicity in this rough dialog, assume date is today or rely on quick pick
-                }
-              },
-            ),
-          ],
-        ),
+        title: const Text("Удалить игру?"),
+        content: Text("Вы уверены, что хотите удалить игру \"$title\"?"),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Отмена')),
-          ElevatedButton(
-            onPressed: () async {
-              if (titleController.text.isNotEmpty) {
-                try {
-                  await _firestoreService.createGame(
-                    title: titleController.text,
-                    date: selectedDate,
-                  );
-                  if (context.mounted) Navigator.pop(context);
-                } catch (e) {
-                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Ошибка: $e')));
-                }
-              }
-            },
-            child: const Text('Создать'),
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text("Отмена")),
+          TextButton(
+             style: TextButton.styleFrom(foregroundColor: Colors.red),
+             onPressed: () => Navigator.pop(context, true), 
+             child: const Text("Удалить")
           ),
         ],
       ),
     );
+
+    if (confirm == true) {
+       await _firestoreService.deleteGame(docId);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Игровые сессии')),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _showCreateGameDialog,
+      floatingActionButton: _isAdmin ? FloatingActionButton(
+        onPressed: () => _showGameDialog(),
         child: const Icon(Icons.add),
-      ),
+      ) : null,
       body: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
         stream: _firestoreService.getGamesStream(),
         builder: (context, snapshot) {
@@ -89,7 +150,7 @@ class _GamesListScreenState extends State<GamesListScreen> {
           final games = snapshot.data!.docs;
 
           if (games.isEmpty) {
-            return const Center(child: Text("Нет активных игр. Создайте новую!"));
+            return const Center(child: Text("Нет активных игр."));
           }
 
           return ListView.builder(
@@ -100,15 +161,40 @@ class _GamesListScreenState extends State<GamesListScreen> {
               final dateStr = game['scheduledAt'] ?? '';
               DateTime? date;
               try { date = DateTime.parse(dateStr); } catch (_) {}
+              
+              final displayDate = date != null 
+                  ? DateFormat('dd.MM.yyyy').format(date)
+                  : "Дата не указана";
+              
+              final isFinished = date != null && date.isBefore(DateTime.now().subtract(const Duration(hours: 4))); // Crude finish check
 
               return Card(
+                color: isFinished ? Colors.white10 : null,
                 margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 child: ListTile(
-                  title: Text(game['title'] ?? 'Без названия'),
-                  subtitle: Text(date != null 
-                    ? "${date.day}.${date.month}.${date.year}" 
-                    : "Дата не указана"),
-                  trailing: const Icon(Icons.arrow_forward_ios),
+                  title: Text(game['title'] ?? 'Без названия', style: TextStyle(color: isFinished ? Colors.grey : Colors.white)),
+                  subtitle: Text(displayDate, style: TextStyle(color: isFinished ? Colors.grey : Colors.white70)),
+                  trailing: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                       if (_isAdmin)
+                          PopupMenuButton(
+                             icon: const Icon(Icons.more_vert),
+                             onSelected: (value) {
+                                if (value == 'edit') {
+                                   _showGameDialog(docId: docId, currentTitle: game['title'], currentDate: date);
+                                } else if (value == 'delete') {
+                                   _deleteGame(docId, game['title'] ?? '');
+                                }
+                             },
+                             itemBuilder: (context) => [
+                                const PopupMenuItem(value: 'edit', child: Text("Изменить")),
+                                const PopupMenuItem(value: 'delete', child: Text("Удалить", style: TextStyle(color: Colors.red))),
+                             ],
+                          ),
+                       const Icon(Icons.arrow_forward_ios, size: 16),
+                    ],
+                  ),
                   onTap: () {
                     Navigator.push(
                       context,
