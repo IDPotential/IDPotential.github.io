@@ -292,7 +292,7 @@ class FirestoreService {
       }
 
       // Perform action based on type
-      if (type == 'credits' || type == 'deposit' || type == 'subscription') {
+      if (type == 'credits' || type == 'deposit' || type == 'subscription' || type == 'bonus') {
         if (value != null && value > 0) {
            transaction.update(userRef, {'credits': FieldValue.increment(value)});
         }

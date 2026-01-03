@@ -42,6 +42,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
             _buildDepositOption(userId, 'Разовое 500₽ (50 кр.)', 500, 50),
             _buildDepositOption(userId, 'Разовое 1000₽ (100 кр.)', 1000, 100),
             _buildDepositOption(userId, 'Подписка 3000₽/мес (500 кр.)', 3000, 500, isSubscription: true),
+            const Divider(),
+            _buildDepositOption(userId, 'Запрос бонуса', 0, 0, isBonus: true), // Added Bonus option
           ],
         ),
         actions: [
@@ -54,7 +56,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _buildDepositOption(String userId, String label, int price, int credits, {bool isSubscription = false}) {
+  Widget _buildDepositOption(String userId, String label, int price, int credits, {bool isSubscription = false, bool isBonus = false}) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 8.0),
       child: ElevatedButton(
@@ -65,7 +67,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         onPressed: () {
           Navigator.pop(context);
           _submitRequest(
-            type: isSubscription ? 'subscription' : 'deposit',
+            type: isBonus ? 'bonus' : (isSubscription ? 'subscription' : 'deposit'),
             text: '$label',
             value: credits,
           );
@@ -322,31 +324,39 @@ class _ProfileScreenState extends State<ProfileScreen> {
             final userContact = data['userContact'];
             final date = (data['createdAt'] as Timestamp?)?.toDate().toString() ?? '';
 
-            Color cardColor = Colors.white;
+            Color cardColor = const Color(0xFF1E293B); // Default dark
+            Color borderColor = Colors.grey;
             IconData icon = Icons.info;
             
-            if (type == 'deposit' || type == 'subscription' || type == 'credits') {
-              cardColor = Colors.green.shade50;
+            if (type == 'deposit' || type == 'subscription' || type == 'credits' || type == 'bonus') {
+              cardColor = Colors.green.withOpacity(0.1);
+              borderColor = Colors.green.withOpacity(0.5);
               icon = Icons.attach_money;
             } else if (type == 'upgrade') {
-              cardColor = Colors.orange.shade50;
+              cardColor = Colors.orange.withOpacity(0.1);
+              borderColor = Colors.orange.withOpacity(0.5);
               icon = Icons.upgrade;
             } else if (type == 'question') {
-              cardColor = Colors.blue.shade50;
+              cardColor = Colors.blue.withOpacity(0.1);
+              borderColor = Colors.blue.withOpacity(0.5);
               icon = Icons.question_answer;
             }
 
             return Card(
               color: cardColor,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+                side: BorderSide(color: borderColor),
+              ),
               margin: const EdgeInsets.only(bottom: 8),
               child: ListTile(
-                leading: Icon(icon),
-                title: Text("$userName ($type)"),
+                leading: Icon(icon, color: borderColor.withOpacity(1.0)),
+                title: Text("$userName ($type)", style: const TextStyle(fontWeight: FontWeight.bold)),
                 subtitle: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     if (text.isNotEmpty) Text(text),
-                    if (value != null) Text("Значение: $value"),
+                    if (value != null && value > 0) Text("Сумма: $value"),
                     Text(date, style: const TextStyle(fontSize: 10, color: Colors.grey)),
                   ],
                 ),
@@ -360,18 +370,25 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         tooltip: 'Telegram: $userContact',
                       ),
                     
-                    if (type != 'question') // Questions need manual answer, or just mark done
+                    if (type != 'question') 
                       IconButton(
                         icon: const Icon(Icons.check_circle, color: Colors.green),
-                        onPressed: () => _processRequest(doc.id, data['userId'], type, value),
+                        onPressed: () => _approveRequest(doc.id, data['userId'], type, value),
                         tooltip: 'Одобрить',
                       ),
                       
                     IconButton(
-                      icon: const Icon(Icons.done, color: Colors.grey),
+                      icon: const Icon(Icons.close, color: Colors.redAccent),
                       onPressed: () => _processRequest(doc.id, data['userId'], 'manual_close', 0),
-                      tooltip: 'Отметить как готово',
+                      tooltip: 'Отклонить/Закрыть',
                     ),
+                    
+                    if (type == 'question')
+                       IconButton(
+                        icon: const Icon(Icons.done, color: Colors.grey),
+                        onPressed: () => _processRequest(doc.id, data['userId'], 'manual_close', 0),
+                        tooltip: 'Отметить прочитанным',
+                      ),
                   ],
                 ),
               ),
@@ -380,5 +397,45 @@ class _ProfileScreenState extends State<ProfileScreen> {
         );
       },
     );
+  }
+
+  Future<void> _approveRequest(String requestId, String userId, String type, int? initialValue) async {
+      int amountToCredit = initialValue ?? 0;
+      
+      // If it's a bonus request OR if admin wants to change defaults (optional, but requested for Bonus)
+      // User asked: "ответ на этот запрос администратор сам может написать сумму пополнения"
+      // Let's ALWAYS show amount dialog for 'bonus'. For others, maybe just confirm?
+      // Let's show input for bonus.
+      
+      if (type == 'bonus' || type == 'deposit') {
+          final controller = TextEditingController(text: amountToCredit > 0 ? amountToCredit.toString() : '');
+          final enteredAmount = await showDialog<int>(
+            context: context,
+            builder: (context) => AlertDialog(
+              title: Text('Подтвердить пополнение ($type)'),
+              content: TextField(
+                controller: controller,
+                decoration: const InputDecoration(labelText: 'Сумма кредитов', suffixText: 'кр.'),
+                keyboardType: TextInputType.number,
+                autofocus: true,
+              ),
+              actions: [
+                TextButton(onPressed: () => Navigator.pop(context), child: const Text('Отмена')),
+                TextButton(
+                  onPressed: () {
+                    final val = int.tryParse(controller.text);
+                    Navigator.pop(context, val);
+                  }, 
+                  child: const Text('Пополнить')
+                ),
+              ]
+            )
+          );
+          
+          if (enteredAmount == null) return; // Cancelled
+          amountToCredit = enteredAmount;
+      }
+
+      await _processRequest(requestId, userId, type, amountToCredit);
   }
 }
