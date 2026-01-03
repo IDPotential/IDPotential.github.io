@@ -152,7 +152,13 @@ def fb_add_credits(user_id, amount):
     
     @firestore.transactional
     def add_in_transaction(transaction, ref):
-        snapshot = transaction.get(ref)
+        # Transaction.get() might return a generator
+        results = transaction.get(ref)
+        try:
+            snapshot = next(results)
+        except TypeError:
+            snapshot = results
+
         if not snapshot.exists:
              # Create user if not exists? Or fail?
              # For now, let's assume user exists or create basic

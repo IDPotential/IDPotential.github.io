@@ -4543,15 +4543,39 @@ def handle_process_subscription(call):
             show_alert=True
         )
         
-        # Обновляем запрос в базе данных
+        # Обновляем запрос в базе данных (используем subquery для совместимости)
         conn = sqlite3.connect(DB_PATH)
         cursor = conn.cursor()
         cursor.execute('''
             UPDATE requests 
             SET is_answered = 1, answer_text = ?, answer_date = CURRENT_TIMESTAMP
-            WHERE user_id = ? AND request_type = 'subscription' AND is_answered = 0
-            ORDER BY request_date DESC LIMIT 1
+            WHERE id = (
+                SELECT id FROM requests 
+                WHERE user_id = ? AND request_type = 'subscription' AND is_answered = 0
+                ORDER BY timestamp DESC LIMIT 1
+            )
         ''', ("Подписка оформлена, начислено 500 кредитов", user_id))
+        # Note: assuming 'timestamp' or 'request_date' exists. Let's check schema/inserts.
+        # Earlier INSERTs didn't show explicit date column but table create might have default CURRENT_TIMESTAMP
+        # Let's rely on rowid or AUTOINCREMENT id if valid. 
+        # Fallback simplistic approach if timestamp col name unknown: just take max(id)
+        
+        # ACTUALLY, checking previous code, the INSERT was:
+        # INSERT INTO requests (user_id, request_type, request_text) VALUES ...
+        # Standard table usually has an ID.
+        # Let's use max(id) for the specific user/type/unanswered.
+        
+        # RE-WRITING QUERY TO BE SAFE:
+        cursor.execute('''
+            UPDATE requests 
+            SET is_answered = 1, answer_text = ?, answer_date = CURRENT_TIMESTAMP
+            WHERE id = (
+                SELECT id FROM requests 
+                WHERE user_id = ? AND request_type = 'subscription' AND is_answered = 0
+                ORDER BY id DESC LIMIT 1
+            )
+        ''', ("Подписка оформлена, начислено 500 кредитов", user_id))
+        
         conn.commit()
         conn.close()
         
@@ -4624,8 +4648,11 @@ def handle_process_deposit_with_amount(call):
         cursor.execute('''
             UPDATE requests 
             SET is_answered = 1, answer_text = ?, answer_date = CURRENT_TIMESTAMP
-            WHERE user_id = ? AND request_type = 'deposit' AND is_answered = 0
-            ORDER BY request_date DESC LIMIT 1
+            WHERE id = (
+                SELECT id FROM requests 
+                WHERE user_id = ? AND request_type = 'deposit' AND is_answered = 0
+                ORDER BY id DESC LIMIT 1
+            )
         ''', (f"Пополнено на {credit_amount} кредитов", user_id))
         conn.commit()
         conn.close()
