@@ -145,6 +145,34 @@ def fb_deduct_credits(user_id, amount=5):
         print(f"Transaction failed: {e}")
         return False
 
+def fb_add_credits(user_id, amount):
+    print(f"[DEBUG] Adding {amount} credits to user {user_id}")
+    db = get_db()
+    user_ref = db.collection('users').document(str(user_id))
+    
+    @firestore.transactional
+    def add_in_transaction(transaction, ref):
+        snapshot = transaction.get(ref)
+        if not snapshot.exists:
+             # Create user if not exists? Or fail?
+             # For now, let's assume user exists or create basic
+             print(f"[DEBUG] User {user_id} not found, creating...")
+             transaction.set(ref, {'credits': amount, 'role': 'user', 'pgmd': 1})
+             return True
+             
+        current = int(snapshot.get('credits') or 0)
+        transaction.update(ref, {'credits': current + amount})
+        return True
+
+    transaction = db.transaction()
+    try:
+        add_in_transaction(transaction, user_ref)
+        print(f"[DEBUG] Successfully added {amount} credits to {user_id}")
+        return True
+    except Exception as e:
+        print(f"Error adding credits: {e}")
+        return False
+
 # --- LOGS ---
 
 def fb_add_log(user_id, name, birth_date, gender, result_nums):

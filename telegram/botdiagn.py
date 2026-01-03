@@ -4464,15 +4464,24 @@ def handle_approve_upgrade(call):
     try:
         user_id = call.data.split('_')[2]
         
-        # Обновляем уровень и баланс пользователя
-        conn = sqlite3.connect(DB_PATH)
-        cursor = conn.cursor()
-        cursor.execute(
-            'UPDATE Partn SET pgmd = 2, bill = bill + 20 WHERE user_id = ?',
-            (user_id,)
-        )
-        conn.commit()
-        conn.close()
+        # Обновляем уровень и баланс пользователя (Firebase)
+        from firebase_adapter import fb_update_user, fb_add_credits
+        
+        # 1. Повышаем уровень
+        fb_update_user(user_id, {'pgmd': 2})
+        
+        # 2. Начисляем 20 кредитов
+        fb_add_credits(user_id, 20)
+        
+        # Legacy SQLite Update (чтобы не ломать совместимость, если она нужна)
+        try:
+            conn = sqlite3.connect(DB_PATH)
+            cursor = conn.cursor()
+            cursor.execute('UPDATE Partn SET pgmd = 2, bill = bill + 20 WHERE user_id = ?', (user_id,))
+            conn.commit()
+            conn.close()
+        except:
+            pass
         
         # Уведомляем пользователя
         bot.send_message(
@@ -4484,7 +4493,7 @@ def handle_approve_upgrade(call):
         # Уведомляем администратора
         bot.answer_callback_query(
             call.id,
-            "✅ Уровень пользователя повышен и начислены кредиты",
+            "✅ Уровень пользователя повышен и начислены кредиты (Firebase compatible)",
             show_alert=True
         )
         
@@ -4497,104 +4506,7 @@ def handle_approve_upgrade(call):
         
     except Exception as e:
         bot.answer_callback_query(call.id, "❌ Ошибка при обработке запроса")
-# @bot.callback_query_handler(func=lambda call: call.data.startswith('process_bonus_'))
-# def handle_process_bonus(call):
-#     """Обработчик для администратора - начисление бонусов"""
-#     try:
-#         user_id = call.data.split('_')[2]
-        
-#         # Сохраняем user_id для использования в следующем шаге
-#         bot.add_data(call.from_user.id, bonus_user_id=user_id)
-        
-#         # Запрашиваем у администратора количество бонусных кредитов
-#         msg = bot.send_message(
-#             ADMIN_ID,  # Отправляем напрямую администратору по его ID
-#             "🎁 Введите количество бонусных кредитов для начисления:",
-#             reply_markup=types.ForceReply()
-#         )
-        
-#         # Регистрируем следующий шаг
-#         bot.register_next_step_handler(msg, process_bonus_amount)
-        
-#         # Удаляем кнопку из сообщения
-#         bot.edit_message_reply_markup(
-#             chat_id=call.message.chat.id,
-#             message_id=call.message.message_id,
-#             reply_markup=None
-#         )
-        
-#         bot.answer_callback_query(call.id, "Запрос отправлен ✅")
-        
-#     except Exception as e:
-#         bot.answer_callback_query(call.id, "❌ Ошибка при обработке запроса")
-#         print(f"Error in handle_process_bonus: {e}")
-
-
-# def process_bonus_amount(message):
-#     """Обработка ввода количества бонусных кредитов"""
-#     try:
-#         if message.from_user.id != ADMIN_ID:
-#             return
-            
-#         # Получаем сохраненный user_id
-#         user_data = bot.retrieve_data(message.from_user.id)
-#         user_id = user_data.get('bonus_user_id')
-        
-#         if not user_id:
-#             bot.send_message(ADMIN_ID, "❌ Ошибка: запрос не найден")
-#             return
-            
-#         try:
-#             amount = int(message.text)
-            
-#             # Обновляем баланс пользователя
-#             conn = sqlite3.connect(DB_PATH)
-#             cursor = conn.cursor()
-#             cursor.execute(
-#                 'UPDATE Partn SET bill = bill + ? WHERE user_id = ?',
-#                 (amount, user_id)
-#             )
-#             conn.commit()
-            
-#             # Получаем новый баланс
-#             cursor.execute('SELECT bill FROM Partn WHERE user_id = ?', (user_id,))
-#             new_balance = cursor.fetchone()[0]
-#             conn.close()
-            
-#             # Уведомляем пользователя
-#             try:
-#                 bot.send_message(
-#                     user_id,
-#                     f"🎁 Вам начислено {amount} бонусных кредитов за игру \"Территория себя\"!\n"
-#                     f"💳 Текущий баланс: {new_balance} кредитов."
-#                 )
-#             except Exception as e:
-#                 print(f"Не удалось отправить сообщение пользователю {user_id}: {e}")
-            
-#             # Уведомляем администратора
-#             bot.send_message(
-#                 ADMIN_ID,
-#                 f"✅ Бонусные кредиты начислены пользователю ID: {user_id}.\n"
-#                 f"Количество: {amount} кредитов."
-#             )
-            
-#             # Обновляем запрос в базе данных
-#             conn = sqlite3.connect(DB_PATH)
-#             cursor = conn.cursor()
-#             cursor.execute('''
-#                 UPDATE requests 
-#                 SET is_answered = 1, answer_text = ?, answer_date = CURRENT_TIMESTAMP
-#                 WHERE user_id = ? AND request_type = 'bonus' AND is_answered = 0
-#                 ORDER BY request_date DESC LIMIT 1
-#             ''', (f"Начислено {amount} бонусных кредитов", user_id))
-#             conn.commit()
-#             conn.close()
-            
-#         except ValueError:
-#             bot.send_message(ADMIN_ID, "❌ Ошибка: введите числовое значение")
-            
-#     except Exception as e:
-#         bot.send_message(ADMIN_ID, f"❌ Ошибка при начислении бонусов: {str(e)}")
+        print(f"Error in handle_approve_upgrade: {e}")
 
 @bot.callback_query_handler(func=lambda call: call.data.startswith('process_subscription_'))
 def handle_process_subscription(call):
@@ -4602,15 +4514,18 @@ def handle_process_subscription(call):
     try:
         user_id = call.data.split('_')[2]
         
-        # Обновляем баланс пользователя (начисляем 500 кредитов за подписку)
-        conn = sqlite3.connect(DB_PATH)
-        cursor = conn.cursor()
-        cursor.execute(
-            'UPDATE Partn SET bill = bill + 500 WHERE user_id = ?',
-            (user_id,)
-        )
-        conn.commit()
-        conn.close()
+        # Обновляем баланс пользователя (начисляем 500 кредитов за подписку) - Firebase
+        from firebase_adapter import fb_add_credits
+        fb_add_credits(user_id, 500)
+        
+        # Legacy SQLite
+        try:
+            conn = sqlite3.connect(DB_PATH)
+            cursor = conn.cursor()
+            cursor.execute('UPDATE Partn SET bill = bill + 500 WHERE user_id = ?', (user_id,))
+            conn.commit()
+            conn.close()
+        except: pass
         
         # Уведомляем пользователя
         bot.send_message(
@@ -4624,7 +4539,7 @@ def handle_process_subscription(call):
         # Уведомляем администратора
         bot.answer_callback_query(
             call.id,
-            "✅ Подписка оформлена, пользователю начислено 500 кредитов",
+            "✅ Подписка оформлена, пользователю начислено 500 кредитов (FB)",
             show_alert=True
         )
         
@@ -4675,28 +4590,31 @@ def handle_process_deposit_with_amount(call):
             deposit_amount = 1000
             credit_amount = 100
         
-        # Обновляем баланс пользователя
-        conn = sqlite3.connect(DB_PATH)
-        cursor = conn.cursor()
-        cursor.execute(
-            'UPDATE Partn SET bill = bill + ? WHERE user_id = ?',
-            (credit_amount, user_id)
-        )
-        conn.commit()
-        conn.close()
+        # Обновляем баланс пользователя - Firebase
+        from firebase_adapter import fb_add_credits, fb_get_credits
+        fb_add_credits(user_id, credit_amount)
+
+        # Legacy SQLite
+        try:
+            conn = sqlite3.connect(DB_PATH)
+            cursor = conn.cursor()
+            cursor.execute('UPDATE Partn SET bill = bill + ? WHERE user_id = ?', (credit_amount, user_id))
+            conn.commit()
+            conn.close()
+        except: pass
         
         # Уведомляем пользователя
         bot.send_message(
             user_id,
             f"💳 Ваш баланс пополнен!\n"
             f"💰 Начислено {credit_amount} кредитов.\n"
-            f"💳 Текущий баланс: {get_user_balance(user_id)} кредитов."
+            f"💳 Текущий баланс: {fb_get_credits(user_id)} кредитов."
         )
         
         # Уведомляем администратора
         bot.answer_callback_query(
             call.id,
-            f"✅ Баланс пополнен на {credit_amount} кредитов",
+            f"✅ Баланс пополнен на {credit_amount} кредитов (FB)",
             show_alert=True
         )
         
@@ -4765,27 +4683,30 @@ def process_deposit_amount(message):
             
         amount = int(message.text)
         
-        # Обновляем баланс пользователя
-        conn = sqlite3.connect(DB_PATH)
-        cursor = conn.cursor()
-        cursor.execute(
-            'UPDATE Partn SET bill = bill + ? WHERE user_id = ?',
-            (amount, user_id)
-        )
-        conn.commit()
-        conn.close()
+        # Обновляем баланс пользователя - Firebase
+        from firebase_adapter import fb_add_credits, fb_get_credits
+        fb_add_credits(user_id, amount)
+
+        # Legacy SQLite
+        try:
+            conn = sqlite3.connect(DB_PATH)
+            cursor = conn.cursor()
+            cursor.execute('UPDATE Partn SET bill = bill + ? WHERE user_id = ?', (amount, user_id))
+            conn.commit()
+            conn.close()
+        except: pass
         
         # Уведомляем пользователя
         bot.send_message(
             user_id,
             f"💰 Ваш баланс пополнен на {amount} кредитов.\n"
-            f"💳 Текущий баланс: {get_user_balance(user_id)} кредитов."
+            f"💳 Текущий баланс: {fb_get_credits(user_id)} кредитов."
         )
         
         # Уведомляем администратора
         bot.send_message(
             admin_id,
-            f"✅ Баланс пользователя {user_id} пополнен на {amount} кредитов."
+            f"✅ Баланс пользователя {user_id} пополнен на {amount} кредитов (FB)."
         )
         
         # Удаляем запрос из временного хранилища
