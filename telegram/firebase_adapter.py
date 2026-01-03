@@ -101,25 +101,34 @@ def fb_get_credits(user_id):
     return user.get('credits', 0)
 
 def fb_deduct_credits(user_id, amount=5):
+    print(f"[DEBUG] Attempting to deduct {amount} credits for user {user_id}")
     db = get_db()
     user_ref = db.collection('users').document(str(user_id))
     
     @firestore.transactional
     def deduct_in_transaction(transaction, ref):
         snapshot = transaction.get(ref)
-        if not snapshot.exists: return False
+        if not snapshot.exists: 
+            print(f"[DEBUG] User {user_id} document does NOT exist.")
+            return False
         
         current_bill = int(snapshot.get('credits') or 0)
         role = snapshot.get('role')
         pgmd = int(snapshot.get('pgmd') or 0)
         
+        print(f"[DEBUG] User {user_id}: credits={current_bill}, role={role}, pgmd={pgmd}, required={amount}")
+        
         # Admin check (pgmd 100 or role admin) - Free
         if pgmd >= 100 or role == 'admin':
+            print(f"[DEBUG] Access Granted (Admin/VIP). No deduction.")
             return True
             
         if current_bill >= amount:
             transaction.update(ref, {'credits': current_bill - amount})
+            print(f"[DEBUG] Success. Deducted {amount}. Remaining: {current_bill - amount}")
             return True
+            
+        print(f"[DEBUG] Insufficient credits. Has {current_bill}, need {amount}.")
         return False
 
     transaction = db.transaction()
