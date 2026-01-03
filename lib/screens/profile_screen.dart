@@ -508,7 +508,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                final type = data['type'];
                final date = (data['createdAt'] as Timestamp?)?.toDate().toString().split('.')[0] ?? '';
 
-               Color cardColor = Colors.white;
+               Color cardColor = const Color(0xFF1E293B); // Dark Blue (Slate 800) by default
                IconData icon = Icons.help_outline;
                
                if (type == 'deposit' || type == 'bonus' || type == 'subscription') {
@@ -544,19 +544,26 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             Row(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                const Icon(Icons.info_outline, color: Colors.green, size: 20),
+                                const Icon(Icons.check_circle, color: Colors.green, size: 20),
                                 const SizedBox(width: 8),
-                                Expanded(child: Text(answer, style: const TextStyle(color: Colors.black87))),
+                                Expanded(
+                                  child: Text(
+                                    answer, 
+                                    style: TextStyle(
+                                      color: (type == 'bonus' || type == 'deposit') ? Colors.greenAccent : Colors.white70
+                                    )
+                                  )
+                                ),
                               ],
                             )
                           else
                              const Row(
-                              children: [
-                                Icon(Icons.check_circle, size: 16, color: Colors.green),
-                                SizedBox(width: 4),
-                                Text("Выполнено", style: TextStyle(color: Colors.green, fontSize: 12)),
-                              ],
-                            )
+                               children: [
+                                 Icon(Icons.check_circle, size: 20, color: Colors.green),
+                                 SizedBox(width: 4),
+                                 Text("Выполнено", style: TextStyle(color: Colors.greenAccent, fontSize: 14)),
+                               ],
+                             )
                        else
                           const Row(
                             children: [
