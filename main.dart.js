@@ -106588,7 +106588,7 @@ case 7:l=b
 k=J.aSE(l)
 if(k!=null){j=J.bs(k,"role")
 i=J.bs(k,"pgmd")
-if(J.e(j,"admin")||J.e(j,"diagnost")||J.e(i,100))if(n.c!=null)n.L(new A.aFN(n))}p=2
+if(J.e(j,"admin")||J.e(i,100))if(n.c!=null)n.L(new A.aFN(n))}p=2
 s=6
 break
 case 4:p=3
