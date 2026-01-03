@@ -27,6 +27,11 @@ class KnowledgeService {
     return "[$n ($roleName)](role:$n)";
   }
 
+  static Map<String, String> getRoleInfo(int number) {
+    final n = (number == 0) ? 22 : number;
+    return zones[n] ?? {};
+  }
+
   static String getAspectLinkText(int num1, int num2) {
     // Determine the key (e.g. 8-14 or 14-8). Usually smaller first or fixed logic? 
     // The data map uses consistent keys (e.g. 1-21). 

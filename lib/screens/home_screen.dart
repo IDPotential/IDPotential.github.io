@@ -138,7 +138,7 @@ class HomeScreen extends StatelessWidget {
 
                   const SizedBox(height: 20),
                   const Text(
-                    'v1.13 (History & Notifs)', 
+                    'v1.14 (Game: Jitsi & Cards)', 
                     style: TextStyle(color: Colors.grey, fontSize: 10),
                   ),
                   const SizedBox(height: 20),
