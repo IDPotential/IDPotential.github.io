@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../utils/registry.dart'; // Import registry
 import '../services/calculator_service.dart';
 import '../services/firestore_service.dart';
@@ -7,7 +9,8 @@ import '../services/knowledge_service.dart';
 import '../models/calculation.dart';
 
 class GameScreen extends StatefulWidget {
-  const GameScreen({super.key});
+  final String? gameId;
+  const GameScreen({super.key, this.gameId});
 
   @override
   State<GameScreen> createState() => _GameScreenState();
@@ -25,13 +28,17 @@ class _GameScreenState extends State<GameScreen> {
   
   // Game State
   int? _selectedRole;
-  bool _isVideoActive = false; // Restore state variable
+  bool _isVideoActive = false; 
   String _roomName = '';
+  
+  // Host State
+  bool _isHost = false;
 
   @override
   void initState() {
     super.initState();
     _loadProfile();
+    _checkHostStatus();
   }
 
   @override
@@ -41,6 +48,25 @@ class _GameScreenState extends State<GameScreen> {
     super.dispose();
   }
 
+  Future<void> _checkHostStatus() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+    
+    try {
+      final doc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
+      final data = doc.data();
+      if (data != null) {
+        final role = data['role'];
+        final pgmd = data['pgmd'];
+        if (role == 'admin' || role == 'diagnost' || pgmd == 100) {
+           if (mounted) setState(() => _isHost = true);
+        }
+      }
+    } catch (e) {
+      debugPrint("Error checking host status: $e");
+    }
+  }
+
   Future<void> _loadProfile() async {
     setState(() => _isLoading = true);
     try {
@@ -48,115 +74,87 @@ class _GameScreenState extends State<GameScreen> {
       if (mounted) {
         setState(() {
           _gameProfile = profile;
-          if (profile != null) {
-            _nameController.text = profile.name;
-            _dateController.text = profile.birthDate;
-            _gender = profile.gender;
-            // Generate Personal Room Name
-            _roomName = 'IDPotential_${profile.name.replaceAll(RegExp(r'\s+'), '')}_${profile.birthDate.replaceAll('.', '')}';
-          }
+          _isLoading = false;
         });
       }
     } catch (e) {
-      debugPrint("Error loading game profile: $e");
-    } finally {
       if (mounted) setState(() => _isLoading = false);
     }
   }
 
-  Future<void> _saveProfile() async {
-    if (!_formKey.currentState!.validate()) return;
-    
-    setState(() => _isLoading = true);
-    try {
-      final numbers = CalculatorService.calculateDiagnostic(
-        _dateController.text,
-        _nameController.text,
-        _gender,
-      );
-
-      final calculation = Calculation(
-         name: _nameController.text,
-         birthDate: _dateController.text,
-         gender: _gender,
-         numbers: numbers,
-         createdAt: DateTime.now(),
-      );
-
-      await _firestoreService.saveGameProfile(calculation);
+  void _saveProfile() async {
+    if (_formKey.currentState!.validate()) {
+      setState(() => _isLoading = true);
       
-      if (mounted) {
-        setState(() {
-          _gameProfile = calculation;
-           _roomName = 'IDPotential_${calculation.name.replaceAll(RegExp(r'\s+'), '')}_${calculation.birthDate.replaceAll('.', '')}';
-        });
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Профиль игры сохранен!'), backgroundColor: Colors.green),
-        );
+      final name = _nameController.text;
+      final date = _dateController.text; 
+      
+      try {
+        final calc = await CalculatorService.calculate(name, date, _gender);
+        await _firestoreService.saveGameProfile(calc);
+        if (mounted) {
+          setState(() {
+            _gameProfile = calc;
+            _isLoading = false;
+          });
+        }
+      } catch (e) {
+         if (mounted) {
+           ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+           setState(() => _isLoading = false);
+         }
       }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Ошибка сохранения: $e'), backgroundColor: Colors.red),
-        );
-      }
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    if (_isLoading) {
-      return const Center(child: CircularProgressIndicator());
-    }
-
-    if (_gameProfile == null) {
-      return _buildRegistrationForm();
-    }
-
-    return _buildSplitScreenGame();
+    return Scaffold(
+      extendBodyBehindAppBar: true, 
+      appBar: _gameProfile == null 
+        ? AppBar(title: const Text('Загрузка...'), backgroundColor: Colors.transparent, elevation: 0) 
+        : null,
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+             begin: Alignment.topCenter,
+             end: Alignment.bottomCenter,
+             colors: [Color(0xFF0F172A), Color(0xFF1E293B)],
+          )
+        ),
+        child: SafeArea(
+          child: _isLoading 
+            ? const Center(child: CircularProgressIndicator())
+            : (_gameProfile == null ? _buildSetupForm() : _buildSplitScreenGame()),
+        ),
+      ),
+    );
   }
 
-  Widget _buildRegistrationForm() {
+  Widget _buildSetupForm() {
     return Center(
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.all(24.0),
-        child: Card(
-          elevation: 4,
-          child: Padding(
-            padding: const EdgeInsets.all(24.0),
-            child: Form(
-              key: _formKey,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                   const Text(
-                    'Территория себя',
-                    style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 8),
-                  const Text(
-                    'Введите свои данные для входа в игру',
-                    style: TextStyle(color: Colors.grey),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 24),
-                  
-                  // Name
-                  TextFormField(
-                    controller: _nameController,
-                    decoration: const InputDecoration(labelText: 'Имя', prefixIcon: Icon(Icons.person)),
-                    validator: (value) => value!.isEmpty ? 'Введите имя' : null,
-                  ),
-                  const SizedBox(height: 16),
-                  
-                  // Date
-                  TextFormField(
-                    controller: _dateController,
-                    decoration: const InputDecoration(labelText: 'Дата рождения', prefixIcon: Icon(Icons.calendar_today), hintText: '25.12.1990'),
-                    keyboardType: TextInputType.datetime,
-                     onChanged: (value) {
+      child: Card(
+        margin: const EdgeInsets.all(16),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Form(
+            key: _formKey,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text("Настройка профиля игры", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 16),
+                TextFormField(
+                  controller: _nameController,
+                  decoration: const InputDecoration(labelText: 'Имя', prefixIcon: Icon(Icons.person)),
+                  validator: (v) => v!.isEmpty ? 'Введите имя' : null,
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                   controller: _dateController,
+                   decoration: const InputDecoration(labelText: 'Дата рождения (ДД.ММ.ГГГГ)', prefixIcon: Icon(Icons.calendar_today), hintText: '01.01.2000'),
+                   keyboardType: TextInputType.datetime,
+                   onChanged: (value) {
                       String newText = value.replaceAll(RegExp(r'[\/,\-]'), '.');
                       if (RegExp(r'^\d{8}$').hasMatch(newText)) {
                           newText = '${newText.substring(0, 2)}.${newText.substring(2, 4)}.${newText.substring(4)}';
@@ -164,32 +162,29 @@ class _GameScreenState extends State<GameScreen> {
                       if (newText != value) {
                         _dateController.value = TextEditingValue(text: newText, selection: TextSelection.collapsed(offset: newText.length));
                       }
-                    },
-                    validator: (value) => !RegExp(r'^\d{2}\.\d{2}\.\d{4}$').hasMatch(value ?? '') ? 'Формат ДД.ММ.ГГГГ' : null,
+                   },
+                   validator: (value) => !RegExp(r'^\d{2}\.\d{2}\.\d{4}$').hasMatch(value ?? '') ? 'Формат ДД.ММ.ГГГГ' : null,
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Text('Пол:'),
+                    const SizedBox(width: 20),
+                    ChoiceChip(label: const Text('М'), selected: _gender == 'М', onSelected: (s) => setState(() => _gender = 'М')),
+                    const SizedBox(width: 10),
+                    ChoiceChip(label: const Text('Ж'), selected: _gender == 'Ж', onSelected: (s) => setState(() => _gender = 'Ж')),
+                  ],
+                ),
+                const SizedBox(height: 20),
+                ElevatedButton(
+                  onPressed: _saveProfile,
+                  style: ElevatedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 15),
                   ),
-                  const SizedBox(height: 16),
-                  
-                  // Gender
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Text('Пол:'),
-                      const SizedBox(width: 20),
-                      ChoiceChip(label: const Text('М'), selected: _gender == 'М', onSelected: (s) => setState(() => _gender = 'М')),
-                      const SizedBox(width: 10),
-                      ChoiceChip(label: const Text('Ж'), selected: _gender == 'Ж', onSelected: (s) => setState(() => _gender = 'Ж')),
-                    ],
-                  ),
-                  const SizedBox(height: 24),
-                  ElevatedButton(
-                    onPressed: _saveProfile,
-                    style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 15),
-                    ),
-                    child: const Text('Войти в игру'),
-                  ),
-                ],
-              ),
+                  child: const Text("Войти в игру"),
+                )
+              ],
             ),
           ),
         ),
@@ -200,6 +195,45 @@ class _GameScreenState extends State<GameScreen> {
   Widget _buildSplitScreenGame() {
     return Column(
       children: [
+        // Top Controls
+        Container(
+           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+           child: Row(
+             mainAxisAlignment: MainAxisAlignment.spaceBetween,
+             children: [
+               Expanded(
+                 child: Text(
+                   "Участник: ${_gameProfile!.name}", 
+                   style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.white),
+                   overflow: TextOverflow.ellipsis,
+                 )
+               ),
+               if (_isHost && widget.gameId != null)
+                 ElevatedButton.icon(
+                   icon: const Icon(Icons.dashboard, size: 16),
+                   label: const Text("Host Panel"),
+                   style: ElevatedButton.styleFrom(
+                     backgroundColor: Colors.purple,
+                     padding: const EdgeInsets.symmetric(horizontal: 10),
+                   ),
+                   onPressed: _showHostPanel,
+                 ),
+               const SizedBox(width: 8),
+               if (!_isVideoActive)
+                  IconButton(
+                    icon: const Icon(Icons.video_call),
+                    onPressed: () => setState(() => _isVideoActive = true),
+                    tooltip: 'Видео',
+                  ),
+               IconButton(
+                 icon: const Icon(Icons.settings),
+                 onPressed: _showRoomDialog,
+                 tooltip: 'Комната',
+               ),
+             ],
+           ),
+        ),
+
         // Video Section
         Expanded(
           flex: 4,
@@ -213,7 +247,7 @@ class _GameScreenState extends State<GameScreen> {
                     children: [
                       const Icon(Icons.video_call, size: 50, color: Colors.white54),
                       const SizedBox(height: 10),
-                      Text("Комната: $_roomName", style: const TextStyle(color: Colors.white70)),
+                      Text("Комната: ${_roomName.isEmpty ? 'IdPotentialGame' : _roomName}", style: const TextStyle(color: Colors.white70)),
                       const SizedBox(height: 20),
                       ElevatedButton.icon(
                         icon: const Icon(Icons.videocam),
@@ -224,13 +258,6 @@ class _GameScreenState extends State<GameScreen> {
                           });
                         },
                       ),
-                       const SizedBox(height: 10),
-                      TextButton(
-                        onPressed: () {
-                           _showRoomDialog();
-                        },
-                        child: const Text("Сменить комнату", style: TextStyle(color: Colors.blueAccent)),
-                      )
                     ],
                   ),
                 ),
@@ -243,7 +270,7 @@ class _GameScreenState extends State<GameScreen> {
         Expanded(
           flex: 6,
           child: Container(
-            color: Colors.grey[100],
+            color: Colors.transparent, 
             child: Column(
               children: [
                 Padding(
@@ -251,7 +278,7 @@ class _GameScreenState extends State<GameScreen> {
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text("Мои Роли", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                      const Text("Мои Роли", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.white)),
                       if (_selectedRole != null)
                          Chip(
                            label: Text("Выбрано: $_selectedRole"), 
@@ -271,13 +298,13 @@ class _GameScreenState extends State<GameScreen> {
   }
 
   Widget _buildJitsiIframe() {
-    final String viewType = 'jitsi-meet-$_roomName';
+    final String room = _roomName.isEmpty ? 'IdPotentialGame' : _roomName;
+    final String viewType = 'jitsi-meet-$room';
     
-    // Register the view factory using our helper util
     try {
-      registerJitsiViewFactory(viewType, 'https://meet.jit.si/$_roomName');
+      Registry.registerJitsiViewFactory(viewType, 'https://meet.jit.si/$room');
     } catch(e) {
-      debugPrint("Registry error (ignore if already registered): $e");
+      debugPrint("Registry error: $e");
     }
 
     return Stack(
@@ -298,7 +325,6 @@ class _GameScreenState extends State<GameScreen> {
   }
 
   Widget _buildRolesGrid() {
-    // Logic: Unique, Sorted, No 0 (map to 22)
     final Set<int> uniqueNumbers = {};
     for (var n in _gameProfile!.numbers) {
       uniqueNumbers.add(n == 0 ? 22 : n);
@@ -308,7 +334,7 @@ class _GameScreenState extends State<GameScreen> {
     return GridView.builder(
       padding: const EdgeInsets.all(12),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 5, // 5 cards per row for compactness
+        crossAxisCount: 5,
         childAspectRatio: 0.65,
         crossAxisSpacing: 8,
         mainAxisSpacing: 8,
@@ -367,7 +393,11 @@ class _GameScreenState extends State<GameScreen> {
     final keyQuality = info['role_key'] ?? '';
     final strength = info['role_strength'] ?? '';
     final challenge = info['role_challenge'] ?? '';
+    final manifestation = info['manifestation'] ?? '';
+    final roleQuestion = info['role_question'] ?? '';
     
+    final answerController = TextEditingController();
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -383,6 +413,13 @@ class _GameScreenState extends State<GameScreen> {
               const Text("Описание:", style: TextStyle(fontWeight: FontWeight.bold)),
               Text(description),
               const SizedBox(height: 10),
+
+              if (manifestation.isNotEmpty) ...[
+                 const Text("Проявляется:", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.blueAccent)),
+                 Text(manifestation),
+                 const SizedBox(height: 8),
+              ],
+
               if (strength.isNotEmpty) ...[
                  const Text("Сила:", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.green)),
                  Text(strength),
@@ -391,7 +428,53 @@ class _GameScreenState extends State<GameScreen> {
               if (challenge.isNotEmpty) ...[
                  const Text("Вызов:", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.redAccent)),
                  Text(challenge),
+                 const SizedBox(height: 8),
               ],
+              
+              if (roleQuestion.isNotEmpty) ...[
+                 const Divider(),
+                 const Text("Вопрос для рефлексии:", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.amber)),
+                 Text(roleQuestion, style: const TextStyle(fontStyle: FontStyle.italic)),
+                 const SizedBox(height: 10),
+                 TextField(
+                   controller: answerController,
+                   decoration: const InputDecoration(
+                     hintText: 'Ваш ответ...',
+                     border: OutlineInputBorder(),
+                   ),
+                   maxLines: 2,
+                 ),
+                 const SizedBox(height: 5),
+                 ElevatedButton(
+                   onPressed: () async {
+                      if (answerController.text.isNotEmpty) {
+                         if (widget.gameId != null) {
+                            try {
+                              await FirestoreService().submitGameAnswer(
+                                  gameId: widget.gameId!,
+                                  roleId: number,
+                                  roleName: name,
+                                  answer: answerController.text
+                              );
+                              if (context.mounted) {
+                                 ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Ответ сохранен!')));
+                                 Navigator.pop(context); 
+                              }
+                            } catch (e) {
+                              if (context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Ошибка: $e')));
+                              }
+                            }
+                         } else {
+                            if (context.mounted) {
+                               ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Режим тренировки: ответ не отправлен.')));
+                            }
+                         }
+                      }
+                   },
+                   child: const Text('Сохранить ответ'),
+                 )
+              ]
             ],
           ),
         ),
@@ -406,13 +489,85 @@ class _GameScreenState extends State<GameScreen> {
                 _selectedRole = number;
               });
               Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('Выбрана роль: $name')),
-              );
+              if (widget.gameId == null) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Выбрана роль: $name')),
+                );
+              }
             },
             child: const Text('Выбрать роль'),
           ),
         ],
+      ),
+    );
+  }
+
+  void _showHostPanel() {
+    if (widget.gameId == null) return;
+    
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        height: MediaQuery.of(context).size.height * 0.7,
+        decoration: const BoxDecoration(
+          color: Color(0xFF1E293B),
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        child: Column(
+          children: [
+            const Padding(
+              padding: EdgeInsets.all(16.0),
+              child: Text("Панель Ведущего - Ответы Игроков", 
+                style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)
+              ),
+            ),
+            const Divider(),
+            Expanded(
+              child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+                stream: _firestoreService.getGameAnswersStream(widget.gameId!),
+                builder: (context, snapshot) {
+                  if (snapshot.hasError) return Text('Ошибка: ${snapshot.error}');
+                  if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
+                  
+                  final docs = snapshot.data!.docs;
+                  if (docs.isEmpty) return const Center(child: Text("Пока нет ответов", style: TextStyle(color: Colors.white54)));
+                  
+                  return ListView.builder(
+                    itemCount: docs.length,
+                    itemBuilder: (context, index) {
+                      final data = docs[index].data();
+                      final userName = data['userName'] ?? 'Unknown';
+                      final roleName = data['roleName'] ?? 'Unknown Role';
+                      final answer = data['answer'] ?? '';
+                      final time = (data['timestamp'] as Timestamp?)?.toDate();
+                      
+                      return Card(
+                        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        color: Colors.white10,
+                        child: ListTile(
+                          leading: CircleAvatar(child: Text(userName[0].toUpperCase())),
+                          title: Text("$userName - $roleName", style: const TextStyle(color: Colors.white)),
+                          subtitle: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const SizedBox(height: 4),
+                              Text(answer, style: const TextStyle(color: Colors.white70, fontSize: 16)),
+                              const SizedBox(height: 4),
+                              if (time != null)
+                                Text("${time.hour}:${time.minute.toString().padLeft(2, '0')}", style: const TextStyle(color: Colors.grey, fontSize: 12)),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -425,7 +580,7 @@ class _GameScreenState extends State<GameScreen> {
         title: const Text('Введите название комнаты'),
         content: TextField(
            controller: controller,
-           decoration: const InputDecoration(labelText: 'Room Name', hintText: 'MyGameRoom'),
+           decoration: const InputDecoration(labelText: 'Room Name', hintText: 'IdPotentialGame'),
         ),
         actions: [
            TextButton(onPressed: () => Navigator.pop(context), child: const Text('Отмена')),

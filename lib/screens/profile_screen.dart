@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../services/firestore_service.dart';
 import 'login_screen.dart';
+import 'games_list_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -264,6 +265,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         icon: const Icon(Icons.trending_up),
                         label: const Text('Повысить уровень'),
                         style: ElevatedButton.styleFrom(backgroundColor: Colors.orangeAccent),
+                      ),
+
+                    if (isAdmin)
+                      ElevatedButton.icon(
+                        onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const GamesListScreen())),
+                        icon: const Icon(Icons.videogame_asset),
+                        label: const Text('Игровые сессии'),
+                        style: ElevatedButton.styleFrom(backgroundColor: Colors.purple),
                       ),
                   ],
                 ),

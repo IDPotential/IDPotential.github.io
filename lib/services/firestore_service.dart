@@ -223,6 +223,74 @@ class FirestoreService {
 
     await docRef.set(data, SetOptions(merge: true));
   }
+  // --- Game Sessions (Host Features) ---
+
+  // Create a new Game Session
+  Future<String> createGame({required String title, required DateTime date}) async {
+    final uid = _userId;
+    if (uid == null) throw Exception("User not logged in");
+
+    // Check if admin/diagnost
+    final userDoc = await _db.collection('users').doc(uid).get();
+    final role = userDoc.data()?['role'];
+    final pgmd = userDoc.data()?['pgmd'];
+    if (role != 'admin' && role != 'diagnost' && pgmd != 100) {
+      throw Exception("Unauthorized");
+    }
+
+    final docRef = _db.collection('games').doc();
+    await docRef.set({
+      'hostId': uid,
+      'title': title,
+      'scheduledAt': date.toIso8601String(),
+      'status': 'scheduled', // scheduled, active, completed
+      'createdAt': FieldValue.serverTimestamp(),
+    });
+
+    return docRef.id;
+  }
+
+  // Get Stream of Upcoming/Active Games
+  Stream<QuerySnapshot<Map<String, dynamic>>> getGamesStream() {
+    return _db.collection('games')
+        .where('status', whereIn: ['scheduled', 'active'])
+        .orderBy('scheduledAt', descending: false)
+        .snapshots();
+  }
+
+  // Submit Answer (Player)
+  Future<void> submitGameAnswer({
+    required String gameId,
+    required int roleId,
+    required String roleName,
+    required String answer
+  }) async {
+    final uid = _userId;
+    if (uid == null) throw Exception("User not logged in");
+    if (gameId.isEmpty) return; 
+
+    final userDoc = await _db.collection('users').doc(uid).get();
+    final userName = userDoc.data()?['first_name'] ?? 'Игрок';
+
+    await _db.collection('games').doc(gameId).collection('answers').add({
+      'userId': uid,
+      'userName': userName,
+      'roleId': roleId,
+      'roleName': roleName,
+      'answer': answer,
+      'timestamp': FieldValue.serverTimestamp(),
+    });
+  }
+
+  // Get Answers Stream (Host)
+  Stream<QuerySnapshot<Map<String, dynamic>>> getGameAnswersStream(String gameId) {
+    if (gameId.isEmpty) return const Stream.empty();
+    // Security rules should enforce host access
+    return _db.collection('games').doc(gameId).collection('answers')
+        .orderBy('timestamp', descending: true)
+        .snapshots();
+  }
+
   // --- Requests (Personal Account) ---
 
   // Create a new request (Top-up, Question, Upgrade)
