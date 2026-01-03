@@ -4,6 +4,7 @@ import '../services/database_service.dart';
 import 'result_screen.dart';
 import 'history_screen.dart';
 import '../models/calculation.dart';
+import '../services/firestore_service.dart';
 
 class CalculationScreen extends StatefulWidget {
   const CalculationScreen({super.key});
@@ -12,10 +13,6 @@ class CalculationScreen extends StatefulWidget {
   State<CalculationScreen> createState() => _CalculationScreenState();
 }
 
-import '../services/firestore_service.dart';
-import '../services/database_service.dart'; // Keep for offline fallback or history link? Or remove?
-// Actually, history screen should switch too. 
-// Let's replace _dbService with _firestoreService.
 
 class _CalculationScreenState extends State<CalculationScreen> {
   final _formKey = GlobalKey<FormState>();
