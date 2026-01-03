@@ -12,13 +12,18 @@ class CalculationScreen extends StatefulWidget {
   State<CalculationScreen> createState() => _CalculationScreenState();
 }
 
+import '../services/firestore_service.dart';
+import '../services/database_service.dart'; // Keep for offline fallback or history link? Or remove?
+// Actually, history screen should switch too. 
+// Let's replace _dbService with _firestoreService.
+
 class _CalculationScreenState extends State<CalculationScreen> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _dateController = TextEditingController();
   String _gender = 'М';
   bool _isCalculating = false;
-  final DatabaseService _dbService = DatabaseService();
+  final FirestoreService _firestoreService = FirestoreService();
   
   @override
   void dispose() {
@@ -51,9 +56,9 @@ class _CalculationScreenState extends State<CalculationScreen> {
         createdAt: DateTime.now(),
       );
       
-      // Сохранение в базу данных
-      final id = await _dbService.insertCalculation(calculation);
-      final savedCalculation = calculation.copyWith(id: id);
+      // Сохранение в базу данных (Firestore)
+      final id = await _firestoreService.saveCalculation(calculation);
+      final savedCalculation = calculation.copyWith(firebaseId: id);
       
       // Переход к результатам
       if (!mounted) return;

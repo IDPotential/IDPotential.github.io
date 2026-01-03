@@ -22,14 +22,7 @@ from data_libraries import VIDEOS, ZONES, ASPECTS, ASPECTS_ROLE # pyright: ignor
 
 deposit_requests = {}
 broadcast_data = {}
-
-# --- FIREBASE ADAPTER ---
-from firebase_adapter import init_firebase, fb_get_user, fb_register_user, fb_check_access, fb_get_credits, fb_deduct_credits, fb_add_log, fb_get_history, fb_create_custom_token, fb_get_log, fb_mark_log_paid, fb_delete_log, fb_update_log_group, get_db
-
-init_firebase()
-# ------------------------
-
-# Указываем абсолютный путь (LEGACY - оставлено для совместимости старых функций, если они есть)
+# Указываем абсолютный путь
 DB_PATH = os.path.abspath("D:\BOT\ID_DB.sqlite")
 DB_PATH2 = os.path.abspath("D:\BOT\PGMD.sqlite") 
 print(f"[DEBUG] Путь к базе: {DB_PATH}")
@@ -186,9 +179,66 @@ def role_command(message):
         conn.close()
 
 # Обработчик команды /history
-# Обработчик команды /history
-# Duplicate history_command removed (Legacy)
+@bot.message_handler(commands=['history'])
+def history_command(message):
+    user_id = message.from_user.id
+    conn = sqlite3.connect(DB_PATH)
+    
+    try:
+        cursor = conn.cursor()
+        
+        # Получаем список уникальных групп
+        cursor.execute('''
+            SELECT DISTINCT user_group
+            FROM diagnostic_logs 
+            WHERE user_id = ? AND user_group IS NOT NULL
+            ORDER BY user_group
+        ''', (user_id,))
+        groups = [row[0] for row in cursor.fetchall()]
 
+        # Получаем записи без группы
+        cursor.execute('''
+            SELECT id, birth_date, name 
+            FROM diagnostic_logs 
+            WHERE user_id = ? AND user_group IS NULL
+            ORDER BY calculation_date DESC 
+            LIMIT 60
+        ''', (user_id,))
+        entries = cursor.fetchall()
+
+        markup = types.InlineKeyboardMarkup()
+
+        # Добавляем кнопки групп
+        for group in groups:
+            markup.add(types.InlineKeyboardButton(
+                f"📁 {group}", 
+                callback_data=f'group_{group}'
+            ))
+
+        # Добавляем отдельные записи без группы
+        for entry in entries:
+            entry_id, birth_date, name = entry
+            markup.add(types.InlineKeyboardButton(
+                f"{birth_date} - {name}", 
+                callback_data=f'view_calc_{entry_id}'
+            ))
+
+        markup.row(
+            types.InlineKeyboardButton("◀️ Назад", callback_data='back_to_pgmd'),
+            types.InlineKeyboardButton("❌ Закрыть", callback_data='delete_history_msg')
+        )
+
+        bot.send_message(
+            message.chat.id,
+            "📂 История расчетов:",
+            reply_markup=markup
+        )
+
+    except Exception as e:
+        print(f"Error: {e}")
+        bot.send_message(message.chat.id, "⛔ Ошибка загрузки истории")
+    finally:
+        conn.close()
 
 
 # Обработчик команды /calc
@@ -314,10 +364,15 @@ def show_aspect_by_key(chat_id, aspect_key):
     )
 
 def check_access(user_id, required_level=1):
+    conn = sqlite3.connect(DB_PATH, check_same_thread=False)
+    cursor = conn.cursor()
+    
     try:
-        return fb_check_access(user_id, required_level)
-    except:
-        return False
+        cursor.execute('SELECT pgmd FROM Partn WHERE user_id = ?', (user_id,))
+        result = cursor.fetchone()
+        return result and result[0] >= required_level
+    finally:
+        conn.close()
 
 # Также обновите функцию show_aspect_by_number (переименуйте ее для ясности)
 def show_aspect_by_display_number(chat_id, display_number):
@@ -464,19 +519,6 @@ def send_menu(chat_id, text, markup):
 def show_user_id(message):
     user_id = message.from_user.id
     bot.send_message(message.chat.id, f"Ваш user_id: `{user_id}`", parse_mode="Markdown")
-
-@bot.message_handler(commands=['login_app'])
-def login_app(message):
-    user_id = message.from_user.id
-    token = fb_create_custom_token(user_id)
-    if token:
-        bot.send_message(
-            message.chat.id, 
-            f"🔑 *Ваш ключ для входа в приложение:*\n\n`{token}`\n\n(Нажмите на ключ, чтобы скопировать. Он действует 1 час)", 
-            parse_mode="Markdown"
-        )
-    else:
-        bot.send_message(message.chat.id, "❌ Ошибка генерации ключа. Обратитесь к админу.")
 
 @bot.message_handler(func=lambda message: message.text == 'Открыть меню')
 def main_menu(message):
@@ -1453,333 +1495,13 @@ def handle_analysis(call):
 • Кластеры: {json.dumps(result['clusters'], indent=2)}
         """
         
-        # with open('oscar_analysis.png', 'rb') as f:
-        #    bot.send_photo(call.message.chat.id, f, caption=text, parse_mode='Markdown')
-        bot.send_message(call.message.chat.id, text, parse_mode='Markdown')
-
-# --- History Logic with Folders ---
-
-# --- History Logic with Folders ---
-
-def send_history_menu(chat_id, user_id, message_id=None):
-    entries = fb_get_history(user_id, limit=300)
-    
-    if not entries:
-        text = "📭 История расчетов пуста."
-        if message_id:
-            bot.edit_message_text(chat_id=chat_id, message_id=message_id, text=text)
-        else:
-            bot.send_message(chat_id, text)
-        return
-
-    # Split into Folders and Ungrouped
-    groups = set()
-    ungrouped = []
-    
-    for e in entries:
-        g = e.get('group')
-        # print(f"DEBUG: Entry {e.get('id')} group='{g}'") # Uncomment if needed
-        if g and isinstance(g, str) and g.strip():
-            groups.add(g.strip())
-        else:
-            ungrouped.append(e)
+        with open('oscar_analysis.png', 'rb') as f:
+            bot.send_photo(call.message.chat.id, f, caption=text, parse_mode='Markdown')
             
-    print(f"📂 History: {len(entries)} entries. Groups: {groups}. Ungrouped: {len(ungrouped)}")
-            
-    markup = types.InlineKeyboardMarkup()
-    
-    # 1. Folders
-    if groups:
-        for group in sorted(list(groups)):
-            markup.add(types.InlineKeyboardButton(f"📁 {group}", callback_data=f'view_group_{group}'))
-            
-    # 2. Ungrouped Items (Limit to 60 as per legacy logic)
-    for entry in ungrouped[:60]:
-        date_str = entry.get('birthDate', '??.??.????')
-        name = entry.get('name', 'Без имени')
-        log_id = entry.get('id')
+        bot.send_document(call.message.chat.id, open('correlations.csv', 'rb'))
         
-        btn_text = f"{date_str} - {name}"
-        markup.add(types.InlineKeyboardButton(btn_text, callback_data=f'view_calc_{log_id}'))
-        
-    # Footer
-    markup.row(
-        types.InlineKeyboardButton("❌ Закрыть", callback_data='delete_history_msg')
-    )
-            
-    text = "📂 <b>История расчетов:</b>"
-    
-    if message_id:
-        bot.edit_message_text(chat_id=chat_id, message_id=message_id, text=text, reply_markup=markup, parse_mode='HTML')
     else:
-        bot.send_message(chat_id, text, reply_markup=markup, parse_mode='HTML')
-
-
-@bot.message_handler(commands=['history'])
-def history_command(message):
-    send_history_menu(message.chat.id, message.from_user.id)
-
-@bot.callback_query_handler(func=lambda call: call.data == 'diagnostic_history')
-def show_diagnostic_history(call):
-    send_history_menu(call.message.chat.id, call.from_user.id, call.message.message_id)
-
-@bot.callback_query_handler(func=lambda call: call.data == 'view_all_history')
-def view_all_history(call):
-    user_id = call.from_user.id
-    entries = fb_get_history(user_id, limit=50) # Limit for list view
-    
-    if not entries:
-         bot.answer_callback_query(call.id, "📭 Пусто")
-         return
-         
-    markup = types.InlineKeyboardMarkup()
-    for entry in entries:
-        date_str = entry.get('birthDate', '??.??.????')
-        name = entry.get('name', 'Без имени')
-        log_id = entry.get('id')
-        markup.add(types.InlineKeyboardButton(f"{date_str} - {name}", callback_data=f'view_calc_{log_id}'))
-        
-    markup.add(types.InlineKeyboardButton("◀️ Назад к папкам", callback_data='diagnostic_history'))
-    
-    bot.edit_message_text(
-        chat_id=call.message.chat.id, 
-        message_id=call.message.message_id, 
-        text="📂 <b>Все расчеты:</b>", 
-        reply_markup=markup,
-        parse_mode='HTML'
-    )
-
-@bot.callback_query_handler(func=lambda call: call.data.startswith('view_group_'))
-def view_group(call):
-    user_id = call.from_user.id
-    group_name = call.data.split('_', 2)[2]
-    
-    entries = fb_get_history(user_id, limit=300)
-    # Filter by group
-    filtered = [e for e in entries if e.get('group') == group_name]
-    
-    markup = types.InlineKeyboardMarkup()
-    for entry in filtered:
-        date_str = entry.get('birthDate', '??.??.????')
-        name = entry.get('name', 'Без имени')
-        log_id = entry.get('id')
-        markup.add(types.InlineKeyboardButton(f"{date_str} - {name}", callback_data=f'view_calc_{log_id}'))
-        
-    markup.add(types.InlineKeyboardButton("◀️ Назад", callback_data='diagnostic_history'))
-    
-    bot.edit_message_text(
-        chat_id=call.message.chat.id, 
-        message_id=call.message.message_id, 
-        text=f"📁 Папка: <b>{group_name}</b>", 
-        reply_markup=markup, 
-        parse_mode='HTML'
-    )
-
-@bot.callback_query_handler(func=lambda call: call.data == 'delete_history_msg')
-def delete_history(call):
-    try:
-        bot.delete_message(call.message.chat.id, call.message.message_id)
-    except Exception:
-        pass
-
-@bot.callback_query_handler(func=lambda call: call.data.startswith('view_calc_'))
-def show_saved_calculation(call):
-    try:
-        parts = call.data.split('_')
-        calc_id = parts[2]
-        viewer_id = call.from_user.id
-        # If view_calc has owner_id, use it, otherwise assume viewer is owner
-        owner_id = parts[3] if len(parts) > 3 else viewer_id
-        
-        # Fetch directly from owner's collection
-        data = fb_get_log(calc_id, owner_id)
-
-        if not data:
-            bot.answer_callback_query(call.id, "❌ Запись не найдена")
-            return
-
-        # Разделяем данные
-        birth_date = data.get('birthDate')
-        name = data.get('name')
-        gender = data.get('gender')
-        group = data.get('user_group')
-        
-        numbers = data.get('numbers', [])
-        
-        # Fallback: Если numbers нет
-        if not numbers and birth_date:
-            try:
-                numbers = calculate_numbers(birth_date, gender)
-            except Exception as e:
-                print(f"Fallback Error: {e}")
-
-        if not numbers:
-             bot.answer_callback_query(call.id, "❌ Данные повреждены")
-             return
-
-        # Формируем текст (используем format_scheme или аналогичную логику)
-        # Note: format_scheme is defined elsewhere. Assuming it exists.
-        scheme_text = format_scheme(*numbers, birth_date, name, gender)
-        group_text = f"\n\n📁 Группа: {group}" if group else ""
-        
-        markup = types.InlineKeyboardMarkup(row_width=2)
-        markup.add(
-            types.InlineKeyboardButton("🗑 Удалить", callback_data=f'delete_entry_{calc_id}_{owner_id}'),
-            types.InlineKeyboardButton("📁 Группа", callback_data=f'manage_group_{calc_id}'),
-            types.InlineKeyboardButton("📋 Текст", callback_data=f'show_text_{calc_id}_{owner_id}'),
-            types.InlineKeyboardButton("🖼 Изображение", callback_data=f'image_format_{calc_id}_{owner_id}'),
-            types.InlineKeyboardButton("📋 Подробнее", callback_data=f'detailed_desc_{calc_id}_{owner_id}')
-        )
-        markup.row(types.InlineKeyboardButton("◀️ Назад", callback_data='diagnostic_history'))
-
-        bot.edit_message_text(
-            chat_id=call.message.chat.id,
-            message_id=call.message.message_id,
-            text=f"🔍 Запись #{calc_id}\n{scheme_text}{group_text}",
-            reply_markup=markup,
-            parse_mode='Markdown' # format_scheme returns Markdown usually?
-        )
-
-    except Exception as e:
-        print(f"show_saved_calculation error: {e}")
-        bot.send_message(call.message.chat.id, f"⛔ Ошибка: {str(e)}")
-
-# Also text format alias if needed
-# --- RESTORED HANDLERS ---
-
-@bot.callback_query_handler(func=lambda call: call.data.startswith('delete_entry_'))
-def delete_entry(call):
-    try:
-        parts = call.data.split('_')
-        log_id = parts[2]
-        viewer_id = call.from_user.id
-        owner_id = parts[3] if len(parts) > 3 else viewer_id
-        
-        # Security check
-        is_admin = fb_check_access(viewer_id, 100)
-        if str(viewer_id) != str(owner_id) and not is_admin:
-            bot.answer_callback_query(call.id, "❌ Вы не можете удалить чужую запись")
-            return
-
-        # Use adapter function
-        print(f"🗑 Requesting delete: Log {log_id} Owner {owner_id} Viewer {viewer_id}")
-        success = fb_delete_log(owner_id, log_id)
-        
-        if success:
-            bot.answer_callback_query(call.id, "✅ Запись удалена")
-            try:
-                bot.delete_message(call.message.chat.id, call.message.message_id)
-            except:
-                pass
-        else:
-            bot.answer_callback_query(call.id, "❌ Не удалось удалить")
-        
-    except Exception as e:
-        bot.answer_callback_query(call.id, f"⛔ Ошибка: {str(e)}")
-        print(f"Delete Handler Error: {e}")
-
-@bot.callback_query_handler(func=lambda call: call.data.startswith('manage_group_'))
-def manage_group(call):
-    try:
-        parts = call.data.split('_')
-        log_id = parts[2]
-        viewer_id = call.from_user.id
-        owner_id = parts[3] if len(parts) > 3 else viewer_id
-        
-        # 1. Get Log Data
-        log_data = fb_get_log(log_id, owner_id)
-        if not log_data:
-            bot.answer_callback_query(call.id, "❌ Запись не найдена")
-            return
-            
-        current_group = log_data.get('group')
-        
-        # 2. Get All History for groups
-        all_logs = fb_get_history(owner_id, limit=300)
-        groups = set()
-        for log in all_logs:
-            g = log.get('group')
-            if g and isinstance(g, str) and g.strip():
-                groups.add(g.strip())
-                
-        markup = types.InlineKeyboardMarkup()
-        
-        if current_group:
-            markup.add(types.InlineKeyboardButton(f"❌ Удалить из '{current_group}'", callback_data=f'remove_group_{log_id}_{owner_id}'))
-            
-        for group in sorted(list(groups)):
-            if group != current_group:
-                 markup.add(types.InlineKeyboardButton(f"➡️ {group}", callback_data=f'set_group_{log_id}_{group}'))
-                 
-        markup.add(types.InlineKeyboardButton("➕ Новая группа", callback_data=f'new_group_{log_id}_{owner_id}'))
-        markup.add(types.InlineKeyboardButton("◀️ Назад", callback_data=f'view_calc_{log_id}_{owner_id}'))
-        
-        bot.edit_message_text(
-            chat_id=call.message.chat.id,
-            message_id=call.message.message_id,
-            text=f"📁 Управление группами (Запись #{log_id}):",
-            reply_markup=markup
-        )
-    except Exception as e:
-        bot.answer_callback_query(call.id, f"Ошибка: {e}")
-
-@bot.callback_query_handler(func=lambda call: call.data.startswith('set_group_'))
-def set_group_handler(call):
-    try:
-        parts = call.data.split('_', 3)
-        log_id = parts[2]
-        group_name = parts[3]
-        owner_id = call.from_user.id 
-        
-        if fb_update_log_group(owner_id, log_id, group_name):
-            bot.answer_callback_query(call.id, f"✅ Перемещено в '{group_name}'")
-            # Return to view via simple message edit or call function if possible
-            # Simplified: just notification
-            call.data = f"view_calc_{log_id}_{owner_id}"
-            show_saved_calculation(call)
-        else:
-            bot.answer_callback_query(call.id, "❌ Ошибка")
-    except Exception as e:
-        print(f"set_group error: {e}")
-
-@bot.callback_query_handler(func=lambda call: call.data.startswith('remove_group_'))
-def remove_group_handler(call):
-    try:
-        parts = call.data.split('_')
-        log_id = parts[2]
-        owner_id = parts[3] if len(parts) > 3 else call.from_user.id
-        
-        if fb_update_log_group(owner_id, log_id, None):
-             bot.answer_callback_query(call.id, "✅ Удалено из группы")
-             call.data = f"view_calc_{log_id}_{owner_id}"
-             show_saved_calculation(call)
-        else:
-             bot.answer_callback_query(call.id, "❌ Ошибка")
-    except Exception as e:
-        print(f"remove_group error: {e}")
-
-@bot.callback_query_handler(func=lambda call: call.data.startswith('new_group_'))
-def new_group_handler(call):
-    parts = call.data.split('_')
-    log_id = parts[2]
-    msg = bot.send_message(
-        call.message.chat.id,
-        "📝 Введите название новой папки:",
-        reply_markup=types.ForceReply()
-    )
-    bot.register_next_step_handler(msg, lambda m: save_new_group_firebase(m, log_id))
-
-def save_new_group_firebase(message, log_id):
-    group_name = message.text.strip()
-    owner_id = message.from_user.id
-    if fb_update_log_group(owner_id, log_id, group_name):
-        bot.send_message(message.chat.id, f"✅ Папка '{group_name}' создана!")
-    else:
-        bot.send_message(message.chat.id, "❌ Ошибка создания папки")
-
-# -------------------------
-
-
+        bot.send_message(call.message.chat.id, result)
 
 # Обработчик просмотра данных
 @bot.callback_query_handler(func=lambda call: call.data == 'view_pgmd_data')
@@ -2064,7 +1786,39 @@ def handle_pgmd_image(call):
     except Exception as e:
         bot.send_message(call.message.chat.id, f"⛔ Ошибка: {str(e)}")
 
-# Duplicate generate_text_description removed
+def generate_text_description(data):
+    gender = data[16]
+    additional = data[6] if gender == 'Ж' else data[5]
+    X = data[3] + data[10] + additional
+    X = X - 22 if X > 22 else X == X - 22 if X > 22 else 0 if X == 22 else X
+    # Ваша логика формирования текстового описания
+    return f"""
+*Детальная расшифровка для {data[0]}*:
+
+I – Третичная фаза:
+▫️ 0-30 лет: {data[5]}
+▫️ 30-60 лет: {data[6]}
+▫️ 60-90 лет: {data[7]}
+🔹 Точка входа: {data[8]}
+
+II – Инь/Ян баланс:
+♀️ Женская дуальность: {data[9]} → {data[10]}
+♂️ Мужская дуальность: {data[11]} → {data[12]}
+
+III – Ядро мотивации:
+🎯 Основной мотив: {data[13]}
+
+IV – Реализация в социуме:
+🛠 Способ действия: {data[14]}
+🌐 Сфера реализации: {data[15]}
+
+V – Точка гармонии:
+🚪 Точка выхода: {data[16]}
+💭 Внутренний мир: {data[17]}
+⚖️ Баланс: {data[18]}
+
+🧠 Поведение в стрессе: {X}
+    """
 
 # Модифицируем обработчик ввода данных
 def process_character_data(message):
@@ -2508,44 +2262,42 @@ def back_to_main_menu(message_or_call):
 
 
 # обработчик process_diagnostic_data
-def display_diagnostic_result(message, scheme_result, nums, log_id, name, date_str):
-    user_id = message.from_user.id
-    markup = types.InlineKeyboardMarkup()
-    markup.row(
-        types.InlineKeyboardButton("📋 Текст", callback_data=f'text_format_{log_id}_{user_id}'),
-        types.InlineKeyboardButton("📋 Подробнее (20 кр)", callback_data=f'detailed_desc_{log_id}_{user_id}'),
-        types.InlineKeyboardButton("🖼 Изображение", callback_data=f'image_format_{log_id}_{user_id}')
-    )
-    markup.row(
-        types.InlineKeyboardButton("📁 В группу", callback_data=f'manage_group_{log_id}'),
-        types.InlineKeyboardButton("🔄 Новый расчет", callback_data='new_calculation')
-    )
-    markup.row(types.InlineKeyboardButton("❌ Закрыть", callback_data='delete_history_msg'))
-    
-    bot.send_message(
-        message.chat.id, 
-        f"*Результат для {name}:*\n```\n{scheme_result}\n```", 
-        parse_mode='Markdown', 
-        reply_markup=markup
-    )
-    
-    bot.send_message(message.chat.id, f"✅ Расчет выполнен успешно и сохранен в облаке!")
-
 def process_diagnostic_data(message):
     user_id = message.from_user.id
     
-    if not fb_check_access(user_id, 1):
-        bot.send_message(message.chat.id, "❌ Доступ к расчету запрещен. Пройдите регистрацию (/start)!")
-        return
-
-    is_admin = fb_check_access(user_id, 100)
-    current_credits = fb_get_credits(user_id)
-    
-    if not is_admin and current_credits < 5:
-        markup = types.InlineKeyboardMarkup()
-        markup.add(types.InlineKeyboardButton( "📨 Отправить заявку администратору", callback_data=f"request_credits_{user_id}" ))
-        bot.send_message(message.chat.id, f"❌ Недостаточно кредитов (нужно 5, у вас {current_credits}).", reply_markup=markup)
-        return
+    # Проверка доступа и баланса
+    with sqlite3.connect(DB_PATH) as conn:
+        cursor = conn.cursor()
+        cursor.execute('SELECT pgmd, bill FROM Partn WHERE user_id = ?', (user_id,))
+        result = cursor.fetchone()
+        
+        if not result:
+            bot.send_message(message.chat.id, "❌ Пользователь не найден в базе.")
+            return
+            
+        pgmd_level, balance = result
+        balance = balance or 0
+        
+        # Проверка уровня доступа
+        if pgmd_level < 1:
+            bot.send_message(message.chat.id, "❌ Доступ к расчету запрещен. Пройдите регистрацию!")
+            return
+            
+        # Проверка баланса для не-админов
+        if pgmd_level != 100 and balance < 5:
+            markup = types.InlineKeyboardMarkup()
+            markup.add(types.InlineKeyboardButton(
+                "📨 Отправить заявку администратору", 
+                callback_data=f"request_credits_{user_id}"
+            ))
+            bot.send_message(
+                message.chat.id,
+                f"❌ Недостаточно кредитов для расчета. Необходимо: 5 кредитов.\n"
+                f"Ваш баланс: {balance} кредитов.\n\n"
+                f"Пополните счет через администратора.",
+                reply_markup=markup
+            )
+            return
 
     if message.text.strip() == '❌ Отмена':
         cancel_diagnostic(message)
@@ -2563,25 +2315,127 @@ def process_diagnostic_data(message):
         if gender not in ('М', 'Ж'):
             raise ValueError("Некорректное значение пола. Используйте М или Ж")
 
-        scheme_result, nums = calculate_diagnostic(date_str=clean_date, name=name.strip(), gender=gender)
-        
-        if not nums or len(nums) != 14:
-            raise ValueError("Ошибка расчета параметров")
-
-        if not is_admin:
-            if not fb_deduct_credits(user_id, 5):
-                bot.send_message(message.chat.id, "❌ Ошибка списания кредитов. Попробуйте снова.")
+        with sqlite3.connect(DB_PATH) as conn:
+            cursor = conn.cursor()
+            
+            # Проверяем, существует ли уже такой расчет
+            cursor.execute(''' 
+                SELECT id FROM diagnostic_logs 
+                WHERE user_id = ? AND birth_date = ? AND name = ? AND gender = ?
+            ''', (user_id, clean_date, name.strip(), gender))
+            
+            existing_calc = cursor.fetchone()
+            if existing_calc:
+                calc_id = existing_calc[0]
+                markup = types.InlineKeyboardMarkup()
+                markup.row(
+                    types.InlineKeyboardButton(
+                        "📂 Перейти к существующему расчету", 
+                        callback_data=f'view_calc_{calc_id}'
+                    ),
+                    types.InlineKeyboardButton("❌ Закрыть", callback_data='delete_history_msg')
+                )
+                bot.send_message(
+                    message.chat.id,
+                    "❌ Этот расчет уже существует в истории",
+                    reply_markup=markup
+                )
                 return
+            
+            # Списание кредитов для не-админов
+            if pgmd_level != 100:
+                new_balance = balance - 5
+                cursor.execute('UPDATE Partn SET bill = ? WHERE user_id = ?', 
+                             (new_balance, user_id))
+                conn.commit()
+            
+            # Вставка в diagnostic_logs
+            calculation_date = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+            cursor.execute('''
+                    INSERT INTO diagnostic_logs 
+                    (user_id, birth_date, name, gender, calculation_date, decryption) 
+                    VALUES (?, ?, ?, ?, ?, ?)
+                ''', (user_id, clean_date, name.strip(), gender, calculation_date, 0))
+
+            log_id = cursor.lastrowid
+            
+            # Добавленный блок расчета
+            scheme_result, nums = calculate_diagnostic(
+                date_str=clean_date,
+                name=name.strip(),
+                gender=gender
+            )
+            
+            # Проверка результатов расчета
+            if not nums or len(nums) != 14:
+                raise ValueError("Ошибка расчета параметров")
+
+            cursor.execute('''
+                INSERT INTO diagnostic_results 
+                (user_id, log_id, calculation_date, num1, num2, num3, num4, num5, num6, num7, num8, 
+                 num9, num10, num11, num12, num13, num14)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ''', (user_id, log_id, calculation_date, *nums))
+
+        # Отправка результатов
+        markup = types.InlineKeyboardMarkup()
+        markup.row(
+            types.InlineKeyboardButton("📋 Текст", callback_data=f'text_format_{log_id}'),
+            types.InlineKeyboardButton("📋 Подробнее (20 кр)", callback_data=f'detailed_desc_{log_id}'),
+            types.InlineKeyboardButton("🖼 Изображение", callback_data=f'image_format_{log_id}')
+        )
+        markup.row(
+            types.InlineKeyboardButton("📁 В группу", callback_data=f'manage_group_{log_id}'),
+            types.InlineKeyboardButton("🔄 Новый расчет", callback_data='new_calculation')
+        )
+        markup.row(types.InlineKeyboardButton("❌ Закрыть", callback_data='delete_history_msg'))
+        bot.send_message(
+            message.chat.id, 
+            f"*Результат для {name}:*\n```\n{scheme_result}\n```", 
+            parse_mode='Markdown', 
+            reply_markup=markup
+        )
+        success_msg = f"✅ Расчет выполнен успешно!"
+        if pgmd_level != 100:
+            success_msg += f"\nСписано 5 кредитов. Новый баланс: {new_balance} кредитов."
         
-        log_id = fb_add_log(user_id, name.strip(), clean_date, gender, nums)
-        
-        display_diagnostic_result(message, scheme_result, nums, log_id, name.strip(), clean_date)
+        bot.send_message(message.chat.id, success_msg)
 
     except ValueError as e:
-        bot.send_message(message.chat.id, f"⚠️ Ошибка: {e}")
+        # Ошибка валидации данных
+        markup = types.InlineKeyboardMarkup()
+        markup.row(
+            types.InlineKeyboardButton("🔄 Новый расчет", callback_data='new_calculation'),
+            types.InlineKeyboardButton("❌ Закрыть", callback_data='delete_history_msg')
+        )
+        bot.send_message(
+            message.chat.id,
+            f"❌ Ошибка: {str(e)}\n\nПроверьте формат ввода:\nДД.ММ.ГГГГ, Имя, Пол (М/Ж)\n\nПример: 29.03.1988, Олег, М",
+            reply_markup=markup
+        )
     except Exception as e:
-        print(f"Global Error: {e}")
-        bot.send_message(message.chat.id, "⛔ Произошла ошибка сервера")
+        # Все остальные ошибки
+        error_msg = str(e)
+        markup = types.InlineKeyboardMarkup()
+        markup.row(
+            types.InlineKeyboardButton("🔄 Новый расчет", callback_data='new_calculation'),
+            types.InlineKeyboardButton("❌ Закрыть", callback_data='delete_history_msg')
+        )
+        
+        if "UNIQUE constraint failed" in error_msg:
+            # Это ошибка дублирования (не должно происходить, так как мы проверяем заранее)
+            bot.send_message(
+                message.chat.id,
+                "❌ Произошла ошибка при сохранении расчета",
+                reply_markup=markup
+            )
+        else:
+            bot.send_message(
+                message.chat.id,
+                f"❌ Ошибка: {error_msg}",
+                reply_markup=markup
+            )
 #_____________________
 def is_user_accessible(user_id):
     """Проверяет, доступен ли пользователь для получения сообщений"""
@@ -2853,8 +2707,73 @@ def import_calculations_data(user_id, json_data):
     finally:
         conn.close()
 
-# Duplicate history handler removed
+@bot.callback_query_handler(func=lambda call: call.data == 'diagnostic_history')
+def show_diagnostic_history(call):
+    user_id = call.from_user.id
+    conn = sqlite3.connect(DB_PATH)
+    
+    try:
+        cursor = conn.cursor()
+        
+        # Получаем список уникальных групп
+        cursor.execute('''
+            SELECT DISTINCT user_group
+            FROM diagnostic_logs 
+            WHERE user_id = ? AND user_group IS NOT NULL
+            ORDER BY user_group
+        ''', (user_id,))
+        groups = [row[0] for row in cursor.fetchall()]
 
+        # Получаем записи без группы
+        cursor.execute('''
+            SELECT id, birth_date, name 
+            FROM diagnostic_logs 
+            WHERE user_id = ? AND user_group IS NULL
+            ORDER BY calculation_date DESC 
+            LIMIT 60
+        ''', (user_id,))
+        entries = cursor.fetchall()
+
+        markup = types.InlineKeyboardMarkup()
+
+        # Добавляем кнопки групп
+        for group in groups:
+            markup.add(types.InlineKeyboardButton(
+                f"📁 {group}", 
+                callback_data=f'group_{group}'
+            ))
+
+        # Добавляем отдельные записи без группы
+        for entry in entries:
+            entry_id, birth_date, name = entry
+            markup.add(types.InlineKeyboardButton(
+                f"{birth_date} - {name}", 
+                callback_data=f'view_calc_{entry_id}'
+            ))
+        
+        # Добавляем кнопки импорта/экспорта
+        markup.row(
+            types.InlineKeyboardButton("📤 Экспорт", callback_data='export_calculations'),
+            types.InlineKeyboardButton("📥 Импорт", callback_data='import_calculations')
+        )
+        
+        markup.row(
+            types.InlineKeyboardButton("◀️ Назад", callback_data='back_to_pgmd'),
+            types.InlineKeyboardButton("❌ Закрыть", callback_data='delete_history_msg')
+        )
+
+        bot.edit_message_text(
+            chat_id=call.message.chat.id,
+            message_id=call.message.message_id,
+            text="📂 История расчетов:",
+            reply_markup=markup
+        )
+
+    except Exception as e:
+        print(f"Error: {e}")
+        bot.answer_callback_query(call.id, "⛔ Ошибка загрузки истории")
+    finally:
+        conn.close()
 
 # Обработчик экспорта
 @bot.callback_query_handler(func=lambda call: call.data == 'export_calculations')
@@ -3078,8 +2997,294 @@ def show_group_entries(call):
     finally:
         conn.close()
 
-# Duplicate Group Management Block Removed
+@bot.callback_query_handler(func=lambda call: call.data.startswith('manage_group_'))
+def manage_group(call):
+    calc_id = call.data.split('_')[2]
+    conn = sqlite3.connect(DB_PATH)
+    try:
+        cursor = conn.cursor()
+        cursor.execute('SELECT user_group FROM diagnostic_logs WHERE id = ?', (calc_id,))
+        current_group = cursor.fetchone()[0]
+        
+        markup = types.InlineKeyboardMarkup()
+        if current_group:
+            markup.add(types.InlineKeyboardButton(f"❌ Удалить из '{current_group}'", callback_data=f'remove_group_{calc_id}'))
+        
+        # Получаем список существующих групп
+        cursor.execute('''
+            SELECT DISTINCT user_group FROM diagnostic_logs 
+            WHERE user_id = ? AND user_group IS NOT NULL
+        ''', (call.from_user.id,))
+        groups = [row[0] for row in cursor.fetchall()]
+        
+        for group in groups:
+            if group != current_group:
+                markup.add(types.InlineKeyboardButton(f"➡️ {group}", callback_data=f'set_group_{calc_id}_{group}'))
+        
+        markup.add(types.InlineKeyboardButton("➕ Новая группа", callback_data=f'new_group_{calc_id}'))
+        markup.add(types.InlineKeyboardButton("◀️ Назад", callback_data=f'view_calc_{calc_id}'))
+        
+        bot.edit_message_text(
+            chat_id=call.message.chat.id,
+            message_id=call.message.message_id,
+            text="📁 Управление группами:",
+            reply_markup=markup
+        )
+    finally:
+        conn.close()
 
+@bot.callback_query_handler(func=lambda call: call.data.startswith('set_group_'))
+def set_group(call):
+    _, _, calc_id, group = call.data.split('_', 3)
+    conn = sqlite3.connect(DB_PATH)
+    try:
+        cursor = conn.cursor()
+        cursor.execute('UPDATE diagnostic_logs SET user_group = ? WHERE id = ?', (group, calc_id))
+        conn.commit()
+        bot.answer_callback_query(call.id, f"✅ Запись добавлена в группу '{group}'")
+        show_saved_calculation(call)  # Возврат к просмотру записи
+    finally:
+        conn.close()
+
+@bot.callback_query_handler(func=lambda call: call.data.startswith('new_group_'))
+def new_group(call):
+    calc_id = call.data.split('_')[2]
+    msg = bot.send_message(
+        call.message.chat.id,
+        "📝 Введите название новой группы:",
+        reply_markup=types.ForceReply()
+    )
+    bot.register_next_step_handler(msg, lambda m: save_new_group(m, calc_id))
+
+def save_new_group(message, calc_id):
+    new_group = message.text.strip()
+    conn = sqlite3.connect(DB_PATH)
+    try:
+        cursor = conn.cursor()
+        cursor.execute('UPDATE diagnostic_logs SET user_group = ? WHERE id = ?', (new_group, calc_id))
+        conn.commit()
+        bot.send_message(message.chat.id, f"✅ Создана новая группа '{new_group}'")
+    finally:
+        conn.close()
+
+@bot.callback_query_handler(func=lambda call: call.data.startswith('delete_entry_'))
+def delete_entry(call):
+    calc_id = call.data.split('_')[2]
+    conn = sqlite3.connect(DB_PATH)
+    try:
+        cursor = conn.cursor()
+        # Удаляем связанные результаты
+        cursor.execute('DELETE FROM diagnostic_results WHERE log_id = ?', (calc_id,))
+        # Удаляем запись лога
+        cursor.execute('DELETE FROM diagnostic_logs WHERE id = ?', (calc_id,))
+        conn.commit()
+        bot.answer_callback_query(call.id, "✅ Запись удалена")
+        bot.delete_message(call.message.chat.id, call.message.message_id)
+    finally:
+        conn.close()
+
+
+@bot.callback_query_handler(func=lambda call: call.data == 'delete_history_msg')
+def delete_history(call):
+    bot.delete_message(call.message.chat.id, call.message.message_id)
+
+# Новый обработчик для просмотра конкретного расчета
+
+
+@bot.callback_query_handler(func=lambda call: call.data.startswith('view_calc_'))
+def show_saved_calculation(call):
+    try:
+        calc_id = int(call.data.split('_')[2])
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
+        cursor.execute('''
+            SELECT dr.num1, dr.num2, dr.num3, dr.num4, dr.num5, dr.num6, dr.num7, dr.num8,
+                   dr.num9, dr.num10, dr.num11, dr.num12, dr.num13, dr.num14,
+                   dl.birth_date, dl.name, dl.gender, dl.user_group
+            FROM diagnostic_logs dl
+            JOIN diagnostic_results dr ON dl.id = dr.log_id
+            WHERE dl.id = ?
+        ''', (calc_id,))
+
+        data = cursor.fetchone()
+        
+        if not data:
+            bot.answer_callback_query(call.id, "❌ Запись не найдена")
+            return
+
+        # Разделяем данные
+        numbers = data[:14]
+        birth_date = data[14]
+        name = data[15]
+        gender = data[16]
+        group = data[17]
+
+        # Формируем текст
+        scheme_text = format_scheme(*numbers, birth_date, name, gender)
+        group_text = f"\n\n📁 Группа: {group}" if group else ""
+        
+        markup = types.InlineKeyboardMarkup(row_width=2)
+        markup.add(
+            types.InlineKeyboardButton("🗑 Удалить", callback_data=f'delete_entry_{calc_id}'),
+            types.InlineKeyboardButton("📁 Группа", callback_data=f'manage_group_{calc_id}'),
+            types.InlineKeyboardButton("📋 Текст", callback_data=f'text_format_{calc_id}'),
+            types.InlineKeyboardButton("🖼 Изображение", callback_data=f'image_format_{calc_id}')
+        )
+        markup.row(types.InlineKeyboardButton("◀️ Назад", callback_data='diagnostic_history'))
+
+        bot.edit_message_text(
+            chat_id=call.message.chat.id,
+            message_id=call.message.message_id,
+            text=f"🔍 Запись #{calc_id}\n{scheme_text}{group_text}",
+            reply_markup=markup
+        )
+
+    except Exception as e:
+        bot.send_message(call.message.chat.id, f"⛔ Ошибка: {str(e)}")
+    finally:
+        conn.close()
+
+@bot.callback_query_handler(func=lambda call: call.data.startswith('delete_entry_'))
+def delete_entry(call):
+    calc_id = call.data.split('_')[2]
+    conn = sqlite3.connect(DB_PATH)
+    
+    try:
+        cursor = conn.cursor()
+        # Удаляем связанные результаты
+        cursor.execute('DELETE FROM diagnostic_results WHERE log_id = ?', (calc_id,))
+        # Удаляем запись лога
+        cursor.execute('DELETE FROM diagnostic_logs WHERE id = ?', (calc_id,))
+        conn.commit()
+        
+        bot.answer_callback_query(call.id, "✅ Запись удалена")
+        bot.delete_message(call.message.chat.id, call.message.message_id)
+        
+    except Exception as e:
+        bot.answer_callback_query(call.id, f"⛔ Ошибка: {str(e)}")
+    finally:
+        conn.close()
+
+@bot.callback_query_handler(func=lambda call: call.data.startswith('manage_group_'))
+def manage_group(call):
+    calc_id = call.data.split('_')[2]
+    conn = sqlite3.connect(DB_PATH)
+    
+    try:
+        cursor = conn.cursor()
+        # Получаем текущую группу и список всех групп
+        cursor.execute('SELECT user_group FROM diagnostic_logs WHERE id = ?', (calc_id,))
+        current_group = cursor.fetchone()[0]
+        
+        cursor.execute('''SELECT DISTINCT user_group FROM diagnostic_logs 
+                       WHERE user_id = ? AND user_group IS NOT NULL''', (call.from_user.id,))
+        groups = [row[0] for row in cursor.fetchall()]
+
+        markup = types.InlineKeyboardMarkup()
+        
+        # Кнопка для удаления из текущей группы
+        if current_group:
+            markup.add(types.InlineKeyboardButton(
+                f"❌ Выйти из '{current_group}'", 
+                callback_data=f'remove_group_{calc_id}'
+            ))
+        
+        # Кнопки существующих групп
+        for group in groups:
+            if group != current_group:
+                markup.add(types.InlineKeyboardButton(
+                    f"📁 {group}", 
+                    callback_data=f'set_group_{calc_id}_{group}'
+                ))
+        
+        # Кнопка создания новой группы
+        markup.add(types.InlineKeyboardButton(
+            "➕ Новая группа", 
+            callback_data=f'new_group_{calc_id}'
+        ))
+        
+        markup.row(types.InlineKeyboardButton("◀️ Назад", callback_data=f'view_calc_{calc_id}'))
+
+        bot.edit_message_text(
+            chat_id=call.message.chat.id,
+            message_id=call.message.message_id,
+            text="📂 Управление группами:",
+            reply_markup=markup
+        )
+        
+    except Exception as e:
+        bot.answer_callback_query(call.id, f"⛔ Ошибка: {str(e)}")
+    finally:
+        conn.close()
+
+@bot.callback_query_handler(func=lambda call: call.data.startswith('set_group_'))
+def set_group(call):
+    _, _, calc_id, group = call.data.split('_', 3)
+    conn = sqlite3.connect(DB_PATH)
+    
+    try:
+        cursor = conn.cursor()
+        cursor.execute('UPDATE diagnostic_logs SET user_group = ? WHERE id = ?', (group, calc_id))
+        conn.commit()
+        bot.answer_callback_query(call.id, f"✅ Добавлено в группу '{group}'")
+        show_saved_calculation(call)  # Обновляем просмотр записи
+        
+    except Exception as e:
+        bot.answer_callback_query(call.id, f"⛔ Ошибка: {str(e)}")
+    finally:
+        conn.close()
+
+@bot.callback_query_handler(func=lambda call: call.data.startswith('remove_group_'))
+def remove_group(call):
+    calc_id = call.data.split('_')[2]
+    conn = sqlite3.connect(DB_PATH)
+    
+    try:
+        cursor = conn.cursor()
+        cursor.execute('UPDATE diagnostic_logs SETuser_group = NULL WHERE id = ?', (calc_id,))
+        conn.commit()
+        bot.answer_callback_query(call.id, "✅ Удалено из группы")
+        show_saved_calculation(call)
+        
+    except Exception as e:
+        bot.answer_callback_query(call.id, f"⛔ Ошибка: {str(e)}")
+    finally:
+        conn.close()
+
+@bot.callback_query_handler(func=lambda call: call.data.startswith('new_group_'))
+def new_group(call):
+    calc_id = call.data.split('_')[2]
+    msg = bot.send_message(
+        call.message.chat.id,
+        "📝 Введите название новой группы:",
+        reply_markup=types.ForceReply()
+    )
+    bot.register_next_step_handler(msg, lambda m: save_new_group(m, calc_id))
+
+
+def save_new_group(message, calc_id):
+    new_group = message.text.strip()
+    conn = None 
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
+        cursor.execute('UPDATE diagnostic_logs SET user_group = ? WHERE id = ?', 
+                      (new_group, calc_id))
+        conn.commit()
+        markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
+        # markup.row('🌐 Сайт', '📅 Обучение')
+        # markup.row('🏢 Кабинет', '📢 Новости')
+        markup.row(types.KeyboardButton('🧠 Диагностика'), types.KeyboardButton('🏢 Мой кабинет'))
+
+        bot.send_message(message.chat.id, f"✅ Создана новая группа '{new_group}'",
+        reply_markup=markup )
+        
+    except Exception as e:
+        bot.send_message(message.chat.id, f"⛔ Ошибка: {str(e)}")
+        
+    finally:
+        if conn: 
+            conn.close()
 
 # Функция для получения названия зоны
 def get_zone_name(number: int) -> str:
@@ -3090,40 +3295,186 @@ def get_zone_name(number: int) -> str:
     return f"{number} ({zone.get('role_name', '???')})" if zone else str(number)
 
 
-# Duplicate send_text_format removed
+@bot.callback_query_handler(func=lambda call: call.data == 'text_format')
+def send_text_format(call):
+    user_id = call.from_user.id
+    conn = sqlite3.connect(DB_PATH, check_same_thread=False)
+    cursor = conn.cursor()   
+    
+    try:
+
+        cursor.execute('''
+            SELECT dr.num1, dr.num2, dr.num3, dr.num4, dr.num5, dr.num6, dr.num7, dr.num8,
+                   dr.num9, dr.num10, dr.num11, dr.num12, dr.num13, dr.num14,
+                   dl.birth_date, dl.name, dl.gender
+            FROM diagnostic_results dr
+            JOIN diagnostic_logs dl ON dr.log_id = dl.id
+            WHERE dl.user_id = ?
+            ORDER BY dr.calculation_date DESC 
+            LIMIT 1
+        ''', (user_id,))
+        
+        data = cursor.fetchone()
+
+        if data:
+            # Форматируем значения с названиями зон
+            formatted_values = [get_zone_name(num) for num in data[:14]]
+
+        elif not data:
+            bot.answer_callback_query(call.id, "❌ Нет данных для отображения!")
+            return
 
 
 
-@bot.callback_query_handler(func=lambda call: call.data.startswith('text_format_') or call.data.startswith('show_text_'))
+        # Списки категорий
+        CATEGORIES = {
+            "Антагонисты": [0, 1, 3, 4, 5, 7, 13, 15, 16],
+            "Союзники": [2, 3, 6, 8, 10, 12, 14, 20, 21],
+            "Нейтральные (усилители)": [9, 11, 17, 18, 19],
+            "Мужские Роли": [4, 5, 6, 8, 10],
+            "Женские Роли": [2, 3, 9, 12, 21],
+            "Детские": [1,2,3,4,5,6,7,8,9,10],
+            "Подростковые": [11,12,13,14,15,16,17],
+            "Старшие": [18,19,20,21,0],
+            "Пространственные": [1,2,3,4,6,8,10,11,12,14,18,21,0],
+            "Временные": [5,7,9,11,13,17,16,18,19,20,0]
+        }
+
+        # Собираем уникальные зоны из результатов
+        all_zones = set(data[:14])  # Берем первые 14 значений
+
+
+# Считаем частоту встречаемости чисел
+        frequency = {}
+        for num in data[:14]:  # data - ваш список чисел диагностики
+            frequency[num] = frequency.get(num, 0) + 1
+
+        # Формируем новые категории
+        accents = [str(k) for k, v in frequency.items() if v == 2]
+        dominants = [str(k) for k, v in frequency.items() if v == 3]
+        neurosis = [str(k) for k, v in frequency.items() if v >= 4]
+
+        category_description = "\n🔍 Особые зоны в вашей диагностике:\n"
+        if accents:
+            accents_named = [f"{num}" for num in accents]
+            category_description += f"▫️ Акценты (2 раза): {', '.join(accents_named)}\n"
+
+        if dominants:
+            dominants_named = [f"{num}" for num in dominants]
+            category_description += f"▫️ Доминанты (3 раза): {', '.join(dominants_named)}\n"
+
+        if neurosis:
+            neurosis_named = [f"{num}" for num in neurosis]
+            category_description += f"▫️ Невроз (4+ раз): {', '.join(neurosis_named)}\n"
+
+        for category, numbers in CATEGORIES.items():
+            found = [str(z) for z in all_zones if z in numbers]
+            if found:
+                category_description += f"▫️ *{category}:* {', '.join(found)}\n"
+        # Расчет невроза социальной динамики
+        # nums = data[:14]
+        birth_date = data[14]    # индекс 14
+        name = data[15]          # индекс 15
+        gender = data[16]        # индекс 16
+        x = data[3] + data[10]
+        x += data[5] if gender == 'Ж' else data[6]
+        y = x + data[12]
+        
+        # Корректировка значения
+        if x > 22:
+            x = x - 22
+            if x > 22:
+                x = x - 22
+        elif x == 22:
+            x = 0
+
+                # Корректировка значения
+        if y > 22:
+            y = y - 22
+            if y > 22:
+                y = y - 22
+                if y > 22:
+                    y = y - 22
+        elif y == 22:
+            y = 0
+
+        formatted_x = get_zone_name(x) 
+        formatted_y = get_zone_name(y) 
+        # Формируем расширенное текстовое описание
+
+
+
+
+        base_description = f"""
+*{name} ({birth_date})*
+*Детальная расшифровка:*
+
+I – Третичная фаза (непроявленное)
+▫️ 0-30 лет:     *{formatted_values[0]}*
+▫️ 30-60 лет:    *{formatted_values[1]}*
+▫️ 60-90 лет:    *{formatted_values[2]}*
+🔹 Точка входа:     *{formatted_values[3]}*
+
+II – Инь/Ян баланс
+♀️ Женская дуальность:   *{data[5]}* → *{data[4]}*
+♂️ Мужская дуальность:  *{data[6]}* → *{data[7]}*
+
+III – Ядро мотивации
+🎯 Основной мотив:  *{formatted_values[8]}*
+
+IV – Реализация в социуме
+🛠 Способ действия:  *{formatted_values[9]}*
+🌐 Сфера реализации:     *{formatted_values[10]}*
+
+V – Точка гармонии
+🚪 Точка выхода:     *{formatted_values[12]}*
+💭 Внутренний мир, страхи:  *{formatted_values[11]}*
+⚖️ Баланс внешнего/внутреннего:  *{formatted_values[13]}*
+
+🧠 Поведение в стрессе: *{formatted_x}*
+⚖️ Баланс в стрессе: *{formatted_y}*
+        """
+        # Объединяем описания
+        full_description = base_description + category_description
+        
+        
+        # Кнопки управления
+        markup = types.InlineKeyboardMarkup()
+        markup.row(types.InlineKeyboardButton("❌ Закрыть", callback_data='delete_history_msg'))
+        
+        
+        bot.send_message(
+            call.message.chat.id,
+            full_description,  # Ваша переменная с полным описанием
+            parse_mode="Markdown",
+            reply_markup=markup
+        )
+
+    except Exception as e:
+        bot.send_message(call.message.chat.id, f"⛔ Ошибка: {str(e)}")
+    finally:
+        conn.close()
+
+
+@bot.callback_query_handler(func=lambda call: call.data.startswith('text_format_'))
 def show_saved_text_format(call):
     try:
-        # Normalize prefix: treat 'show_text_' as 'text_format_'
-        data = call.data
-        if data.startswith('show_text_'):
-            data = data.replace('show_text_', 'text_format_')
-            
-        parts = data.split('_')
-        log_id = parts[2]
-        viewer_id = call.from_user.id
-        owner_id = parts[3] if len(parts) > 3 else viewer_id
+        calc_id = int(call.data.split('_')[2])
         
-        # 1. Получаем данные из Firebase
-        log_data = fb_get_log(log_id, owner_id)
-        if not log_data:
-            bot.answer_callback_query(call.id, "❌ Расчет не найден")
-            return
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
+        
+        cursor.execute('''
+            SELECT dr.num1, dr.num2, dr.num3, dr.num4, dr.num5, dr.num6, dr.num7, dr.num8,
+                   dr.num9, dr.num10, dr.num11, dr.num12, dr.num13, dr.num14,
+                   dl.birth_date, dl.name, dl.gender
+            FROM diagnostic_results dr
+            JOIN diagnostic_logs dl ON dr.log_id = dl.id
+            WHERE dr.log_id = ?
+        ''', (calc_id,))
+        
+        data = cursor.fetchone()
 
-        nums = log_data.get('numbers', [])
-        # Reconstruct data list: 
-        # Original: num1..num14, birth, name, gender
-        if not nums:
-            bot.answer_callback_query(call.id, "❌ Ошибка данных")
-            return
-
-        data = [*nums, log_data.get('birthDate'), log_data.get('name'), log_data.get('gender')]
-        
-        # Original logic below:
-        
         if data:
             # Форматируем значения с названиями зон и глубокими ссылками на числа
             formatted_values = [get_zone_name_with_links(num) for num in data[:14]]
@@ -3225,7 +3576,7 @@ def show_saved_text_format(call):
         # Формируем расширенное текстовое описание с новым форматом дуальностей
         base_description = f"""
 *{name} ({birth_date})*
-*Текстовая версия:*
+*Детальная расшифровка:*
 
 I – Третичная фаза (непроявленное)
 ▫️ 0-30 лет:     {formatted_values[0]}
@@ -3259,7 +3610,7 @@ V – Точка гармонии
         # Кнопки управления
         markup = types.InlineKeyboardMarkup()
         markup.add(
-            types.InlineKeyboardButton("📋 Подробнее (20 кр)", callback_data=f'detailed_desc_{log_id}_{owner_id}'),
+            types.InlineKeyboardButton("📋 Подробнее (20 кр)", callback_data=f'detailed_desc_{calc_id}'),
             types.InlineKeyboardButton("❌ Закрыть", callback_data='delete_history_msg')
         )
         
@@ -3274,6 +3625,8 @@ V – Точка гармонии
         bot.answer_callback_query(call.id, "❌ Ошибка формата запроса")
     except Exception as e:
         bot.send_message(call.message.chat.id, f"⛔ Ошибка: {str(e)}")
+    finally:
+        conn.close()
 
 def get_zone_role_name(number: int) -> str:
     """Получает только название роли по номеру зоны"""
@@ -3310,22 +3663,13 @@ def new_calculation(call):
 
 
 #____________________
-#____________________
-def calculate_numbers(date_str, gender):
-    try:
-        day, month, year = map(int, date_str.split('.'))
-    except ValueError:
-        # Fallback if separator is different?
-        # Maybe iso format YYYY-MM-DD?
-        if '-' in date_str:
-             parts = date_str.split('-')
-             if len(parts[0]) == 4: # YYYY-MM-DD
-                 day, month, year = int(parts[2]), int(parts[1]), int(parts[0])
-             else:
-                 day, month, year = int(parts[0]), int(parts[1]), int(parts[2])
-        else:
-            return []
-
+def calculate_diagnostic(date_str, name, gender, nums=None):
+    if nums:
+        return format_scheme(*nums, name, date_str, gender)
+    
+    # Логика для нового расчета
+    day, month, year = map(int, date_str.split('.'))
+    
     def reduce(num):
         while num > 22:
             num -= 22
@@ -3346,21 +3690,10 @@ def calculate_numbers(date_str, gender):
     num13 = reduce(num1 + num3 + num10)
     num14 = reduce(num12 + num13)
     
-    return [num1, num2, num3, num4, num5, num6, num7, num8, num9, num10, num11, num12, num13, num14]
-
-def calculate_diagnostic(date_str, name, gender, nums=None):
-    if nums:
-        # Legacy: Return string only when nums provided
-        return format_scheme(*nums, name, date_str, gender)
-    
-    # Логика для нового расчета
-    nums = calculate_numbers(date_str, gender)
-    if not nums:
-        return ("Ошибка формата даты", [])
-
+    # Для нового расчета возвращаем и строку и числа
     return (
-        format_scheme(*nums, name, date_str, gender),
-        nums
+        format_scheme(num1, num2, num3, num4, num5, num6, num7, num8, num9, num10, num11, num12, num13, num14, name, date_str, gender),
+        [num1, num2, num3, num4, num5, num6, num7, num8, num9, num10, num11, num12, num13, num14]
     )
 
 # def format_scheme(num1, num2, num3, num4, num5, num6, num7, num8, num9, num10, num11, num12, num13, num14, name, date_str, gender):
@@ -3461,25 +3794,30 @@ def handle_image_generation(call):
 @bot.callback_query_handler(func=lambda call: call.data.startswith('image_format_'))
 def handle_saved_image(call):
     try:
-        parts = call.data.split('_')
-        log_id = parts[2]
-        viewer_id = call.from_user.id
-        owner_id = parts[3] if len(parts) > 3 else viewer_id
+        calc_id = int(call.data.split('_')[2])
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
         
-        # 1. Получаем данные из Firebase
-        log_data = fb_get_log(log_id, owner_id)
-        if not log_data:
+        # Получаем данные расчета по calc_id
+        cursor.execute('''
+            SELECT dr.num1, dr.num2, dr.num3, dr.num4, dr.num5, dr.num6, dr.num7, dr.num8,
+                   dr.num9, dr.num10, dr.num11, dr.num12, dr.num13, dr.num14,
+                   dl.birth_date, dl.name, dl.gender
+            FROM diagnostic_results dr
+            JOIN diagnostic_logs dl ON dr.log_id = dl.id
+            WHERE dl.id = ?
+        ''', (calc_id,))
+        
+        data = cursor.fetchone()
+        
+        if not data:
             bot.answer_callback_query(call.id, "❌ Данные расчета не найдены")
             return
 
-        nums = log_data.get('numbers', [])
-        if not nums:
-            bot.answer_callback_query(call.id, "❌ Ошибка данных")
-            return
-
-        birth_date = log_data.get('birthDate')
-        name = log_data.get('name')
-        gender = log_data.get('gender')
+        nums = data[:14]
+        birth_date = data[14]
+        name = data[15]
+        gender = data[16]
 
         # Генерация изображения
         img_bytes = generate_diagnostic_image(
@@ -3512,11 +3850,11 @@ def handle_saved_image(call):
                 message_id=sent_message.message_id,
                 reply_markup=markup
             )
-        else:
-            bot.answer_callback_query(call.id, "❌ Ошибка генерации изображения")
 
     except Exception as e:
         bot.send_message(call.message.chat.id, f"⛔ Ошибка: {str(e)}")
+    finally:
+        conn.close()
         
 @bot.callback_query_handler(func=lambda call: call.data.startswith('delete_image_'))
 def delete_image(call):
@@ -3793,22 +4131,82 @@ def create_personal_account_markup():
     return markup
 
 def db_table_val(user_id, user_name, user_surname, username, markup, message):
+    conn = sqlite3.connect(DB_PATH, check_same_thread=False)
+    cursor = conn.cursor()
     try:
-        fb_register_user(user_id, user_name, user_surname, username)
+        cursor.execute('SELECT * FROM Partn WHERE user_id = ?', (user_id,))
+        user = cursor.fetchone()
+        if user is None:
+            cursor.execute('''
+                INSERT INTO Partn 
+                (user_id, user_name, user_surname, username, perf_name, pgmd, bill) 
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+            ''', (user_id, user_name, user_surname, username, user_name, 1, 10))
+            conn.commit()
+        else:
+            if user[9] == 0:  # Индекс столбца pgmd
+                cursor.execute('UPDATE Partn SET pgmd = 1 WHERE user_id = ?', (user_id,))
+                conn.commit()
     except Exception as e:
-        print(f"Ошибка в db_table_val (Firebase): {e}")
+        print(f"Ошибка в db_table_val: {e}")
+    finally:
+        conn.close()
+
+@bot.message_handler(func=lambda message: message.text == '🏢 Кабинет')
+def handle_personal_account(message):
+    user_id = message.from_user.id
+ #  print(f"[DEBUG] User ID при входе в кабинет: {user_id}")  # Логи в консоль
+
+    conn = sqlite3.connect(DB_PATH)
+    try:
+        cursor = conn.cursor()
+        user_id = message.from_user.id
+        
+        # Регистрируем/обновляем пользователя
+        db_table_val(
+            user_id=user_id,
+            user_name=message.from_user.first_name,
+            user_surname=message.from_user.last_name,
+            username=message.from_user.username,
+            markup=create_personal_account_markup(),
+            message=message
+        )
+        
+        # Получаем данные из БД
+        cursor.execute("SELECT perf_name FROM Partn WHERE user_id = ?", (user_id,))
+        user = cursor.fetchone()
+        
+        if user and user[0]:
+            response = f"👤 {user[0]}, добро пожаловать!"
+            markup = create_personal_account_markup()
+            bot.send_message(message.chat.id, response, reply_markup=markup)
+        else:
+            # Если что-то пошло не так
+            bot.send_message(message.chat.id, "🔐 Ошибка регистрации. Попробуйте снова.")
+        
+    except Exception as e:
+        bot.send_message(message.chat.id, f"⛔ Ошибка: {str(e)}")
+    finally:
+        conn.close()
+
+# @bot.message_handler(func=lambda message: message.text == '🏢 Мой кабинет')
+# def handle_my_office(message):
+#     handle_personal_account(message)
 
 @bot.message_handler(func=lambda message: message.text == '🏢 Мой кабинет')
 def handle_balance(message):
     user_id = message.from_user.id
+    conn = sqlite3.connect(DB_PATH, check_same_thread=False)
+    cursor = conn.cursor()
     
     try:
-        user_data = fb_get_user(user_id)
+        cursor.execute('SELECT perf_name, bill, pgmd FROM Partn WHERE user_id = ?', (user_id,))
+        user_data = cursor.fetchone()
 
         if user_data:
-            name = user_data.get('first_name') or "Пользователь"
-            bill = user_data.get('credits', 0)
-            pgmd_level = user_data.get('pgmd', 1)
+            name = user_data[0] if user_data[0] else "Пользователь"
+            bill = user_data[1] or 0
+            pgmd_level = user_data[2] or 1
             
             level_names = {
                 1: "Гость",
@@ -3821,9 +4219,9 @@ def handle_balance(message):
             level_name = level_names.get(pgmd_level, f"Уровень {pgmd_level}")
             
             response = (f"{name}\n"
-                       f"💳 Баланс: {bill} кредитов (Cloud)\n"
+                       f"💳 Баланс: {bill} кредитов\n"
                        f"🎯 Уровень доступа: {level_name}")
-            
+                       
             # Добавляем информацию о стоимости услуг
             if pgmd_level < 2:
                 response += "\n\n💡 Для доступа к расшифровке необходим уровень 'Исследователь'"
@@ -3835,12 +4233,6 @@ def handle_balance(message):
             markup.add(types.InlineKeyboardButton(
                 "📖 Расшифровка", 
                 callback_data="decryption_info"
-            ))
-            
-            # Кнопка Login App
-            markup.add(types.InlineKeyboardButton(
-                "📱 Вход в Приложение", 
-                callback_data="login_app_btn"
             ))
             
             # ДОБАВЛЕНО: Кнопка админ-панели для администратора
@@ -3872,23 +4264,13 @@ def handle_balance(message):
 
             bot.send_message(message.chat.id, response, reply_markup=markup)
         else:
-            bot.send_message(message.chat.id, "🔐 Пользователь не найден. Нажмите /start")
+            bot.send_message(message.chat.id, "🔐 Пользователь не найден.")
 
     except Exception as e:
-        print(f"Error handle_balance: {e}")
         bot.send_message(message.chat.id, f"⛔ Ошибка: {str(e)}")
+    finally:
+        conn.close()
 
-@bot.callback_query_handler(func=lambda call: call.data == 'login_app_btn')
-def callback_login_app(call):
-    token = fb_create_custom_token(call.from_user.id)
-    if token:
-        bot.send_message(
-            call.message.chat.id, 
-            f"🔑 *Ваш ключ для входа:* `{token}`", 
-            parse_mode="Markdown"
-        )
-    else:
-        bot.answer_callback_query(call.id, "Error generating token")
 
 @bot.callback_query_handler(func=lambda call: call.data.startswith('ask_question_'))
 def handle_ask_question(call):
@@ -3908,6 +4290,7 @@ def handle_ask_question(call):
         bot.answer_callback_query(call.id, "Введите ваш вопрос")
         
     except Exception as e:
+        bot.answer_callback_query(call.id, "❌ Ошибка при создании вопроса")
         print(f"Error in handle_ask_question: {e}")
 
 def process_question_text(message, user_id):
@@ -4078,80 +4461,317 @@ def handle_upgrade_request(call):
 @bot.callback_query_handler(func=lambda call: call.data.startswith('detailed_desc_'))
 def handle_detailed_desc(call):
     try:
-        parts = call.data.split('_')
-        log_id = parts[2] # Firebase ID string
+        calc_id = int(call.data.split('_')[2])
+        user_id = call.from_user.id
         
-        viewer_id = call.from_user.id
-        # Attempt to parse owner_id from callback, fallback to viewer_id for backward compatibility
-        owner_id = parts[3] if len(parts) > 3 else viewer_id
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
         
-        # 1. Получаем данные расчета из Firebase (используем ID владельца лога)
-        log_data = fb_get_log(log_id, owner_id)
+        # Получаем уровень доступа и баланс пользователя
+        cursor.execute('SELECT pgmd, bill FROM Partn WHERE user_id = ?', (user_id,))
+        result = cursor.fetchone()
+        if not result:
+            bot.answer_callback_query(call.id, "❌ Пользователь не найден")
+            return
+        pgmd_level, balance = result
+        balance = balance or 0
         
-        if not log_data:
+        # Проверяем, была ли уже оплачена расшифровка для этого расчета
+        cursor.execute('SELECT decryption FROM diagnostic_logs WHERE id = ?', (calc_id,))
+        decryption_result = cursor.fetchone()
+        already_paid = decryption_result and decryption_result[0] > 0
+
+        if not already_paid:
+            # Проверка уровня доступа
+            if pgmd_level < 2:
+                markup = types.InlineKeyboardMarkup()
+                markup.add(types.InlineKeyboardButton(
+                    "📈 Повысить уровень", 
+                    callback_data=f"request_upgrade_{user_id}"
+                ))
+                bot.send_message(
+                    call.message.chat.id,
+                    f"❌ Для доступа к расшифровке необходим уровень 'Исследователь' (2).\n"
+                    f"Ваш текущий уровень: {pgmd_level}.\n"
+                    f"Стоимость расшифровки: 20 кредитов.\n\n"
+                    f"Хотите подать заявку на повышение уровня?",
+                    reply_markup=markup
+                )
+                return
+                
+            # Проверка баланса для не-админов
+            if pgmd_level != 100 and balance < 20:
+                markup = types.InlineKeyboardMarkup()
+                markup.add(types.InlineKeyboardButton(
+                    "📨 Отправить заявку администратору", 
+                    callback_data=f"request_credits_{user_id}"
+                ))
+                bot.send_message(
+                    call.message.chat.id,
+                    f"❌ Недостаточно кредитов для расшифровки. Необходимо: 20 кредитов.\n"
+                    f"Ваш баланс: {balance} кредитов.\n\n"
+                    f"Пополните счет через администратора.",
+                    reply_markup=markup
+                )
+                return
+                            
+            # Списание кредитов для не-админов
+            if pgmd_level != 100:
+                new_balance = balance - 20
+                cursor.execute('UPDATE Partn SET bill = ? WHERE user_id = ?', 
+                             (new_balance, user_id))
+                conn.commit()
+            cursor.execute('UPDATE diagnostic_logs SET decryption = 1 WHERE id = ?', (calc_id,))
+            conn.commit()
+
+        # Получаем данные расчета
+        cursor.execute('''
+            SELECT dr.num1, dr.num2, dr.num3, dr.num4, dr.num5, dr.num6, dr.num7, dr.num8,
+                   dr.num9, dr.num10, dr.num11, dr.num12, dr.num13, dr.num14,
+                   dl.birth_date, dl.name, dl.gender
+            FROM diagnostic_results dr
+            JOIN diagnostic_logs dl ON dr.log_id = dl.id
+            WHERE dl.id = ?
+        ''', (calc_id,))
+        
+        data = cursor.fetchone()
+        
+        if not data:
             bot.answer_callback_query(call.id, "❌ Данные расчета не найдены")
             return
 
-        # 2. Проверка прав и оплаты (проверяем права СМОТРЯЩЕГО)
-        pgmd_level = 1
-        balance = 0
-        viewer_data = fb_get_user(viewer_id)
-        if viewer_data:
-            pgmd_level = viewer_data.get('pgmd', 1)
-            balance = viewer_data.get('credits', 0)
-
-        already_paid = log_data.get('decryption', 0) == 1
-        
-        if not already_paid:
-            # Проверка уровня
-            if pgmd_level < 2:
-                markup = types.InlineKeyboardMarkup()
-                markup.add(types.InlineKeyboardButton("📈 Повысить уровень", callback_data=f"request_upgrade_{viewer_id}")) # Use viewer_id
-                bot.send_message(call.message.chat.id, f"❌ Нужен уровень 'Исследователь' (2). Ваш: {pgmd_level}.", reply_markup=markup)
-                return
-
-            if pgmd_level != 100 and balance < 20:
-                markup = types.InlineKeyboardMarkup()
-                markup.add(types.InlineKeyboardButton("📨 Отправить заявку", callback_data=f"request_credits_{viewer_id}"))
-                bot.send_message(call.message.chat.id, f"❌ Недостаточно кредитов (нужно 20, у вас {balance}).", reply_markup=markup)
-                return
-
-            # Списание (со счета СМОТРЯЩЕГО)
-            if pgmd_level != 100:
-                if not fb_deduct_credits(viewer_id, 20):
-                     bot.send_message(call.message.chat.id, "❌ Ошибка транзакции. Попробуйте снова.")
-                     return
-            
-            # Помечаем лог как оплаченный (в базе ВЛАДЕЛЬЦА)
-            fb_mark_log_paid(owner_id, log_id)
-
-        # 3. Генерация текста
-        nums = log_data.get('numbers', [])
-        if not nums:
-            bot.send_message(call.message.chat.id, "❌ Ошибка данных в расчете")
-            return
-            
-        data_tuple = (*nums, log_data.get('birthDate'), log_data.get('name'), log_data.get('gender'))
-        
-        detailed_text = generate_detailed_description(data_tuple)
+        # Генерируем подробное описание
+        detailed_text = generate_detailed_description(data)
         
         markup = types.InlineKeyboardMarkup()
-        markup.add(types.InlineKeyboardButton("❌ Закрыть", callback_data='delete_history_msg'))
+        markup.add(
+            types.InlineKeyboardButton("❌ Закрыть", callback_data='delete_history_msg')
+        )
         
-        bot.send_message(call.message.chat.id, detailed_text, parse_mode="Markdown", reply_markup=markup)
+        bot.send_message(
+            call.message.chat.id,
+            detailed_text,
+            parse_mode="Markdown",
+            reply_markup=markup
+        )
         
+        # Если была произведена оплата (не админ и не оплачено ранее), то сообщаем о списании
         if not already_paid and pgmd_level != 100:
-            bot.send_message(call.message.chat.id, f"С вашего счета списано 20 кредитов.")
-
+            bot.send_message(
+                call.message.chat.id,
+                f"С вашего счета списано 20 кредитов. Новый баланс: {new_balance} кредитов."
+            )
+               
     except Exception as e:
-        print(f"Error detailed_desc: {e}")
         bot.send_message(call.message.chat.id, f"⛔ Ошибка: {str(e)}")
+    finally:
+        conn.close()
 
-# Duplicate format_decryption_text removed
+def format_decryption_text(call):
+    try:
+        # Исправлено: извлекаем calc_id ДО его использования
+        calc_id = int(call.data.split('_')[2])
+        
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
+        
+        cursor.execute('''
+            SELECT dr.num1, dr.num2, dr.num3, dr.num4, dr.num5, dr.num6, dr.num7, dr.num8,
+                   dr.num9, dr.num10, dr.num11, dr.num12, dr.num13, dr.num14,
+                   dl.birth_date, dl.name, dl.gender
+            FROM diagnostic_results dr
+            JOIN diagnostic_logs dl ON dr.log_id = dl.id
+            WHERE dr.log_id = ?
+        ''', (calc_id,))
+        
+        data = cursor.fetchone()
 
+        if data:
+            # Форматируем значения с названиями зон
+            formatted_values = [get_zone_name(num) for num in data[:14]]
+
+        elif not data:
+            bot.answer_callback_query(call.id, "❌ Расчет не найден")
+            return
+
+# Списки категорий
+        CATEGORIES = {
+            "Антагонисты": [0, 1, 3, 4, 5, 7, 13, 15, 16],
+            "Союзники": [2, 3, 6, 8, 10, 12, 14, 20, 21],
+            "Нейтральные (усилители)": [9, 11, 17, 18, 19],
+            "Мужские зоны": [4, 5, 6, 8, 10],
+            "Женские зоны": [2, 3, 9, 12, 21],
+            "Детские": [1,2,3,4,5,6,7,8,9,10],
+            "Подростковые": [11,12,13,14,15,16,17],
+            "Старшие": [18,19,20,21,0],
+            "Пространственные": [1,2,3,4,6,8,10,11,12,14,18,21,0],
+            "Временные": [5,7,9,11,13,17,16,18,19,20,0]
+        
+        
+        }
+
+        # Собираем уникальные зоны из результатов
+        all_zones = set(data[:14])  # Берем первые 14 значений
+
+        # Формируем описание категорий
+
+
+# Считаем частоту встречаемости чисел
+        frequency = {}
+        for num in data[:14]:  # data - ваш список чисел диагностики
+            frequency[num] = frequency.get(num, 0) + 1
+
+        # Формируем новые категории
+        accents = [str(k) for k, v in frequency.items() if v == 2]
+        dominants = [str(k) for k, v in frequency.items() if v == 3]
+        neurosis = [str(k) for k, v in frequency.items() if v >= 4]
+
+        category_description = "\n🔍 Особые зоны в вашей диагностике:\n"
+        if accents:
+            accents_named = [f"{num}" for num in accents]
+            category_description += f"▫️ *Акценты (2 раза):* {', '.join(accents_named)}\n"
+
+        if dominants:
+            dominants_named = [f"{num}" for num in dominants]
+            category_description += f"▫️ *Доминанты (3 раза):* {', '.join(dominants_named)}\n"
+
+        if neurosis:
+            neurosis_named = [f"{num}" for num in neurosis]
+            category_description += f"▫️ *Невроз (4+ раз):* {', '.join(neurosis_named)}\n"
+        
+        for category, numbers in CATEGORIES.items():
+            found = [str(z) for z in all_zones if z in numbers]
+            if found:
+                category_description += f"▫️ *{category}:* {', '.join(found)}\n"
+        # Расчет невроза социальной динамики
+        # nums = data[:14]
+        birth_date = data[14]    # индекс 14
+        name = data[15]          # индекс 15
+        gender = data[16]        # индекс 16
+        x = data[3] + data[10]  # num9 + num11
+        x += data[5] if gender == 'Ж' else data[6]  # + num10 для Ж / + num12 для М
+        y = x + data[12]
+        
+        # Корректировка значения
+        if x > 22:
+            x = x - 22
+            if x > 22:
+                x = x - 22
+        elif x == 22:
+            x = 0
+
+                # Корректировка значения
+        if y > 22:
+            y = y - 22
+            if y > 22:
+                y = y - 22
+                if y > 22:
+                    y = y - 22
+        elif y == 22:
+            y = 0
+
+        formatted_x = get_zone_name(x) 
+        formatted_y = get_zone_name(y) 
+        # Формируем расширенное текстовое описание
+
+
+
+
+        base_description = f"""
+*{name} ({birth_date})*
+*Детальная расшифровка:*
+
+I – Третичная фаза (непроявленное)
+▫️ 0-30 лет:     *{formatted_values[0]}*
+▫️ 30-60 лет:    *{formatted_values[1]}*
+▫️ 60-90 лет:    *{formatted_values[2]}*
+🔹 Точка входа:     *{formatted_values[3]}*
+
+II – Инь/Ян баланс
+♀️ Женская дуальность:   *{data[5]}* → *{data[4]}*
+♂️ Мужская дуальность:  *{data[6]}* → *{data[7]}*
+
+III – Ядро мотивации
+🎯 Основной мотив:  *{formatted_values[8]}*
+
+IV – Реализация в социуме
+🛠 Способ действия:  *{formatted_values[9]}*
+🌐 Сфера реализации:     *{formatted_values[10]}*
+
+V – Точка гармонии
+🚪 Точка выхода:     *{formatted_values[12]}*
+💭 Внутренний мир, страхи:  *{formatted_values[11]}*
+⚖️ Баланс внешнего/внутреннего:  *{formatted_values[13]}*
+
+🧠 Поведение в стрессе: *{formatted_x}*
+⚖️ Баланс в стрессе: *{formatted_y}*
+        """
+        # Объединяем описания
+        
+        
+        full_description = base_description + category_description
+        
+        
+        # Кнопки управления
+        markup = types.InlineKeyboardMarkup()
+        # markup.row(types.InlineKeyboardButton("❌ Закрыть", callback_data='delete_history_msg'))
+        markup.add(
+            types.InlineKeyboardButton("📋 Подробнее (20 кр)", callback_data=f'detailed_desc_{calc_id}'),
+            types.InlineKeyboardButton("❌ Закрыть", callback_data='delete_history_msg')
+        )
+        
+        bot.send_message(
+            call.message.chat.id,
+            full_description,  # Ваша переменная с полным описанием
+            parse_mode="Markdown",
+            reply_markup=markup
+        )
+    except IndexError:
+        bot.answer_callback_query(call.id, "❌ Ошибка формата запроса")
+    except Exception as e:
+        bot.send_message(call.message.chat.id, f"⛔ Ошибка: {str(e)}")
+    finally:
+        conn.close()
+
+    pass
 # Функция для показа меню пополнения баланса с условиями
-# Duplicate show_deposit_menu removed
-
+def show_deposit_menu(call):
+    """Показать меню пополнения баланса с условиями и кнопками"""
+    deposit_text = (
+        "💰 *Условия пополнения баланса:*\n\n"
+        "💎 *Варианты пополнения:*\n"
+        "• Подписка 3000₽ в месяц - 500 кредитов (6₽/кр.)\n"
+        "• Разовая покупка по 10₽/кредит\n"
+        "  - 500₽ → 50 кредитов\n"
+        "  - 1000₽ → 100 кредитов\n\n"
+        "🎁 *Бонусы:*\n"
+        "Запросите бонусы за игру \"Территория себя\"\n\n"
+        "💳 *Стоимость услуг:*\n"
+        "• Один расчет: 5 кредитов\n"
+        "• Подробная текстовая версия: 20 кредитов\n\n"
+        "📚 Также у нас большой выбор расшифровок индивидуальных диагностик и совместимостей\n"
+        "Подробнее: https://t.me/id_territory/37"
+    )
+    
+    markup = types.InlineKeyboardMarkup(row_width=1)
+    
+    # Кнопки для разных вариантов пополнения
+    markup.add(
+        types.InlineKeyboardButton("🎁 Запросить бонус", callback_data='request_bonus'),
+        types.InlineKeyboardButton("💎 Заявка на подписку", callback_data='request_subscription'),
+        types.InlineKeyboardButton("💳 Разовое пополнение 500₽", callback_data='request_deposit_500'),
+        types.InlineKeyboardButton("💳 Разовое пополнение 1000₽", callback_data='request_deposit_1000'),
+        types.InlineKeyboardButton("⬅️ Назад", callback_data='back_to_balance'),
+        types.InlineKeyboardButton("❌ Закрыть", callback_data='delete_history_msg')
+    )
+    
+    bot.edit_message_text(
+        chat_id=call.message.chat.id,
+        message_id=call.message.message_id,
+        text=deposit_text,
+        parse_mode="Markdown",
+        reply_markup=markup
+    )
 # Обработчик для кнопки "Пополнить баланс" - теперь показывает меню с условиями
 @bot.callback_query_handler(func=lambda call: call.data.startswith('request_credits_'))
 def handle_credit_request(call):
@@ -4217,12 +4837,16 @@ def back_to_balance(call):
         user_id = call.data.split('_')[3]
         
         # Получаем данные пользователя
-        user_data = fb_get_user(user_id)
+        conn = sqlite3.connect(DB_PATH, check_same_thread=False)
+        cursor = conn.cursor()
+        
+        cursor.execute('SELECT perf_name, bill, pgmd FROM Partn WHERE user_id = ?', (user_id,))
+        user_data = cursor.fetchone()
 
         if user_data:
-            name = user_data.get('first_name') or "Пользователь"
-            bill = user_data.get('credits', 0)
-            pgmd_level = user_data.get('pgmd', 1)
+            name = user_data[0] if user_data[0] else "Пользователь"
+            bill = user_data[1] or 0
+            pgmd_level = user_data[2] or 1
             
             level_names = {
                 1: "Гость",
@@ -4235,7 +4859,7 @@ def back_to_balance(call):
             level_name = level_names.get(pgmd_level, f"Уровень {pgmd_level}")
             
             response = (f"{name}\n"
-                       f"💳 Баланс: {bill} кредитов (Cloud)\n"
+                       f"💳 Баланс: {bill} кредитов\n"
                        f"🎯 Уровень доступа: {level_name}")
                        
             if pgmd_level < 2:
@@ -4245,11 +4869,6 @@ def back_to_balance(call):
             markup.add(types.InlineKeyboardButton(
                 "📖 Расшифровка", 
                 callback_data="decryption_info"
-            ))
-            
-            markup.add(types.InlineKeyboardButton(
-                "📱 Вход в Приложение", 
-                callback_data="login_app_btn"
             ))
             
             if pgmd_level < 2:
@@ -4278,10 +4897,12 @@ def back_to_balance(call):
                 reply_markup=markup
             )
         
+        conn.close()
         
     except Exception as e:
-        print(f"Error back_to_balance: {e}")
-        bot.answer_callback_query(call.id, "❌ Ошибка")
+        bot.answer_callback_query(call.id, "❌ Ошибка при возврате к балансу")
+        print(f"Error in back_to_balance: {e}")
+
 # Обработчик для кнопки "Запросить бонус"
 @bot.callback_query_handler(func=lambda call: call.data.startswith('request_bonus_'))
 def handle_bonus_request(call):
@@ -4869,7 +5490,7 @@ def generate_detailed_description(data):
         return zone
     
     # Формируем текст
-    description = f"*{name} ({birth_date})*\n*Подробная версия диагностики*\n\n"
+    description = f"*Подробная версия диагностики для \n{name} ({birth_date})*\n\n"
     
     # Третичные фазы
     phases = [
@@ -4886,7 +5507,7 @@ def generate_detailed_description(data):
     zone4 = get_zone_description(nums[3])
     description += f"🔹 Точка \"входа\" - то с чем человек уже пришел сюда, заложенный устойчивый опыт - выражается через {nums[3]} роль: \n({zone4.get('role_name', 'Название')}): {zone4.get('enter', 'Описание отсутствует')}\n\n"
     
-    # Дуальности
+    # Дуальности - НОВЫЙ ФОРМАТ ВЫВОДА АСПЕКТОВ
     female_aspect = f"{nums[5]}-{nums[4]}"
     male_aspect = f"{nums[6]}-{nums[7]}"
     
@@ -4894,7 +5515,7 @@ def generate_detailed_description(data):
     female_aspect_data = ASPECTS_ROLE.get(female_aspect, {})
     male_aspect_data = ASPECTS_ROLE.get(male_aspect, {})
     
-    description += f"♀️ Женская дуальность личности (межличностные отношения) проявляется через аспект {nums[5]} - {nums[4]}:\n"
+    description += f"♀️ Женская дуальность личности (межличностные отношения) проявляется через аспект {female_aspect}:\n"
     if female_aspect_data:
         description += (
             f"*{female_aspect_data.get('aspect_name', 'Название')} "
@@ -4907,7 +5528,7 @@ def generate_detailed_description(data):
     else:
         description += f"{ASPECTS.get(female_aspect, 'Описание аспекта отсутствует')}\n\n"
     
-    description += f"♂️ Мужская дуальность личности (реализация в социуме) проявляется через аспект {nums[6]} - {nums[7]}:\n"
+    description += f"♂️ Мужская дуальность личности (реализация в социуме) проявляется через аспект {male_aspect}:\n"
     if male_aspect_data:
         description += (
             f"*{male_aspect_data.get('aspect_name', 'Название')} "

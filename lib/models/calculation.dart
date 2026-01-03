@@ -31,6 +31,9 @@ class Calculation {
   @HiveField(8)
   int decryption;
   
+  @HiveField(9)
+  String? firebaseId;
+  
   Calculation({
     this.id,
     required this.name,
@@ -41,6 +44,7 @@ class Calculation {
     this.group,
     this.notes,
     this.decryption = 0,
+    this.firebaseId,
   });
   
   Calculation copyWith({
@@ -53,6 +57,7 @@ class Calculation {
     String? group,
     String? notes,
     int? decryption,
+    String? firebaseId,
   }) {
     return Calculation(
       id: id ?? this.id,
@@ -64,6 +69,7 @@ class Calculation {
       group: group ?? this.group,
       notes: notes ?? this.notes,
       decryption: decryption ?? this.decryption,
+      firebaseId: firebaseId ?? this.firebaseId,
     );
   }
   
@@ -77,6 +83,7 @@ class Calculation {
       'group': group,
       'notes': notes,
       'decryption': decryption,
+      // firebaseId is usually not part of the body
     };
   }
   
@@ -107,6 +114,7 @@ class Calculation {
       group: getString(['group', 'user_group']),
       notes: map['notes'] as String?,
       decryption: map['decryption'] as int? ?? 0,
+      firebaseId: map['id'] as String?, // Inject ID if present
     );
   }
   

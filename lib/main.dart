@@ -1,9 +1,23 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'app.dart';
+import 'screens/login_screen.dart';
 import 'services/database_service.dart';
+
+import 'package:firebase_core/firebase_core.dart';
+import 'firebase_options.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  
+  try {
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+  } catch (e) {
+    print("Firebase Init Error: $e");
+  }
+
   await DatabaseService().init();
   runApp(const MyApp());
 }
@@ -87,7 +101,22 @@ class MyApp extends StatelessWidget {
           elevation: 0,
         ),
       ),
-      home: const AppHome(),
+      home: StreamBuilder<User?>(
+        stream: FirebaseAuth.instance.authStateChanges(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+             return const Scaffold(
+               body: Center(child: CircularProgressIndicator()),
+             );
+          }
+          
+          if (snapshot.hasData) {
+            return const AppHome();
+          }
+          
+          return const LoginScreen();
+        },
+      ),
     );
   }
 }
