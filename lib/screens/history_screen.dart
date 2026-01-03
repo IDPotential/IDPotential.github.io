@@ -260,36 +260,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
     }
   }
 
-  Future<void> _renameCalculation(String id, String currentName) async {
-    final controller = TextEditingController(text: currentName);
-    final newName = await showDialog<String>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Переименовать'),
-        content: TextField(
-          controller: controller,
-          decoration: const InputDecoration(hintText: 'Новое имя', labelText: 'Имя'),
-          autofocus: true,
-          textCapitalization: TextCapitalization.sentences,
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Отмена'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, controller.text),
-            child: const Text('Сохранить'),
-          ),
-        ],
-      ),
-    );
 
-    if (newName != null && newName.trim().isNotEmpty && newName != currentName) {
-      await _firestoreService.updateCalculationName(id, newName.trim());
-      _loadData();
-    }
-  }
 
   Future<void> _editCalculation(Calculation calc) async {
     await Navigator.push(
@@ -444,14 +415,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                                     constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
                                     iconSize: 20,
                                   ),
-                                  IconButton(
-                                    icon: const Icon(Icons.edit_outlined),
-                                    onPressed: () => calc.firebaseId != null ? _renameCalculation(calc.firebaseId!, calc.name) : null,
-                                    tooltip: 'Переименовать',
-                                    padding: EdgeInsets.zero,
-                                    constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
-                                    iconSize: 20,
-                                  ),
+
                                   const SizedBox(width: 4),
                                   PopupMenuButton<String>(
                                     onSelected: (value) {
