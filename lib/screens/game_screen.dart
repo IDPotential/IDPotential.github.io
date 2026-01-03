@@ -90,7 +90,15 @@ class _GameScreenState extends State<GameScreen> {
       final date = _dateController.text; 
       
       try {
-        final calc = await CalculatorService.calculate(name, date, _gender);
+        final numbers = CalculatorService.calculateDiagnostic(date, name, _gender);
+        final calc = Calculation(
+          name: name,
+          birthDate: date,
+          gender: _gender,
+          numbers: numbers,
+          createdAt: DateTime.now(),
+        );
+
         await _firestoreService.saveGameProfile(calc);
         if (mounted) {
           setState(() {
@@ -302,7 +310,7 @@ class _GameScreenState extends State<GameScreen> {
     final String viewType = 'jitsi-meet-$room';
     
     try {
-      Registry.registerJitsiViewFactory(viewType, 'https://meet.jit.si/$room');
+      registerJitsiViewFactory(viewType, 'https://meet.jit.si/$room');
     } catch(e) {
       debugPrint("Registry error: $e");
     }
