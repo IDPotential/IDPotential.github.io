@@ -184,13 +184,26 @@ class _ResultScreenState extends State<ResultScreen> {
     }
   }
 
+  String _stripMarkdown(String text) {
+    // 1. Remove Headers (## Title)
+    var cleaned = text.replaceAll(RegExp(r'^#{1,6}\s*', multiLine: true), '');
+    // 2. Remove Bold/Italic (**text**, *text*, __text__, _text_)
+    cleaned = cleaned.replaceAllMapped(RegExp(r'(\*\*|__)(.*?)\1'), (match) => match.group(2) ?? '');
+    cleaned = cleaned.replaceAllMapped(RegExp(r'(\*|_)(.*?)\1'), (match) => match.group(2) ?? '');
+    // 3. Remove Links ([text](url)) -> text
+    cleaned = cleaned.replaceAllMapped(RegExp(r'\[(.*?)\]\(.*?\)'), (match) => match.group(1) ?? '');
+    // 4. Remove unordered list markers if needed, or keep them as dashes
+    // cleaned = cleaned.replaceAll(RegExp(r'^\s*[\-\*]\s+', multiLine: true), ''); 
+    // We kept list markers as they are useful for structure.
+    
+    return cleaned;
+  }
+
   void _shareResult() {
     String textToShare = _viewMode == ResultViewMode.text ? _decryptionText : _veryDetailedText;
     
-    // Remove Markdown
-    textToShare = textToShare.replaceAllMapped(RegExp(r'(\*\*|__)(.*?)\1'), (match) => match.group(2) ?? '');
-    textToShare = textToShare.replaceAllMapped(RegExp(r'(\*|_)(.*?)\1'), (match) => match.group(2) ?? '');
-    textToShare = textToShare.replaceAllMapped(RegExp(r'\[(.*?)\]\(.*?\)'), (match) => match.group(1) ?? '');
+    // Clean Markdown
+    textToShare = _stripMarkdown(textToShare);
     
     // Add Footer
     textToShare += '\n\nРасчет сделан с помощью бота Индивидуальная диагностика потенциала https://t.me/id_potential_bot';

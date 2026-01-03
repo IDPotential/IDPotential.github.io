@@ -194,26 +194,45 @@ class _CalculationScreenState extends State<CalculationScreen> {
                   border: OutlineInputBorder(),
                 ),
                 onChanged: (value) {
-                  String newText = value;
+                  String text = value;
                   
-                  // 1. Replace separators
-                  newText = newText.replaceAll(RegExp(r'[\/,\-]'), '.');
+                  // 1. Replace common separators with dots
+                  text = text.replaceAll(RegExp(r'[\/,\-\s]'), '.');
+
+                  // 2. Remove any non-allowed characters (keep digits and dots)
+                  text = text.replaceAll(RegExp(r'[^\d.]'), '');
+
+                  // 3. Auto-insert dots Logic
+                  // If user is deleting, do not auto-insert (simple check: length decreased?)
+                  // We need previous value to know if deleting. 
+                  // But standard onChanged doesn't give previous.
+                  // For simple "forward" typing:
+                  if (text.length > value.length) { 
+                     // This implies pasting or some insertion that increased length significantly? 
+                     // Actually onChanged 'value' IS the new text. 
+                     // We can't strictly detect backspace easily here without controller listener.
+                     // Let's rely on length checks of the CLEANED text.
+                  }
                   
-                  // 2. Auto-insert dots for 01012001 -> 01.01.2001
-                  // Only process if user is typing (length matches key points)
-                  // Simple approach: if length is 8 and numeric, format it.
-                  // Or continuously formatting? 
-                  // Let's try continuous formatting for "0101..." pattern typing
+                  // Clean text to just digits for re-formatting logic if it looks like a raw string
+                  String digitsOnly = text.replaceAll('.', '');
                   
-                  // Logic: Allow normal typing of dots. If user types 8 digits, format.
-                  if (RegExp(r'^\d{8}$').hasMatch(newText)) {
-                      newText = '${newText.substring(0, 2)}.${newText.substring(2, 4)}.${newText.substring(4)}';
+                  // If we have exactly 8 digits and no dots, assume full fast input/paste (01012000)
+                  if (digitsOnly.length == 8 && !text.contains('.')) {
+                     text = '${digitsOnly.substring(0, 2)}.${digitsOnly.substring(2, 4)}.${digitsOnly.substring(4)}';
+                  } 
+                  // If typing normally (e.g. 01 -> 01.), check standard positions
+                  else if (text.length == 2 && !text.contains('.')) {
+                      text += '.';
+                  } else if (text.length == 5 && text[2] == '.' && !text.substring(3).contains('.')) {
+                      text += '.';
                   }
 
-                  if (newText != value) {
+                  // Update controller if text changed
+                  if (text != value) {
                     _dateController.value = TextEditingValue(
-                      text: newText,
-                      selection: TextSelection.collapsed(offset: newText.length),
+                      text: text,
+                      selection: TextSelection.collapsed(offset: text.length),
                     );
                   }
                 },

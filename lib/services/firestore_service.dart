@@ -130,6 +130,13 @@ class FirestoreService {
     });
   }
 
+  // Update Calculation Name only
+  Future<void> updateCalculationName(String logId, String newName) async {
+    final uid = _userId;
+    if (uid == null) return;
+    await _db.collection('users').doc(uid).collection('calculations').doc(logId).update({'name': newName});
+  }
+
   // Set Calculation as Paid (Decrypted)
   Future<void> setCalculationPaid(String logId) async {
     final uid = _userId;
