@@ -118,15 +118,35 @@ class _GameScreenState extends State<GameScreen> {
   @override
   Widget build(BuildContext context) {
       if (_isHost && _targetGameId != null) {
-         // Host see special layout
+         // Host see split layout
          return Scaffold(
              extendBodyBehindAppBar: true, 
-             appBar: null, // Host controls everything
              body: Container(
                 decoration: const BoxDecoration(
                   gradient: LinearGradient(colors: [Color(0xFF0F172A), Color(0xFF1E293B)])
                 ),
-                child: SafeArea(child: _buildHostDashboard()) 
+                child: SafeArea(
+                  child: Column(
+                    children: [
+                      // Top Section: Video
+                      Expanded(
+                        flex: 4,
+                        child: Container(
+                          color: Colors.black87,
+                          child: _isVideoActive 
+                            ? _buildJitsiIframe() 
+                            : _buildVideoPlaceholder(),
+                        ),
+                      ),
+                      const Divider(height: 1, thickness: 1, color: Colors.grey),
+                      // Bottom Section: Management Dashboard
+                      Expanded(
+                        flex: 6,
+                        child: _buildHostDashboard(),
+                      ),
+                    ],
+                  ),
+                )
              )
          );
       }
@@ -227,19 +247,22 @@ class _GameScreenState extends State<GameScreen> {
                                          child: const Text("Принять", style: TextStyle(fontSize: 10))
                                       )
                                   else if (_gameStage == 'selection') ...[
-                                      // Show Diagnostic Card preview or placeholder
+                                      // Show Diagnostic Card preview link
                                       if (numbers.isNotEmpty)
-                                         Text("Код: ${numbers.take(3).join('-')}...", style: const TextStyle(color: Colors.grey, fontSize: 10)),
+                                         TextButton(
+                                            onPressed: () => _showDiagnosticCard(numbers, name),
+                                            child: const Text("Карта", style: TextStyle(color: Colors.blueAccent, fontSize: 12, decoration: TextDecoration.underline))
+                                         ),
                                       const SizedBox(height: 4),
                                       if (roleId != null) 
                                          Container(
-                                            padding: const EdgeInsets.all(4),
+                                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                                             decoration: BoxDecoration(color: Colors.orange, borderRadius: BorderRadius.circular(4)),
-                                            child: Text("Роль: $roleId", style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold))
+                                            child: Text("#$roleId", style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 10))
                                          )
                                       else
                                          const Text("Выбирает...", style: TextStyle(color: Colors.white54, fontSize: 10))
-                                  ] else ...[
+                                   ] else ...[
                                       // Voting Mode: Show Role 
                                       if (roleId != null)
                                          Text("Роль: $roleId", style: const TextStyle(color: Colors.orangeAccent, fontSize: 16, fontWeight: FontWeight.bold))
@@ -843,6 +866,54 @@ class _GameScreenState extends State<GameScreen> {
 
 
   
+  void _showDiagnosticCard(List<int> numbers, String name) {
+     // Show the 8 main diagnostic cards (indices 4, 5, 6, 7, 8, 9, 10, 12 usually in my result card logic)
+     // Actually, let's show all available unique numbers from registration
+     final unique = numbers.toSet().toList()..sort();
+     
+     showDialog(
+       context: context,
+       builder: (context) => AlertDialog(
+         backgroundColor: const Color(0xFF1E293B),
+         title: Text("Карта: $name", style: const TextStyle(color: Colors.white)),
+         content: SizedBox(
+           width: double.maxFinite,
+           child: GridView.builder(
+              shrinkWrap: true,
+              itemCount: unique.length,
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                 crossAxisCount: 4,
+                 childAspectRatio: 0.7,
+                 crossAxisSpacing: 8,
+                 mainAxisSpacing: 8,
+              ),
+              itemBuilder: (context, index) {
+                 final n = unique[index] == 0 ? 22 : unique[index];
+                 return Column(
+                    children: [
+                       Expanded(
+                          child: ClipRRect(
+                             borderRadius: BorderRadius.circular(4),
+                             child: Image.asset(
+                                'assets/images/cards/role_$n.png',
+                                fit: BoxFit.cover,
+                                errorBuilder: (c, e, s) => Container(color: Colors.white10),
+                             ),
+                          )
+                       ),
+                       Text("$n", style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold))
+                    ],
+                 );
+              },
+           ),
+         ),
+         actions: [
+            TextButton(onPressed: () => Navigator.pop(context), child: const Text("Закрыть"))
+         ],
+       ),
+     );
+  }
+
   void _showRoomDialog() async {
     final controller = TextEditingController(text: _roomName);
     final result = await showDialog<String>(
