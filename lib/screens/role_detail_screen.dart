@@ -146,7 +146,7 @@ class _RoleDetailScreenState extends State<RoleDetailScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            if (!widget.isAspect && !kIsWeb) ...[
+            if (!widget.isAspect) ...[
               AspectRatio(
                 aspectRatio: 16 / 9,
                 child: Container(
