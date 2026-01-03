@@ -216,4 +216,91 @@ class FirestoreService {
 
     await docRef.set(data, SetOptions(merge: true));
   }
+  // --- Requests (Personal Account) ---
+
+  // Create a new request (Top-up, Question, Upgrade)
+  Future<void> createRequest({
+    required String type, // 'credits', 'question', 'upgrade', 'deposit'
+    String? text,
+    int? value,
+    String? contactInfo, // optional username or link
+  }) async {
+    final uid = _userId;
+    if (uid == null) throw Exception("User not logged in");
+
+    // Fetch current user data to attach username/name
+    final userDoc = await _db.collection('users').doc(uid).get();
+    final userData = userDoc.data();
+    final name = userData?['first_name'] ?? 'User';
+    final username = userData?['username'] ?? '';
+
+    await _db.collection('requests').add({
+      'userId': uid,
+      'type': type,
+      'text': text,
+      'value': value,
+      'status': 'pending',
+      'createdAt': FieldValue.serverTimestamp(),
+      'userName': name,
+      'userContact': username.isNotEmpty ? username : contactInfo,
+      'is_answered': 0, // Compatibility with bot logic if migrated
+    });
+  }
+
+  // --- Admin Panel ---
+
+  // Get Pending Requests Stream
+  Stream<QuerySnapshot<Map<String, dynamic>>> getPendingRequests() {
+    return _db
+        .collection('requests')
+        .where('status', isEqualTo: 'pending')
+        .orderBy('createdAt', descending: true)
+        .snapshots();
+  }
+
+  // Process Request (Admin Action)
+  Future<void> processRequest(String requestId, String userId, String type, int? value) async {
+    final uid = _userId;
+    if (uid == null) return;
+    
+    // Check if current user is admin (security rule should also enforce this)
+    final currentUserDoc = await _db.collection('users').doc(uid).get();
+    final role = currentUserDoc.data()?['role'];
+    final pgmd = currentUserDoc.data()?['pgmd'];
+    
+    // Allow if role is admin OR pgmd level is 100
+    if (role != 'admin' && pgmd != 100) {
+      throw Exception("Unauthorized");
+    }
+
+    final userRef = _db.collection('users').doc(userId);
+    final requestRef = _db.collection('requests').doc(requestId);
+
+    await _db.runTransaction((transaction) async {
+      final requestDoc = await transaction.get(requestRef);
+      if (!requestDoc.exists) throw Exception("Request not found");
+      
+      if (requestDoc.data()?['status'] == 'completed') {
+         throw Exception("Request already processed");
+      }
+
+      // Perform action based on type
+      if (type == 'credits' || type == 'deposit' || type == 'subscription') {
+        if (value != null && value > 0) {
+           transaction.update(userRef, {'credits': FieldValue.increment(value)});
+        }
+      } else if (type == 'upgrade') {
+         transaction.update(userRef, {'pgmd': 2}); // Set to Researcher
+         // Optional: Add bonus credits for upgrade? Bot adds 20.
+         transaction.update(userRef, {'credits': FieldValue.increment(20)});
+      }
+
+      // Mark request as completion
+      transaction.update(requestRef, {
+        'status': 'completed',
+        'processedBy': uid,
+        'processedAt': FieldValue.serverTimestamp(),
+      });
+    });
+  }
 }
