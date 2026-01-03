@@ -113,6 +113,23 @@ class FirestoreService {
     }
   }
 
+  // Update Calculation Details (Name, Date, Gender)
+  Future<void> updateCalculation(String logId, Calculation updatedCalc) async {
+    final uid = _userId;
+    if (uid == null) return;
+    
+    final ref = _db.collection('users').doc(uid).collection('calculations').doc(logId);
+    
+    // Only update editable fields + re-calculated numbers if date/gender changed
+    await ref.update({
+      'name': updatedCalc.name,
+      'birthDate': updatedCalc.birthDate,
+      'gender': updatedCalc.gender,
+      'numbers': updatedCalc.numbers, // Recalculated numbers
+      // Do NOT update createdAt, group, type, etc. unless needed
+    });
+  }
+
   // --- User Data ---
 
   // Get user document stream (Credits, Role)

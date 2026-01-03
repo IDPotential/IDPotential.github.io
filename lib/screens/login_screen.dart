@@ -131,8 +131,8 @@ class _LoginScreenState extends State<LoginScreen> {
                               ),
                               const SizedBox(height: 4),
                               const Text(
-                                "Команда: /login_app",
-                                style: TextStyle(fontFamily: 'monospace', fontSize: 13),
+                                "Меню: Мой кабинет -> Вход в Приложение",
+                                style: TextStyle(fontWeight: FontWeight.bold),
                               ),
                            ],
                         ),

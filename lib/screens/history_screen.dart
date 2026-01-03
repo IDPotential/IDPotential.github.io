@@ -10,6 +10,7 @@ import '../services/firestore_service.dart';
 import '../services/data_transfer_service.dart';
 import '../services/calculator_service.dart';
 import 'result_screen.dart';
+import 'calculation_screen.dart';
 
 class HistoryScreen extends StatefulWidget {
   const HistoryScreen({super.key});
@@ -260,15 +261,14 @@ class _HistoryScreenState extends State<HistoryScreen> {
   }
 
   Future<void> _editCalculation(Calculation calc) async {
-    // Editing logic? 
-    // FirestoreService doesn't have update whole object method yet, only save (create).
-    // Let's implement a quick update or delete+create?
-    // UPDATE: FirestoreService needs 'updateCalculation' method for edits.
-    // I can stick to "Delete old, Save new" effectively updates but changes ID (bad for history linking).
-    // Or I can just Add 'updateCalculation' to FirestoreService?
-    // I'll show a snackbar "Not implemented" for now or implement properly?
-    // Ideally properly.
-    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Редактирование пока недоступно')));
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => CalculationScreen(existingCalculation: calc),
+      ),
+    );
+    // Refresh list after returning (in case of changes)
+    _loadData();
   }
 
   Future<void> _confirmClearAll() async {
@@ -423,7 +423,6 @@ class _HistoryScreenState extends State<HistoryScreen> {
                                       }
                                     },
                                     itemBuilder: (context) => [
-                                      /* Edit disabled for now 
                                       const PopupMenuItem(
                                         value: 'edit',
                                         child: Row(
@@ -433,7 +432,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                                             Text('Изменить'),
                                           ],
                                         ),
-                                      ), */
+                                      ),
                                       const PopupMenuItem(
                                         value: 'delete',
                                         child: Row(

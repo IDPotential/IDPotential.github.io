@@ -7,7 +7,9 @@ import '../models/calculation.dart';
 import '../services/firestore_service.dart';
 
 class CalculationScreen extends StatefulWidget {
-  const CalculationScreen({super.key});
+  final Calculation? existingCalculation; // Optional parameter for editing
+
+  const CalculationScreen({super.key, this.existingCalculation});
 
   @override
   State<CalculationScreen> createState() => _CalculationScreenState();
@@ -21,6 +23,16 @@ class _CalculationScreenState extends State<CalculationScreen> {
   String _gender = 'М';
   bool _isCalculating = false;
   final FirestoreService _firestoreService = FirestoreService();
+  
+  @override
+  void initState() {
+    super.initState();
+    if (widget.existingCalculation != null) {
+      _nameController.text = widget.existingCalculation!.name;
+      _dateController.text = widget.existingCalculation!.birthDate;
+      _gender = widget.existingCalculation!.gender;
+    }
+  }
   
   @override
   void dispose() {
@@ -50,16 +62,28 @@ class _CalculationScreenState extends State<CalculationScreen> {
         birthDate: _dateController.text,
         gender: _gender,
         numbers: numbers,
-        createdAt: DateTime.now(),
+        createdAt: widget.existingCalculation?.createdAt ?? DateTime.now(), // Keep original date if editing
+        group: widget.existingCalculation?.group, // Keep original group
+        decryption: widget.existingCalculation?.decryption ?? 0, // Keep paid status
       );
       
-      // Сохранение в базу данных (Firestore)
-      final id = await _firestoreService.saveCalculation(calculation);
+      String id;
+      if (widget.existingCalculation != null && widget.existingCalculation!.firebaseId != null) {
+        // UPDATE
+        id = widget.existingCalculation!.firebaseId!;
+        await _firestoreService.updateCalculation(id, calculation);
+      } else {
+        // CREATE
+        id = await _firestoreService.saveCalculation(calculation);
+      }
+
       final savedCalculation = calculation.copyWith(firebaseId: id);
       
       // Переход к результатам
       if (!mounted) return;
       
+      // If editing, usually pop back or replace? 
+      // User likely wants to see Result immediately.
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(
@@ -92,7 +116,7 @@ class _CalculationScreenState extends State<CalculationScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Новый расчет'),
+        title: Text(widget.existingCalculation != null ? 'Редактирование' : 'Новый расчет'),
         actions: [
           IconButton(
             icon: const Icon(Icons.history),
@@ -259,9 +283,9 @@ class _CalculationScreenState extends State<CalculationScreen> {
                   ),
                   child: _isCalculating
                       ? const CircularProgressIndicator(color: Colors.white)
-                      : const Text(
-                          'Рассчитать',
-                          style: TextStyle(fontSize: 18),
+                      : Text(
+                          widget.existingCalculation != null ? 'Сохранить изменения' : 'Рассчитать',
+                          style: const TextStyle(fontSize: 18),
                         ),
                 ),
               ),
