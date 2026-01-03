@@ -152,6 +152,24 @@ class _GameScreenState extends State<GameScreen> {
                       hintText: '25.12.1990',
                     ),
                     keyboardType: TextInputType.datetime,
+                    onChanged: (value) {
+                      String newText = value;
+                      
+                      // 1. Replace separators
+                      newText = newText.replaceAll(RegExp(r'[\/,\-]'), '.');
+                      
+                      // 2. Auto-insert dots for 01012001 -> 01.01.2001
+                      if (RegExp(r'^\d{8}$').hasMatch(newText)) {
+                          newText = '${newText.substring(0, 2)}.${newText.substring(2, 4)}.${newText.substring(4)}';
+                      }
+
+                      if (newText != value) {
+                        _dateController.value = TextEditingValue(
+                          text: newText,
+                          selection: TextSelection.collapsed(offset: newText.length),
+                        );
+                      }
+                    },
                     validator: (value) {
                        if (value == null || value.isEmpty) return 'Введите дату';
                        final regExp = RegExp(r'^\d{2}\.\d{2}\.\d{4}$');
@@ -237,10 +255,10 @@ class _GameScreenState extends State<GameScreen> {
           child: GridView.builder(
             padding: const EdgeInsets.all(12),
             gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 2, // 2 cards per row
-              childAspectRatio: 0.7, // Portrait cards
-              crossAxisSpacing: 12,
-              mainAxisSpacing: 12,
+              crossAxisCount: 4, // 4 cards per row
+              childAspectRatio: 0.6, // Taller cards (approx tarot ratio)
+              crossAxisSpacing: 8,
+              mainAxisSpacing: 8,
             ),
             itemCount: _gameProfile!.numbers.length,
             itemBuilder: (context, index) {
@@ -259,17 +277,17 @@ class _GameScreenState extends State<GameScreen> {
                         'assets/images/cards/role_$imageNum.png',
                         fit: BoxFit.cover,
                         errorBuilder: (context, error, stackTrace) => const Center(
-                          child: Icon(Icons.image_not_supported, size: 50, color: Colors.grey),
+                          child: Icon(Icons.image_not_supported, size: 20, color: Colors.grey),
                         ),
                       ),
                     ),
                     Container(
                       color: Colors.black54,
-                      padding: const EdgeInsets.symmetric(vertical: 4),
+                      padding: const EdgeInsets.symmetric(vertical: 2),
                       child: Text(
-                        'Позиция ${index + 1}',
+                        '${index + 1}',
                         textAlign: TextAlign.center,
-                        style: const TextStyle(fontSize: 12, color: Colors.white70),
+                        style: const TextStyle(fontSize: 10, color: Colors.white70),
                       ),
                     ),
                   ],
