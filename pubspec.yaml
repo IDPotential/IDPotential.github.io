@@ -47,6 +47,7 @@ flutter:
   uses-material-design: true
   assets:
     - assets/images/
+    - assets/images/cards/
     - assets/data/
     - assets/templates/
     - video/

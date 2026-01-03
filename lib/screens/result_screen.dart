@@ -170,7 +170,6 @@ class _ResultScreenState extends State<ResultScreen> {
                 title: const Text('Telegram'),
                 onTap: () {
                   Navigator.pop(context);
-                  // Use only 'url' or 'text'. combining them:
                   // For Telegram Web Share: https://t.me/share/url?url={url}&text={text}
                   // If we only have text, we can try putting it all in text, or use a dummy URL.
                   // BETTER: Use just text param if no URL.
