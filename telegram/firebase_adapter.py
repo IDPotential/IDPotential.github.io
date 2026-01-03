@@ -109,9 +109,9 @@ def fb_deduct_credits(user_id, amount=5):
         snapshot = transaction.get(ref)
         if not snapshot.exists: return False
         
-        current_bill = snapshot.get('credits') or 0
+        current_bill = int(snapshot.get('credits') or 0)
         role = snapshot.get('role')
-        pgmd = snapshot.get('pgmd') or 0
+        pgmd = int(snapshot.get('pgmd') or 0)
         
         # Admin check (pgmd 100 or role admin) - Free
         if pgmd >= 100 or role == 'admin':
