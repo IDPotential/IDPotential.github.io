@@ -71,7 +71,7 @@ class HomeScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 20),
                   const Text(
-                    'v1.2 (Web Updated)', 
+                    'v1.3.0 (Firebase Auth & Video)', 
                     style: TextStyle(color: Colors.grey, fontSize: 10),
                   ),
                   const SizedBox(height: 20),
