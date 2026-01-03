@@ -72,7 +72,8 @@ class _GameScreenState extends State<GameScreen> {
       if (data != null) {
         final role = data['role'];
         final pgmd = data['pgmd'];
-        if (role == 'admin' || role == 'diagnost' || pgmd == 100) {
+        // Only Admin (100) is Host. Diagnost (5) is a participant.
+        if (role == 'admin' || pgmd == 100) {
            if (mounted) setState(() => _isHost = true);
         }
       }
