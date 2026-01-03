@@ -236,6 +236,32 @@ class FirestoreService {
 
   // --- Game Host Features ---
 
+  // --- Game Stage & Voting ---
+
+  Future<void> updateGameStage(String gameId, String stage) async {
+      // stage: 'selection', 'voting'
+      await _db.collection('games').doc(gameId).update({
+          'stage': stage
+      });
+  }
+
+  Future<void> voteForPlayer(String gameId, String targetUserId) async {
+      final user = _auth.currentUser;
+      if (user == null) return;
+      
+      // Store vote in a subcollection or on the participant doc?
+      // Simple way: Add 'votes' list to target participant
+      final targetRef = _db.collection('games').doc(gameId).collection('participants').doc(targetUserId);
+      
+      await targetRef.update({
+          'votes': FieldValue.arrayUnion([user.uid])
+      });
+  }
+
+  Stream<DocumentSnapshot<Map<String, dynamic>>> getGameStream(String gameId) {
+      return _db.collection('games').doc(gameId).snapshots();
+  }
+
   Future<String> createGame({required String title, required DateTime date}) async {
     final user = _auth.currentUser;
     if (user == null) throw Exception("User not logged in");
@@ -254,6 +280,7 @@ class FirestoreService {
       'title': title,
       'scheduledAt': date.toIso8601String(),
       'status': 'scheduled',
+      'stage': 'selection', // Default stage
       'createdAt': FieldValue.serverTimestamp(),
     });
     

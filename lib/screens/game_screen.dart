@@ -37,6 +37,7 @@ class _GameScreenState extends State<GameScreen> {
   String _roomName = '';
   // Host State
   bool _isHost = false;
+  String _gameStage = 'selection'; // 'selection', 'voting'
   
   @override
   void initState() {
@@ -45,7 +46,18 @@ class _GameScreenState extends State<GameScreen> {
     _checkHostStatus();
     if (widget.gameId != null) {
        _checkParticipantStatus();
+       _listenToGameStage();
     }
+  }
+
+  void _listenToGameStage() {
+     _firestoreService.getGameStream(widget.gameId!).listen((doc) {
+        if (doc.exists && mounted) {
+           setState(() {
+              _gameStage = doc.data()?['stage'] ?? 'selection';
+           });
+        }
+     });
   }
 
   void _checkParticipantStatus() {
@@ -255,6 +267,78 @@ class _GameScreenState extends State<GameScreen> {
     );
   }
 
+  Widget _buildVotingBoard() {
+     return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+        stream: _firestoreService.getGameParticipantsStream(widget.gameId!),
+        builder: (context, snapshot) {
+           if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
+           
+           final participants = snapshot.data!.docs;
+           
+           return Column(
+              children: [
+                const Padding(
+                  padding: EdgeInsets.all(8.0),
+                  child: Text("Голосование", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+                ),
+                Expanded(
+                  child: GridView.builder(
+                    padding: const EdgeInsets.all(12),
+                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 3,
+                      childAspectRatio: 0.7,
+                      crossAxisSpacing: 10,
+                      mainAxisSpacing: 10,
+                    ),
+                    itemCount: participants.length,
+                    itemBuilder: (context, index) {
+                      final data = participants[index].data();
+                      final uid = participants[index].id;
+                      final name = data['name'] ?? 'Unknown';
+                      final roleId = data['selectedRole'];
+                      // final myVote = ... if we want to show if I voted
+                      
+                      return Card(
+                         color: Colors.white10,
+                         child: Column(
+                           mainAxisAlignment: MainAxisAlignment.center,
+                           children: [
+                              CircleAvatar(
+                                radius: 25, 
+                                backgroundColor: Colors.purple.withOpacity(0.3),
+                                child: Text(name[0].toUpperCase(), style: const TextStyle(color: Colors.white)),
+                              ),
+                              const SizedBox(height: 8),
+                              Text(name, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold), textAlign: TextAlign.center),
+                              const SizedBox(height: 4),
+                              if (roleId != null)
+                                 Text("Роль: $roleId", style: const TextStyle(color: Colors.orangeAccent)),
+                              
+                              const SizedBox(height: 8),
+                              ElevatedButton(
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.blueAccent,
+                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                                  minimumSize: const Size(0, 30),
+                                ),
+                                onPressed: () {
+                                   _firestoreService.voteForPlayer(widget.gameId!, uid);
+                                   ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Голос за $name учтен')));
+                                },
+                                child: const Text("Голос", style: TextStyle(fontSize: 12)),
+                              )
+                           ],
+                         ),
+                      );
+                    },
+                  ),
+                ),
+              ],
+           );
+        }
+     );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -309,22 +393,26 @@ class _GameScreenState extends State<GameScreen> {
             color: Colors.transparent, 
             child: Column(
               children: [
-                Padding(
-                  padding: const EdgeInsets.all(8.0),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text("Мои Роли", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.white)),
-                      if (_selectedRole != null)
-                         Chip(
-                           label: Text("Выбрано: $_selectedRole"), 
-                           backgroundColor: Colors.orangeAccent.withOpacity(0.2),
-                           onDeleted: () => setState(() => _selectedRole = null),
-                         ),
-                    ],
-                  ),
-                ),
-                Expanded(child: _buildRolesGrid()),
+                 if (_gameStage == 'voting')
+                    Expanded(child: _buildVotingBoard())
+                 else ...[
+                    Padding(
+                      padding: const EdgeInsets.all(8.0),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text("Мои Роли", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.white)),
+                          if (_selectedRole != null)
+                             Chip(
+                               label: Text("Выбрано: $_selectedRole"), 
+                               backgroundColor: Colors.orangeAccent.withOpacity(0.2),
+                               onDeleted: () => setState(() => _selectedRole = null),
+                             ),
+                        ],
+                      ),
+                    ),
+                    Expanded(child: _buildRolesGrid()),
+                 ]
               ],
             ),
           ),
@@ -549,68 +637,134 @@ class _GameScreenState extends State<GameScreen> {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => Container(
-        height: MediaQuery.of(context).size.height * 0.7,
-        decoration: const BoxDecoration(
-          color: Color(0xFF1E293B),
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-        ),
-        child: Column(
-          children: [
-            const Padding(
-              padding: EdgeInsets.all(16.0),
-              child: Text("Участники Игры", 
-                style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)
-              ),
+      builder: (context) => StatefulBuilder(
+        builder: (context, setSheetState) {
+          return Container(
+            height: MediaQuery.of(context).size.height * 0.7,
+            decoration: const BoxDecoration(
+              color: Color(0xFF1E293B),
+              borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
             ),
-            const Divider(),
-            Expanded(
-              child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-                stream: _firestoreService.getGameParticipantsStream(widget.gameId!),
-                builder: (context, snapshot) {
-                  if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
-                  
-                  final docs = snapshot.data!.docs;
-                  if (docs.isEmpty) return const Center(child: Text("Нет участников", style: TextStyle(color: Colors.white54)));
-                  
-                  return ListView.builder(
-                    itemCount: docs.length,
-                    itemBuilder: (context, index) {
-                      final data = docs[index].data();
-                      final userId = docs[index].id;
-                      final name = data['name'] ?? 'Unknown';
-                      final status = data['status'] ?? 'pending';
-                      final roleId = data['selectedRole'];
-                      
-                      return Card(
-                        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                         color: Colors.white10,
-                        child: ListTile(
-                          leading: Icon(
-                             status == 'approved' ? Icons.check_circle : Icons.access_time,
-                             color: status == 'approved' ? Colors.green : Colors.orange
-                          ),
-                          title: Text(name, style: const TextStyle(color: Colors.white)),
-                          subtitle: Text(
-                             roleId != null ? "Выбрана роль: $roleId" : "Роль не выбрана",
-                             style: const TextStyle(color: Colors.white70)
-                          ),
-                          trailing: status == 'pending' 
-                             ? ElevatedButton(
-                                 style: ElevatedButton.styleFrom(backgroundColor: Colors.green, padding: const EdgeInsets.symmetric(horizontal: 10)),
-                                 onPressed: () => _firestoreService.approveParticipant(widget.gameId!, userId),
-                                 child: const Text("Принять"),
-                               )
-                             : null,
+            child: Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                       const Text("Управление Игрой", 
+                         style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)
+                       ),
+                       IconButton(icon: const Icon(Icons.close, color: Colors.white), onPressed: () => Navigator.pop(context))
+                    ],
+                  ),
+                ),
+                // Toggle Stage
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Row(
+                     children: [
+                        Expanded(
+                          child: ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                               backgroundColor: _gameStage == 'selection' ? Colors.blue : Colors.blueGrey
+                            ),
+                            onPressed: () {
+                               _firestoreService.updateGameStage(widget.gameId!, 'selection');
+                                setSheetState(() {});
+                               // Main set state handled by stream listener
+                            },
+                            child: const Text("Выбор роли"),
+                          )
                         ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                               backgroundColor: _gameStage == 'voting' ? Colors.purple : Colors.blueGrey
+                            ),
+                            onPressed: () {
+                               _firestoreService.updateGameStage(widget.gameId!, 'voting');
+                               setSheetState(() {});
+                            },
+                            child: const Text("Голосование"),
+                          )
+                        ),
+                     ],
+                  ),
+                ),
+                
+                const Divider(),
+                Expanded(
+                  child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+                    stream: _firestoreService.getGameParticipantsStream(widget.gameId!),
+                    builder: (context, snapshot) {
+                      if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
+                      
+                      final docs = snapshot.data!.docs;
+                      if (docs.isEmpty) return const Center(child: Text("Нет участников", style: TextStyle(color: Colors.white54)));
+                      
+                      return GridView.builder(
+                        padding: const EdgeInsets.all(12),
+                        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 3,
+                          childAspectRatio: 0.8,
+                          crossAxisSpacing: 10,
+                          mainAxisSpacing: 10,
+                        ),
+                        itemCount: docs.length,
+                        itemBuilder: (context, index) {
+                          final data = docs[index].data();
+                          final userId = docs[index].id;
+                          final name = data['name'] ?? 'Unknown';
+                          final status = data['status'] ?? 'pending';
+                          final roleId = data['selectedRole'];
+                          
+                          return Card(
+                            color: Colors.white10,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: BorderSide(color: status == 'approved' ? Colors.green : Colors.orange)),
+                            child: InkWell(
+                               onTap: () {
+                                  // Can define action on tap (kick, info)
+                               },
+                               child: Column(
+                                 mainAxisAlignment: MainAxisAlignment.center,
+                                 children: [
+                                   Icon(Icons.person, size: 30, color: status == 'approved' ? Colors.greenAccent : Colors.orangeAccent),
+                                   const SizedBox(height: 5),
+                                   Text(name, textAlign: TextAlign.center, style: const TextStyle(color: Colors.white, fontSize: 12), maxLines: 2, overflow: TextOverflow.ellipsis),
+                                   
+                                   if (status == 'pending')
+                                      Padding(
+                                        padding: const EdgeInsets.only(top: 5),
+                                        child: InkWell(
+                                           onTap: () => _firestoreService.approveParticipant(widget.gameId!, userId),
+                                           child: Container(
+                                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                              decoration: BoxDecoration(color: Colors.green, borderRadius: BorderRadius.circular(4)),
+                                              child: const Text("Принять", style: TextStyle(fontSize: 10, color: Colors.white))
+                                           ),
+                                        ),
+                                      ),
+                                      
+                                   if (status == 'approved' && roleId != null)
+                                      Padding(
+                                         padding: const EdgeInsets.only(top: 5),
+                                         child: Text("Роль: $roleId", style: const TextStyle(color: Colors.orangeAccent, fontSize: 11, fontWeight: FontWeight.bold)),
+                                      )
+                                 ],
+                               ),
+                            ),
+                          );
+                        },
                       );
                     },
-                  );
-                },
-              ),
+                  ),
+                ),
+              ],
             ),
-          ],
-        ),
+          );
+        }
       ),
     );
   }
