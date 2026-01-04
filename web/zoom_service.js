@@ -22,40 +22,43 @@ async function initZoom(meetingNumber, password, userName, sdkKey, sdkSecret) {
     meetingElement.innerHTML = '';
 
     const role = 0;
-    const timestamp = Math.round(new Date().getTime() / 1000) - 30;
 
-    // Generate Signature using CryptoJS
-    // Signature format: Header.Payload.Signature
-    // Header: Base64(sdkKey)
-    // Payload: Base64(meetingNumber.timestamp.role)
-    // Signature: Base64(HMAC-SHA256(secret, msg))
-
-    const iat = Math.round(new Date().getTime() / 1000) - 30;
-    const exp = iat + 60 * 60 * 2; // 2 hours expiration
-
-    // Official Zoom SDK Signature for Web (JWT-like or internal format)
-    // For Embedded Client, it typically expects the unified signature.
+    // Generate JWT Signature using CryptoJS
     // Spec: https://developers.zoom.us/docs/meeting-sdk/auth/#generate-a-signature
 
-    // SDK Key . Meeting Number . Timestamp . Role . HMAC(Secret, Msg)
-    // Msg = Base64(SDK Key . Meeting Number . Timestamp . Role)
+    const iat = Math.round(new Date().getTime() / 1000) - 30;
+    const exp = iat + 60 * 60 * 2;
 
-    const msgData = `${sdkKey}${meetingNumber}${iat}${role}`;
-    const msg = btoa(msgData);
-    const hash = CryptoJS.HmacSHA256(msg, sdkSecret).toString(CryptoJS.enc.Base64);
-    const signature = `${sdkKey}.${meetingNumber}.${iat}.${role}.${hash}`;
-    // Based on previous code, wrapping entire thing in btoa might have been the issue OR expectation.
-    // Let's stick to the structure: SDKKey.MN.TS.Role.Hash(Base64)
-    // Actually, checking Zoom docs: 
-    // ECDSA is for Server-to-Server. 
-    // Client SDK uses: 
-    // timestamp = now
-    // msg = base64(apiKey + meetingNumber + timestamp + role)
-    // hash = hmac_sha256(msg, apiSecret) (base64)
-    // signature = base64(apiKey + "." + meetingNumber + "." + timestamp + "." + role + "." + hash)
+    const oHeader = { alg: 'HS256', typ: 'JWT' };
+    const oPayload = {
+        sdkKey: sdkKey,
+        mn: meetingNumber,
+        role: role,
+        iat: iat,
+        exp: exp,
+        appKey: sdkKey,
+        tokenExp: exp
+    };
 
-    const signatureInput = `${sdkKey}.${meetingNumber}.${iat}.${role}.${hash}`;
-    const finalSignature = btoa(signatureInput);
+    const sHeader = JSON.stringify(oHeader);
+    const sPayload = JSON.stringify(oPayload);
+
+    // Helper to base64url encode
+    const base64UrlEncode = (str) => {
+        const encoded = CryptoJS.enc.Base64.stringify(CryptoJS.enc.Utf8.parse(str));
+        return encoded.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+    };
+
+    const base64UrlHeader = base64UrlEncode(sHeader);
+    const base64UrlPayload = base64UrlEncode(sPayload);
+
+    const signature = CryptoJS.HmacSHA256(base64UrlHeader + "." + base64UrlPayload, sdkSecret);
+    const base64UrlSignature = CryptoJS.enc.Base64.stringify(signature)
+        .replace(/\+/g, '-')
+        .replace(/\//g, '_')
+        .replace(/=+$/, '');
+
+    const jwtSignature = `${base64UrlHeader}.${base64UrlPayload}.${base64UrlSignature}`;
 
     try {
         await client.init({
@@ -80,7 +83,7 @@ async function initZoom(meetingNumber, password, userName, sdkKey, sdkSecret) {
         });
 
         await client.join({
-            signature: signature,
+            signature: jwtSignature,
             sdkKey: sdkKey,
             meetingNumber: meetingNumber,
             password: password,
@@ -114,8 +117,10 @@ function findZoomContainer() {
 
 async function leaveZoom() {
     try {
-        await client.leave();
-        console.log('Left Zoom meeting');
+        if (client) {
+            await client.leave();
+            console.log('Left Zoom meeting');
+        }
     } catch (error) {
         console.error('Zoom leave error:', error);
     }
