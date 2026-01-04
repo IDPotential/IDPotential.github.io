@@ -78,8 +78,8 @@ async function initZoom(meetingNumber, password, userName, sdkKey, sdkSecret) {
                     disableVideo: false,
                     viewSizes: {
                         default: {
-                            width: 1280,
-                            height: 720
+                            width: 320,
+                            height: 180
                         }
                     }
                 }

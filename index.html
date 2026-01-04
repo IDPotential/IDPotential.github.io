@@ -42,13 +42,19 @@
     /* Force Zoom SDK to fit within the Flutter Platform View container */
     #zmmtg-root,
     .main-layout,
-    .meeting-app {
+    .meeting-app,
+    .meeting-client,
+    canvas {
       width: 100% !important;
       height: 100% !important;
       position: absolute !important;
       top: 0 !important;
       left: 0 !important;
       background-color: black;
+    }
+
+    #zoom-meeting-container * {
+      box-sizing: border-box;
     }
 
     /* Ensure the container passed from Flutter is relative */
