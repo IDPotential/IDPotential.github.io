@@ -290,6 +290,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                    // User Q&A History
                   const Divider(height: 40, thickness: 2),
                    Text(
+                    "История игр", 
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
+                  const SizedBox(height: 10),
+                  _buildGameHistoryList(),
+                  const Divider(height: 40, thickness: 2),
+                   Text(
                     "История обращений", 
                     style: Theme.of(context).textTheme.titleMedium,
                   ),
@@ -584,6 +591,59 @@ class _ProfileScreenState extends State<ProfileScreen> {
                      ],
                    ),
                  ),
+               );
+            }
+         );
+      }
+    );
+  }
+
+  Widget _buildGameHistoryList() {
+    return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+      stream: _firestoreService.getGameHistoryStream(),
+      builder: (context, snapshot) {
+         if (snapshot.hasError) return const Text('Ошибка загрузки');
+         if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
+         
+         final docs = snapshot.data!.docs;
+         if (docs.isEmpty) return const Text('У вас пока нет завершенных игр', style: TextStyle(color: Colors.grey));
+
+         return ListView.builder(
+            physics: const NeverScrollableScrollPhysics(),
+            shrinkWrap: true,
+            itemCount: docs.length,
+            itemBuilder: (context, index) {
+               final data = docs[index].data();
+               final title = data['gameTitle'] ?? 'Игра';
+               final score = data['score'] ?? 0;
+               final rank = data['rank'] ?? 0;
+               final total = data['totalParticipants'] ?? 0;
+               final dateRaw = data['date'] ?? '';
+               
+               String dateStr = dateRaw;
+               if (dateRaw is String && dateRaw.contains('T')) {
+                  dateStr = dateRaw.split('T')[0];
+               }
+
+               return Card(
+                  color: Colors.blueAccent.withOpacity(0.05),
+                  margin: const EdgeInsets.only(bottom: 8),
+                  child: ListTile(
+                     leading: CircleAvatar(
+                        backgroundColor: rank == 1 ? Colors.orange : Colors.blueGrey,
+                        child: Text("$rank", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                     ),
+                     title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
+                     subtitle: Text(dateStr),
+                     trailing: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                           Text("$score кр.", style: const TextStyle(color: Colors.greenAccent, fontWeight: FontWeight.bold, fontSize: 16)),
+                           Text("Место: $rank/$total", style: const TextStyle(fontSize: 10, color: Colors.grey)),
+                        ],
+                     ),
+                  ),
                );
             }
          );

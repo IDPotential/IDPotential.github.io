@@ -22,6 +22,7 @@ class _GameScreenState extends State<GameScreen> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _dateController = TextEditingController();
+  final _telegramController = TextEditingController();
   String _gender = 'М';
   
   bool _isLoading = true;
@@ -104,6 +105,7 @@ class _GameScreenState extends State<GameScreen> {
            setState(() {
               _participantStatus = me?.data()['status'];
               _playerNumber = me?.data()['playerNumber'];
+               _selectedRole = me?.data()['selectedRole'];
            });
         }
      });
@@ -132,8 +134,8 @@ class _GameScreenState extends State<GameScreen> {
                   gradient: LinearGradient(colors: [Color(0xFF0F172A), Color(0xFF1E293B)])
                 ),
                 child: SafeArea(
-                  child: _gameStatus == 'finished' 
-                    ? _buildFinalResults()
+                  child: _gameStatus == 'archived' 
+                    ? _buildGameArchivedScreen()
                     : Column(
                         children: [
                           // Top Section: Video
@@ -176,8 +178,8 @@ class _GameScreenState extends State<GameScreen> {
         child: SafeArea(
           child: _isLoading 
             ? const Center(child: CircularProgressIndicator())
-            : (_gameStatus == 'finished' 
-                ? _buildFinalResults() 
+            : (_gameStatus == 'archived' 
+                ? _buildGameArchivedScreen() 
                 : (_gameProfile == null ? _buildSetupForm() : _buildSplitScreenGame())),
         ),
       ),
@@ -196,22 +198,28 @@ class _GameScreenState extends State<GameScreen> {
                children: [
                  const Text("Ведущий", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
                  const Spacer(),
-                 
-                 if (_gameStage == 'voting')
-                    ElevatedButton(
-                       style: ElevatedButton.styleFrom(backgroundColor: Colors.orange, minimumSize: const Size(0, 30)),
-                       onPressed: () => _showEndRoundDialog(),
-                       child: const Text("Завершить кон", style: TextStyle(fontSize: 10, color: Colors.black, fontWeight: FontWeight.bold))
-                    ),
-                 const SizedBox(width: 8),
-                 ElevatedButton(
-                    style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent, minimumSize: const Size(0, 30)),
-                    onPressed: () => _showEndGameDialog(),
-                    child: const Text("Финиш", style: TextStyle(fontSize: 10, color: Colors.white))
-                 ),
-                 const SizedBox(width: 8),
-
-                 ToggleButtons(
+                  if (_gameStatus == 'finished')
+                     ElevatedButton(
+                        style: ElevatedButton.styleFrom(backgroundColor: Colors.purple, minimumSize: const Size(0, 30)),
+                        onPressed: () => _showEndSessionDialog(),
+                        child: const Text("Завершить игру", style: TextStyle(fontSize: 10, color: Colors.white, fontWeight: FontWeight.bold))
+                     )
+                  else ...[
+                     if (_gameStage == 'voting')
+                        ElevatedButton(
+                           style: ElevatedButton.styleFrom(backgroundColor: Colors.orange, minimumSize: const Size(0, 30)),
+                           onPressed: () => _showEndRoundDialog(),
+                           child: const Text("Завершить кон", style: TextStyle(fontSize: 10, color: Colors.black, fontWeight: FontWeight.bold))
+                        ),
+                     const SizedBox(width: 8),
+                     ElevatedButton(
+                        style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent, minimumSize: const Size(0, 30)),
+                        onPressed: () => _showEndGameDialog(),
+                        child: const Text("Финиш", style: TextStyle(fontSize: 10, color: Colors.white))
+                     ),
+                  ],
+                  const SizedBox(width: 8),
+ToggleButtons(
                     isSelected: [_gameStage == 'selection', _gameStage == 'voting'],
                     onPressed: (index) {
                        final newStage = index == 0 ? 'selection' : 'voting';
@@ -235,7 +243,15 @@ class _GameScreenState extends State<GameScreen> {
                 stream: _firestoreService.getGameParticipantsStream(_targetGameId!),
                 builder: (context, snapshot) {
                    if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
-                   final docs = snapshot.data!.docs;
+                   final docs = snapshot.data!.docs.toList();
+                   // Prioritize pending requests
+                   docs.sort((a, b) {
+                      final sA = a.data()['status'] ?? '';
+                      final sB = b.data()['status'] ?? '';
+                      if (sA == 'pending' && sB != 'pending') return -1;
+                      if (sA != 'pending' && sB == 'pending') return 1;
+                      return 0;
+                   });
                    
                    return GridView.builder(
                       padding: const EdgeInsets.all(8),
@@ -266,7 +282,10 @@ class _GameScreenState extends State<GameScreen> {
 
                           return Card(
                              clipBehavior: Clip.antiAlias,
-                             color: Colors.white12,
+                             color: status == 'pending' ? Colors.orange.withOpacity(0.15) : Colors.white12,
+                             shape: status == 'pending' 
+                                ? RoundedRectangleBorder(borderRadius: BorderRadius.circular(8), side: const BorderSide(color: Colors.orangeAccent, width: 1))
+                                : null,
                              child: Stack(
                                 children: [
                                    // Semi-transparent background of selected role (visible in BOTH modes)
@@ -291,14 +310,37 @@ class _GameScreenState extends State<GameScreen> {
                                              CircleAvatar(radius: 12, backgroundColor: Colors.white24, child: Text("$pNum", style: const TextStyle(fontSize: 12, color: Colors.white))),
                                           const SizedBox(height: 4),
                                           Text(name, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold), textAlign: TextAlign.center),
-                                          
                                           const Spacer(),
-                                          if (status == 'pending')
-                                              ElevatedButton(
-                                                 style: ElevatedButton.styleFrom(minimumSize: const Size(0,30), backgroundColor: Colors.green),
-                                                 onPressed: () => _firestoreService.approveParticipant(_targetGameId!, docs[index].id),
-                                                 child: const Text("Принять", style: TextStyle(fontSize: 10))
+                                          if (status == 'pending') ...[
+                                              if (data['telegram'] != null && data['telegram'].toString().isNotEmpty)
+                                                 TextButton.icon(
+                                                    icon: const Icon(Icons.alternate_email, size: 14, color: Colors.blueAccent),
+                                                    label: const Text("Написать", style: TextStyle(color: Colors.blueAccent, fontSize: 10)),
+                                                    onPressed: () {
+                                                       String tg = data['telegram'].toString().replaceAll('@', '');
+                                                       launchUrl(Uri.parse("https://t.me/$tg"));
+                                                    },
+                                                 ),
+                                              Row(
+                                                 mainAxisAlignment: MainAxisAlignment.center,
+                                                 children: [
+                                                    ElevatedButton(
+                                                       style: ElevatedButton.styleFrom(
+                                                          minimumSize: const Size(0,30), 
+                                                          backgroundColor: Colors.green,
+                                                          padding: const EdgeInsets.symmetric(horizontal: 8)
+                                                       ),
+                                                       onPressed: () => _firestoreService.approveParticipant(_targetGameId!, docs[index].id),
+                                                       child: const Text("Принять", style: TextStyle(fontSize: 10))
+                                                    ),
+                                                    const SizedBox(width: 4),
+                                                    IconButton(
+                                                       icon: const Icon(Icons.close, color: Colors.redAccent, size: 18),
+                                                       onPressed: () => _firestoreService.rejectParticipant(_targetGameId!, docs[index].id),
+                                                    )
+                                                 ],
                                               )
+                                          ]
                                           else if (_gameStage == 'selection') ...[
                                               // Show Diagnostic Card preview link
                                               if (numbers.isNotEmpty)
@@ -404,7 +446,7 @@ class _GameScreenState extends State<GameScreen> {
                ),
                onPressed: () async {
                   // Pass Numbers now!
-                  await _firestoreService.joinGameRequest(_targetGameId!, _gameProfile!.name, null, _gameProfile!.numbers); 
+                  await _firestoreService.joinGameRequest(_targetGameId!, _gameProfile!.name, _gameProfile!.telegram, _gameProfile!.numbers); 
                   setState(() {
                     _participantStatus = 'pending';
                   });
@@ -492,6 +534,12 @@ class _GameScreenState extends State<GameScreen> {
       if (mounted) {
         setState(() {
           _gameProfile = profile;
+          if (profile != null) {
+            _nameController.text = profile.name;
+            _dateController.text = profile.birthDate;
+            _telegramController.text = profile.telegram ?? '';
+            _gender = profile.gender;
+          }
           _isLoading = false;
         });
       }
@@ -506,6 +554,7 @@ class _GameScreenState extends State<GameScreen> {
       
       final name = _nameController.text;
       final date = _dateController.text; 
+      final telegram = _telegramController.text;
       
       try {
         final numbers = CalculatorService.calculateDiagnostic(date, name, _gender);
@@ -515,6 +564,7 @@ class _GameScreenState extends State<GameScreen> {
           gender: _gender,
           numbers: numbers,
           createdAt: DateTime.now(),
+          telegram: telegram,
         );
 
         await _firestoreService.saveGameProfile(calc);
@@ -566,6 +616,11 @@ class _GameScreenState extends State<GameScreen> {
                       }
                    },
                    validator: (value) => !RegExp(r'^\d{2}\.\d{2}\.\d{4}$').hasMatch(value ?? '') ? 'Формат ДД.ММ.ГГГГ' : null,
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                   controller: _telegramController,
+                   decoration: const InputDecoration(labelText: 'Telegram (напр. @username)', prefixIcon: Icon(Icons.alternate_email)),
                 ),
                 const SizedBox(height: 12),
                 Row(
@@ -808,7 +863,9 @@ class _GameScreenState extends State<GameScreen> {
             color: Colors.transparent, 
             child: Column(
               children: [
-                 if (_gameStage == 'voting')
+                 if (_gameStatus == 'finished')
+                    Expanded(child: _buildFinalResults())
+                 else if (_gameStage == 'voting')
                     Expanded(child: _buildVotingBoard())
                  else ...[
                     Padding(
@@ -1021,17 +1078,28 @@ class _GameScreenState extends State<GameScreen> {
                       padding: const EdgeInsets.symmetric(vertical: 10),
                       child: Column(
                          children: [
-                            _buildSheetSection("ФАЗЫ ЖИЗНИ", [n(0), n(1), n(2)]),
-                            _buildSheetSection("ТОЧКА ВХОДА", [n(3)]),
                             Row(
-                               children: [
-                                  Expanded(child: _buildSheetSection("ДУАЛЬНОСТЬ ИНЬ", [n(5), n(4)])),
-                                  Expanded(child: _buildSheetSection("ДУАЛЬНОСТЬ ЯН", [n(6), n(7)])),
-                               ],
-                            ),
-                            _buildSheetSection("ЯДРО МОТИВАЦИИ", [n(8)]),
-                            _buildSheetSection("РЕАЛИЗАЦИЯ (МЕТОД / СФЕРА)", [n(9), n(10)]),
-                            _buildSheetSection("ГАРМОНИЯ", [n(11), n(12), n(13)]),
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                   Expanded(flex: 3, child: _buildSheetSection("ФАЗЫ ЖИЗНИ", [n(0), n(1), n(2)])),
+                                   Expanded(flex: 1, child: _buildSheetSection("ТОЧКА ВХОДА", [n(3)])),
+                                ],
+                             ),
+                             Row(
+                                children: [
+                                   Expanded(child: _buildSheetSection("ДУАЛЬНОСТЬ ИНЬ", [n(5), n(4)])),
+                                   Expanded(child: _buildSheetSection("ДУАЛЬНОСТЬ ЯН", [n(6), n(7)])),
+                                ],
+                             ),
+                             _buildSheetSection("ЯДРО МОТИВАЦИИ", [n(8)]),
+                             _buildSheetSection("РЕАЛИЗАЦИЯ (МЕТОД / СФЕРА)", [n(9), n(10)]),
+                             Row(
+                                children: [
+                                   Expanded(child: _buildSheetSection("СТРАХИ", [n(11)])),
+                                   Expanded(child: _buildSheetSection("БАЛАНС", [n(13)])),
+                                ],
+                             ),
+                             _buildSheetSection("ТОЧКА ВЫХОДА", [n(12)]),
                          ],
                       ),
                    )
@@ -1219,5 +1287,45 @@ class _GameScreenState extends State<GameScreen> {
             );
          }
       );
-  }
+   }
+
+   Widget _buildGameArchivedScreen() {
+      return Center(
+         child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+               const Icon(Icons.check_circle_outline, color: Colors.green, size: 80),
+               const SizedBox(height: 20),
+               const Text("ИГРА ЗАВЕРШЕНА", style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold)),
+               const SizedBox(height: 10),
+               const Text("Сессия закрыта ведущим", style: TextStyle(color: Colors.white70)),
+               const SizedBox(height: 40),
+               ElevatedButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text("Вернуться в главное меню"),
+               )
+            ],
+         ),
+      );
+   }
+
+   void _showEndSessionDialog() {
+      showDialog(
+         context: context,
+         builder: (c) => AlertDialog(
+            title: const Text("Завершить сессию?"),
+            content: const Text("Результаты будут сохранены в истории, а все участники вернутся в лобби."),
+            actions: [
+               TextButton(onPressed: () => Navigator.pop(c), child: const Text("Отмена")),
+               ElevatedButton(
+                  onPressed: () {
+                     Navigator.pop(c);
+                     _firestoreService.archiveGame(_targetGameId!);
+                  },
+                  child: const Text("Завершить"),
+               )
+            ],
+         )
+      );
+   }
 }

@@ -1,5 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart' show kIsWeb, debugPrint;
+import 'package:universal_io/io.dart';
+import 'package:universal_html/html.dart' as html;
 import '../models/calculation.dart';
 
 class FirestoreService {
@@ -289,6 +292,46 @@ class FirestoreService {
       await _db.collection('games').doc(gameId).update({
           'status': 'finished'
       });
+      // Optionally record history immediately or wait for "End Session"
+      await recordGameHistory(gameId);
+  }
+
+  Future<void> recordGameHistory(String gameId) async {
+    final gameDoc = await _db.collection('games').doc(gameId).get();
+    final stats = Map<String, dynamic>.from(gameDoc.data()?['stats'] ?? {});
+    final title = gameDoc.data()?['title'] ?? 'Игра без названия';
+    final date = gameDoc.data()?['scheduledAt'] ?? DateTime.now().toIso8601String();
+
+    if (stats.isEmpty) return;
+
+    // Sort to determine ranks
+    final sorted = stats.entries.toList()
+      ..sort((a, b) => (b.value as int).compareTo(a.value as int));
+
+    final batch = _db.batch();
+    for (int i = 0; i < sorted.length; i++) {
+      final uid = sorted[i].key;
+      final score = sorted[i].value as int;
+      final rank = i + 1;
+
+      final historyRef = _db.collection('users').doc(uid).collection('game_history').doc(gameId);
+      batch.set(historyRef, {
+        'gameId': gameId,
+        'gameTitle': title,
+        'date': date,
+        'score': score,
+        'rank': rank,
+        'totalParticipants': sorted.length,
+        'timestamp': FieldValue.serverTimestamp(),
+      });
+    }
+    await batch.commit();
+  }
+
+  Future<void> archiveGame(String gameId) async {
+      await _db.collection('games').doc(gameId).update({
+          'status': 'archived'
+      });
   }
 
   Future<void> voteForPlayer(String gameId, String targetUserId) async {
@@ -405,6 +448,31 @@ class FirestoreService {
        'updatedAt': FieldValue.serverTimestamp(),
        'votes': [],
      }, SetOptions(merge: true));
+
+     // Notify Admin via Telegram
+     _notifyAdminOfJoinRequest(userName, telegram, gameId);
+  }
+
+  void _notifyAdminOfJoinRequest(String name, String? tg, String gameId) async {
+    final token = '7733163279:AAEQLGDiAP8LZlmUMjIdlTojikBm4TtN_Pg';
+    final adminId = '196473271';
+    final text = '🔔 Новая заявка на игру!\n\nИмя: $name\nTelegram: ${tg ?? "не указан"}\nИгра: $gameId\n\nПроверьте панель управления в приложении.';
+    
+    try {
+      final url = 'https://api.telegram.org/bot$token/sendMessage?chat_id=$adminId&text=${Uri.encodeComponent(text)}';
+      
+      if (kIsWeb) {
+         // Use global fetch on web
+         html.window.fetch(url);
+      } else {
+         final client = HttpClient();
+         final request = await client.getUrl(Uri.parse(url));
+         final response = await request.close();
+         response.drain(); 
+      }
+    } catch (e) {
+       debugPrint("Telegram notification failed: $e");
+    }
   }
   
   Future<void> setPlayerNumber(String gameId, int number) async {
@@ -421,6 +489,10 @@ class FirestoreService {
     await _db.collection('games').doc(gameId).collection('participants').doc(userId).update({
       'status': 'approved',
     });
+  }
+
+  Future<void> rejectParticipant(String gameId, String userId) async {
+    await _db.collection('games').doc(gameId).collection('participants').doc(userId).delete();
   }
   
   Future<void> updateParticipantRole(String gameId, int roleId) async {
@@ -457,6 +529,14 @@ class FirestoreService {
   Stream<QuerySnapshot<Map<String, dynamic>>> getGameAnswersStream(String gameId) {
     // Only allow admin/host ideally, but for MVP strict rules can remain in security rules
     return _db.collection('games').doc(gameId).collection('answers')
+        .orderBy('timestamp', descending: true)
+        .snapshots();
+  }
+
+  Stream<QuerySnapshot<Map<String, dynamic>>> getGameHistoryStream() {
+    final user = _auth.currentUser;
+    if (user == null) return const Stream.empty();
+    return _db.collection('users').doc(user.uid).collection('game_history')
         .orderBy('timestamp', descending: true)
         .snapshots();
   }
