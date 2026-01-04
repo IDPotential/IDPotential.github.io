@@ -33,6 +33,8 @@ class _GameScreenState extends State<GameScreen> {
   // Game State
   String? _targetGameId;
   String? _targetGameTitle;
+  String? _targetGameDate;
+  String? _targetHostName;
   bool _isHost = false; 
   String _gameStage = 'selection'; // selection, voting
   String _gameStatus = 'active'; // active, finished
@@ -84,16 +86,23 @@ class _GameScreenState extends State<GameScreen> {
          if (mounted) setState(() {});
          return;
       }
+      
+      // Store all games to allow switching
+      _availableGames = games;
 
       if (games.length == 1) {
           // Auto-join if only one game
           final gameDoc = games.first;
+          final data = gameDoc.data();
           if (mounted) {
              setState(() {
                 _targetGameId = gameDoc.id;
-                _targetGameTitle = gameDoc.data()['title'];
-                _zoomId = gameDoc.data()['zoomId'];
-                _zoomPassword = gameDoc.data()['zoomPassword'];
+                _targetGameTitle = data['title'];
+                final ts = data['scheduledAt'] as Timestamp?;
+                _targetGameDate = ts != null ? DateFormat('dd.MM.yyyy HH:mm').format(ts.toDate()) : null;
+                _targetHostName = data['hostName'];
+                _zoomId = data['zoomId'];
+                _zoomPassword = data['zoomPassword'];
              });
              _initGameListeners();
           }
@@ -102,7 +111,6 @@ class _GameScreenState extends State<GameScreen> {
           if (mounted) {
              setState(() {
                 _showGameSelection = true;
-                _availableGames = games;
              });
           }
       }
@@ -489,12 +497,22 @@ ToggleButtons(
            mainAxisSize: MainAxisSize.min,
            children: [
              // ...
-             Text(_targetGameTitle ?? "Игра: $_targetGameId", style: const TextStyle(color: Colors.white70)),
+             // Not registered
+             Text(_targetGameTitle ?? "Игра: $_targetGameId", style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+             if (_targetGameDate != null) ...[
+                 const SizedBox(height: 8),
+                 Text("Дата: $_targetGameDate", style: const TextStyle(color: Colors.white70)),
+             ],
+             if (_targetHostName != null) ...[
+                 const SizedBox(height: 4),
+                 Text("Ведущий: $_targetHostName", style: const TextStyle(color: Colors.orangeAccent)),
+             ],
              const SizedBox(height: 20),
+             
              ElevatedButton(
                style: ElevatedButton.styleFrom(
                  backgroundColor: Colors.green,
-                 // ...
+                 padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 12),
                ),
                onPressed: () async {
                   // Pass Numbers now!
@@ -503,7 +521,17 @@ ToggleButtons(
                     _participantStatus = 'pending';
                   });
                },
-               child: const Text("Подать заявку"),
+               child: const Text("Подать заявку", style: TextStyle(fontSize: 16)),
+             ),
+             
+             const SizedBox(height: 12),
+             TextButton(
+                onPressed: () {
+                    setState(() {
+                        _showGameSelection = true;
+                    });
+                },
+                child: const Text("Выбрать другую игру", style: TextStyle(color: Colors.white54, decoration: TextDecoration.underline))
              )
            ],
         ),
