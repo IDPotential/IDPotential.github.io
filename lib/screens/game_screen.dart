@@ -1068,7 +1068,7 @@ class _GameScreenState extends State<GameScreen> {
                           child: Image.asset(
                              'assets/images/cards/role_$num.png',
                              fit: BoxFit.cover,
-                             errorBuilder: (c, e, s) => Container(color: Colors.white05, child: Center(child: Text("$num", style: const TextStyle(color: Colors.white54, fontSize: 10)))),
+                             errorBuilder: (c, e, s) => Container(color: Colors.white.withOpacity(0.05), child: Center(child: Text("$num", style: const TextStyle(color: Colors.white54, fontSize: 10)))),
                           ),
                        ),
                        Positioned(
