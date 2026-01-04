@@ -21,6 +21,8 @@ void registerZoomViewFactory(String viewType) {
       ..id = 'zoom-meeting-container'
       ..style.height = '100%'
       ..style.width = '100%'
+      ..style.position = 'relative'
+      ..style.overflow = 'hidden'
       ..style.backgroundColor = 'black';
     return div;
   });

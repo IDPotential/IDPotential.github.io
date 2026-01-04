@@ -71,37 +71,34 @@ async function initZoom(meetingNumber, password, userName, sdkKey, sdkSecret) {
             zoomAppRoot: meetingElement,
             language: 'ru-RU',
             patchJsMedia: true,
-            customize: {
-                video: {
-                    isResizable: true,
-                    viewSizes: {
-                        default: {
-                            width: 1000,
-                            height: 600
-                        },
-                        ribbon: {
-                            width: 300,
-                            height: 600
-                        }
+            video: {
+                isResizable: true,
+                poi: { isShow: false },
+                disableVideo: false,
+                viewSizes: {
+                    default: {
+                        width: 1280,
+                        height: 720
                     }
                 }
             }
+        }
         });
 
-        await client.join({
-            signature: jwtSignature,
-            sdkKey: safeSdkKey,
-            meetingNumber: mnInt,
-            password: password,
-            userName: userName,
-            userEmail: '',
-            tk: ''
-        });
+    await client.join({
+        signature: jwtSignature,
+        sdkKey: safeSdkKey,
+        meetingNumber: mnInt,
+        password: password,
+        userName: userName,
+        userEmail: '',
+        tk: ''
+    });
 
-        console.log('Joined Zoom meeting successfully');
-    } catch (error) {
-        console.error('Zoom join error:', error);
-    }
+    console.log('Joined Zoom meeting successfully');
+} catch (error) {
+    console.error('Zoom join error:', error);
+}
 }
 
 function findZoomContainer() {
@@ -129,6 +126,12 @@ async function leaveZoom() {
         }
     } catch (error) {
         console.error('Zoom leave error:', error);
+    }
+
+    // Force cleanup DOM
+    const meetingElement = findZoomContainer();
+    if (meetingElement) {
+        meetingElement.innerHTML = '';
     }
 }
 
