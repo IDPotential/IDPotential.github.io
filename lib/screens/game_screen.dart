@@ -9,6 +9,7 @@ import '../services/calculator_service.dart';
 import '../services/firestore_service.dart';
 import '../services/knowledge_service.dart';
 import '../models/calculation.dart';
+import 'package:intl/intl.dart';
 
 class GameScreen extends StatefulWidget {
   final String? gameId;
@@ -62,20 +63,38 @@ class _GameScreenState extends State<GameScreen> {
     }
   }
 
+  bool _showGameSelection = false;
+  List<QueryDocumentSnapshot<Map<String, dynamic>>> _availableGames = [];
+
   Future<void> _fetchNearestGame() async {
-      final gameDoc = await _firestoreService.getNearestGame();
-      if (gameDoc != null) {
-         if (mounted) {
-            setState(() {
-               _targetGameId = gameDoc.id;
-               _targetGameTitle = gameDoc.data()['title'];
-               _zoomId = gameDoc.data()['zoomId'];
-               _zoomPassword = gameDoc.data()['zoomPassword'];
-            });
-            _initGameListeners();
-         }
-      } else {
+      final snapshot = await _firestoreService.getGamesStream().first;
+      final games = snapshot.docs;
+      
+      if (games.isEmpty) {
          if (mounted) setState(() {});
+         return;
+      }
+
+      if (games.length == 1) {
+          // Auto-join if only one game
+          final gameDoc = games.first;
+          if (mounted) {
+             setState(() {
+                _targetGameId = gameDoc.id;
+                _targetGameTitle = gameDoc.data()['title'];
+                _zoomId = gameDoc.data()['zoomId'];
+                _zoomPassword = gameDoc.data()['zoomPassword'];
+             });
+             _initGameListeners();
+          }
+      } else {
+          // Multiple games: Show selection
+          if (mounted) {
+             setState(() {
+                _showGameSelection = true;
+                _availableGames = games;
+             });
+          }
       }
   }
 
@@ -132,6 +151,10 @@ class _GameScreenState extends State<GameScreen> {
 
   @override
   Widget build(BuildContext context) {
+      if (_showGameSelection) {
+         return _buildGameSelectionScreen();
+      }
+
       if (_isHost && _targetGameId != null) {
          // Host see split layout
          return Scaffold(
@@ -1368,6 +1391,48 @@ ToggleButtons(
                )
             ],
          )
+      );
+   }
+
+   Widget _buildGameSelectionScreen() {
+      return Scaffold(
+         appBar: AppBar(title: const Text("Выберите игру"), backgroundColor: const Color(0xFF0F172A)),
+         body: Container(
+            color: const Color(0xFF0F172A),
+            child: ListView.builder(
+               itemCount: _availableGames.length,
+               itemBuilder: (context, index) {
+                  final game = _availableGames[index].data();
+                  final gameId = _availableGames[index].id;
+                  final dateStr = game['scheduledAt'];
+                  DateTime date = DateTime.now();
+                  if (dateStr != null) {
+                     try { date = DateTime.parse(dateStr); } catch(_) {}
+                  }
+                  
+                  return Card(
+                     margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                     color: Colors.white10,
+                     child: ListTile(
+                        leading: const Icon(Icons.videogame_asset, color: Colors.blueAccent),
+                        title: Text(game['title'] ?? 'Игра без названия', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                        subtitle: Text(DateFormat('dd.MM.yyyy HH:mm').format(date), style: const TextStyle(color: Colors.white70)),
+                        trailing: const Icon(Icons.arrow_forward_ios, color: Colors.white54, size: 16),
+                        onTap: () {
+                           setState(() {
+                              _targetGameId = gameId;
+                              _targetGameTitle = game['title'];
+                              _zoomId = game['zoomId'];
+                              _zoomPassword = game['zoomPassword'];
+                              _showGameSelection = false;
+                           });
+                           _initGameListeners();
+                        },
+                     ),
+                  );
+               },
+            ),
+         ),
       );
    }
 }
