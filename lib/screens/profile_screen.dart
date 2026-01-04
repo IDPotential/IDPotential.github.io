@@ -283,7 +283,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         style: ElevatedButton.styleFrom(backgroundColor: Colors.orangeAccent),
                       ),
 
-                    if (isAdmin)
+                    if (isAdmin || (pgmd >= 10 && (userData['isHostMode'] ?? false)))
                       ElevatedButton.icon(
                         onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const GamesListScreen())),
                         icon: const Icon(Icons.videogame_asset),
