@@ -34,8 +34,10 @@ class _GamesListScreenState extends State<GamesListScreen> {
     }
   }
 
-  void _showGameDialog({String? docId, String? currentTitle, DateTime? currentDate}) {
+  void _showGameDialog({String? docId, String? currentTitle, DateTime? currentDate, String? currentZoomId, String? currentZoomPassword}) {
     final titleController = TextEditingController(text: currentTitle);
+    final zoomIdController = TextEditingController(text: currentZoomId);
+    final zoomPasswordController = TextEditingController(text: currentZoomPassword);
     DateTime selectedDate = currentDate ?? DateTime.now();
     bool isEditing = docId != null;
 
@@ -73,6 +75,15 @@ class _GamesListScreenState extends State<GamesListScreen> {
                     }
                   },
                 ),
+                TextField(
+                  controller: zoomIdController,
+                  decoration: const InputDecoration(labelText: 'Zoom Meeting ID'),
+                  keyboardType: TextInputType.number,
+                ),
+                TextField(
+                  controller: zoomPasswordController,
+                  decoration: const InputDecoration(labelText: 'Zoom Password'),
+                ),
               ],
             ),
             actions: [
@@ -88,11 +99,15 @@ class _GamesListScreenState extends State<GamesListScreen> {
                           docId!,
                           title: titleController.text,
                           date: selectedDate,
+                          zoomId: zoomIdController.text,
+                          zoomPassword: zoomPasswordController.text,
                         );
                       } else {
                         await _firestoreService.createGame(
                           title: titleController.text,
                           date: selectedDate,
+                          zoomId: zoomIdController.text,
+                          zoomPassword: zoomPasswordController.text,
                         );
                       }
                       if (context.mounted) Navigator.pop(context);
@@ -182,7 +197,13 @@ class _GamesListScreenState extends State<GamesListScreen> {
                              icon: const Icon(Icons.more_vert),
                              onSelected: (value) {
                                 if (value == 'edit') {
-                                   _showGameDialog(docId: docId, currentTitle: game['title'], currentDate: date);
+                                   _showGameDialog(
+                                      docId: docId, 
+                                      currentTitle: game['title'], 
+                                      currentDate: date,
+                                      currentZoomId: game['zoomId'],
+                                      currentZoomPassword: game['zoomPassword']
+                                   );
                                 } else if (value == 'delete') {
                                    _deleteGame(docId, game['title'] ?? '');
                                 }

@@ -375,7 +375,7 @@ class FirestoreService {
       return _db.collection('games').doc(gameId).snapshots();
   }
 
-  Future<String> createGame({required String title, required DateTime date}) async {
+  Future<String> createGame({required String title, required DateTime date, String? zoomId, String? zoomPassword}) async {
     final user = _auth.currentUser;
     if (user == null) throw Exception("User not logged in");
     
@@ -392,6 +392,8 @@ class FirestoreService {
       'hostId': user.uid,
       'title': title,
       'scheduledAt': date.toIso8601String(),
+      'zoomId': zoomId,
+      'zoomPassword': zoomPassword,
       'status': 'scheduled',
       'stage': 'selection', // Default stage
       'createdAt': FieldValue.serverTimestamp(),
@@ -400,10 +402,12 @@ class FirestoreService {
     return docRef.id;
   }
   
-  Future<void> updateGame(String gameId, {required String title, required DateTime date}) async {
+  Future<void> updateGame(String gameId, {required String title, required DateTime date, String? zoomId, String? zoomPassword}) async {
     await _db.collection('games').doc(gameId).update({
       'title': title,
       'scheduledAt': date.toIso8601String(),
+      'zoomId': zoomId,
+      'zoomPassword': zoomPassword,
     });
   }
   

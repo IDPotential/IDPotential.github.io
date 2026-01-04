@@ -13,3 +13,15 @@ void registerJitsiViewFactory(String viewType, String url) {
     return iframe;
   });
 }
+
+void registerZoomViewFactory(String viewType) {
+  // ignore: undefined_prefixed_name
+  ui_web.platformViewRegistry.registerViewFactory(viewType, (int viewId) {
+    final div = html.DivElement()
+      ..id = 'zoom-meeting-container'
+      ..style.height = '100%'
+      ..style.width = '100%'
+      ..style.backgroundColor = 'black';
+    return div;
+  });
+}

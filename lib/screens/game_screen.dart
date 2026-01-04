@@ -2,11 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import '../utils/registry.dart'; // Import registry
+import 'package:flutter/foundation.dart' show kIsWeb;
+import 'dart:js' as js;
+import '../utils/registry.dart'; 
 import '../services/calculator_service.dart';
 import '../services/firestore_service.dart';
-import '../services/knowledge_service.dart';
-import '../services/knowledge_service.dart';
 import '../services/knowledge_service.dart';
 import '../models/calculation.dart';
 
@@ -36,6 +36,8 @@ class _GameScreenState extends State<GameScreen> {
   String _gameStage = 'selection'; // selection, voting
   String _gameStatus = 'active'; // active, finished
   Map<String, dynamic> _gameStats = {};
+  String? _zoomId;
+  String? _zoomPassword;
 
   // Registration State
   String? _participantStatus; // 'pending', 'approved', null
@@ -48,6 +50,7 @@ class _GameScreenState extends State<GameScreen> {
   @override
   void initState() {
     super.initState();
+    _registerZoomViewFactory();
     _loadProfile();
     _checkHostStatus();
     
@@ -144,7 +147,7 @@ class _GameScreenState extends State<GameScreen> {
                         child: Container(
                           color: Colors.black87,
                           child: _isVideoActive 
-                            ? _buildJitsiIframe() 
+                            ? _buildZoomPanel() 
                             : _buildVideoPlaceholder(),
                         ),
                       ),
@@ -415,7 +418,7 @@ ToggleButtons(
           return _buildNumberSelection();
        }
        return _isVideoActive 
-          ? _buildJitsiIframe() 
+          ? _buildZoomPanel() 
           : _buildVideoPlaceholder();
     } else if (_participantStatus == 'pending') {
       return Center(
@@ -919,22 +922,53 @@ ToggleButtons(
     );
   }
 
-  Widget _buildJitsiIframe() {
-    final String room = _roomName.isEmpty ? 'IdPotentialGame' : _roomName;
-    final String viewType = 'jitsi-meet-$room';
+
+  void _registerZoomViewFactory() {
+    if (kIsWeb) {
+      registerZoomViewFactory('zoom-container');
+    }
+  }
+
+  Widget _buildVideoOffPlaceholder() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Icon(Icons.videocam_off, color: Colors.white24, size: 48),
+          const SizedBox(height: 12),
+          const Text("Видео отключено", style: TextStyle(color: Colors.white38)),
+          const SizedBox(height: 20),
+          ElevatedButton.icon(
+             icon: const Icon(Icons.videocam),
+             label: const Text("Войти в конференцию"),
+             onPressed: () => setState(() => _isVideoActive = true),
+          )
+        ],
+      ),
+    );
+  }
+
+  Widget _buildZoomPanel() {
+    if (!_isVideoActive) return _buildVideoOffPlaceholder();
     
-    // Free Jitsi URL
-    final String url = 'https://meet.jit.si/$room';
-    
-    try {
-      registerJitsiViewFactory(viewType, url);
-    } catch(e) {
-      debugPrint("Registry error: $e");
+    if (_zoomId != null && _zoomId!.isNotEmpty) {
+        final user = FirebaseAuth.instance.currentUser;
+        final userName = user?.displayName ?? _nameController.text.split(' ')[0] ?? "Player";
+        
+        Future.delayed(const Duration(milliseconds: 500), () {
+            js.context.callMethod('initZoom', [
+                _zoomId, 
+                _zoomPassword ?? "", 
+                userName,
+                "EpevSkKvRxGrNoetCoYmOQ",
+                "pZKWEleW18O3poQ9MYots4vyEVU3O6tc"
+            ]);
+        });
     }
 
     return Stack(
       children: [
-        HtmlElementView(viewType: viewType),
+        HtmlElementView(viewType: 'zoom-container'),
         Positioned(
           top: 10,
           right: 10,
@@ -942,13 +976,17 @@ ToggleButtons(
             mini: true,
             backgroundColor: Colors.red,
             child: const Icon(Icons.call_end),
-            onPressed: () => setState(() => _isVideoActive = false),
+            onPressed: () {
+               js.context.callMethod('leaveZoom');
+               setState(() => _isVideoActive = false);
+            },
           ),
-        )
+        ),
+        if (_zoomId == null || _zoomId!.isEmpty)
+           const Center(child: Text("Zoom ID не указан ведущим", style: TextStyle(color: Colors.white54))),
       ],
     );
   }
-
   // ... _buildRolesGrid ...
 
    void _showRoleInfo(int number) {
