@@ -106,12 +106,54 @@ async function initZoom(meetingNumber, password, userName, sdkKey, sdkSecret) {
 
         // Re-attach listener only if initialization succeeded
         try {
+            // DYNAMIC SCALING LOGIC
+            // We forced a large resolution (960x540) to enable Desktop UI features (Gallery View).
+            // Now we must scale it down to fit the actual container using CSS transforms.
+            const scaleZoomContent = () => {
+                const container = findZoomContainer();
+                if (!container) return;
+
+                const targetWidth = 960; // Must match the viewSizes we set
+                const containerWidth = container.clientWidth || window.innerWidth;
+
+                // If container is smaller than target, we need to shrink (unzoom)
+                if (containerWidth < targetWidth) {
+                    const scale = containerWidth / targetWidth;
+
+                    // We apply this to the immediate children of the container (the Zoom root)
+                    // because applying to container itself might break layout.
+                    // Zoom SDK creates a root div like #zmmtg-root inside our container.
+                    // However, our container IS the zoomAppRoot passed to init.
+
+                    // NOTE: Zoom SDK modifies the container deeply.
+                    // Let's try applying to the container's content via style injection or direct transform
+                    // of the Zmmtg root element if accessible, otherwise the container child.
+
+                    // Strategy: Apply zoom/transform to the container's *content*.
+                    // The SDK often resets styles. Let's try setting it on the container but compensate size.
+
+                    // Better Strategy: Find #zmmtg-root specifically (it's global usually) or the root child.
+                    const zoomRoot = document.getElementById('zmmtg-root') || container.firstElementChild;
+                    if (zoomRoot) {
+                        zoomRoot.style.transform = `scale(${scale})`;
+                        zoomRoot.style.transformOrigin = 'top left';
+                        zoomRoot.style.width = `${100 / scale}%`;
+                        zoomRoot.style.height = `${100 / scale}%`;
+                    }
+                }
+            };
+
+            // Run once and on resize
+            scaleZoomContent();
+            window.addEventListener('resize', scaleZoomContent);
+
             client.on('connection-change', (e) => {
                 if (e.state === 'Closed') {
                     const el = findZoomContainer();
                     if (el) {
                         el.innerHTML = '';
                         el.style.display = 'none';
+                        window.removeEventListener('resize', scaleZoomContent);
                     }
                 }
             });
