@@ -136,7 +136,7 @@ class HomeScreen extends StatelessWidget {
 
                   const SizedBox(height: 20),
                   const Text(
-                    'v1.15 (Game: Zoom & Cards)', 
+                    'v1.16 (Game: UI Polish)', 
                     style: TextStyle(color: Colors.grey, fontSize: 10),
                   ),
                   const SizedBox(height: 20),
