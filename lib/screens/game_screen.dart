@@ -1158,7 +1158,7 @@ ToggleButtons(
                              ),
                              Row(
                                 children: [
-                                   Expanded(child: _buildSheetSection("ДУАЛЬНОСТЬ ИНЬ", [n(5), n(4)])),
+                                   Expanded(child: _buildSheetSection("ДУАЛЬНОСТЬ ИНЬ", [n(4), n(5)])),
                                    Expanded(child: _buildSheetSection("ДУАЛЬНОСТЬ ЯН", [n(6), n(7)])),
                                 ],
                              ),
