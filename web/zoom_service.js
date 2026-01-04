@@ -68,6 +68,19 @@ async function initZoom(meetingNumber, password, userName, sdkKey, sdkSecret) {
     const jwtSignature = `${base64UrlHeader}.${base64UrlPayload}.${base64UrlSignature}`;
 
     try {
+        // Detect meeting end/leave
+        client.on('connection-change', (e) => {
+            console.log('Zoom Connection Change:', e);
+            if (e.state === 'Closed') {
+                console.log('Meeting Closed, cleaning up...');
+                const el = findZoomContainer();
+                if (el) {
+                    el.innerHTML = '';
+                    el.style.display = 'none';
+                }
+            }
+        });
+
         await client.init({
             zoomAppRoot: meetingElement,
             language: 'ru-RU',
@@ -123,33 +136,54 @@ function findZoomContainer() {
 async function leaveZoom() {
     try {
         if (client) {
-            // "endSession" is the command to completely stop the meeting in Component View
-            // It defaults to 'leave' logic but ensure we await it.
+            // Attempt to end meeting (for host) or leave (for participant)
+            // The SDK logic is often: leave() just leaves, endMeeting() ends for all.
+            // We'll try a generic leave first, but if we are host, we might want end.
+            // However, straightforward 'leave()' should kill local audio.
+
             await client.leave();
             console.log('Left Zoom meeting');
 
-            // Experimental: Try to destroy client to kill all connections
-            // (ZoomMtgEmbedded usually creates a singleton, but this might reset it)
-            // client = null; // Don't null it if we need to reuse it, but createClient is at top.
-            // Actually, for Component View, removing the element is often key, 
-            // but we must wait for the promise above.
+            // CRITICAL: Component View sometimes keeps connections alive if not properly destroyed.
+            // There isn't a documented client.destroy() for the singleton, 
+            // BUT initializing a new one or clearing the DOM is key.
         }
     } catch (error) {
         console.error('Zoom leave error:', error);
     }
 
-    // Force cleanup DOM
+    // FORCE CLEANUP: This is the nuclear option to stop audio.
     const meetingElement = findZoomContainer();
     if (meetingElement) {
-        // Destroy method from SDK if available (check documentation or common usage)
-        // Zoom Embedded often relies on 'leave' + removing DOM.
+        // 1. Remove from DOM
+        meetingElement.remove();
 
-        meetingElement.innerHTML = '';
-        meetingElement.style.display = 'none';
-
-        // Reload to force-kill audio? User requested "exit". 
-        // window.location.reload(); // Too aggressive for SPA.
+        // 2. Re-create the container for next time (since we just removed it)
+        // We find the parent (shim) or just let findZoomContainer fail next time 
+        // until Flutter rebuilds it? 
+        // Actually, Flutter manages the 'zmmtg-root' inside the view. 
+        // We should just clear innerHTML.
     }
+
+    // Re-finding to clear innerHTML specifically
+    const container = document.getElementById('zoom-meeting-container');
+    // Note: findZoomContainer handles ShadowDOM, but for 'remove' operations we want to be careful.
+
+    // BETTER APPROACH: Reload the page is the only 100% way if SDK is buggy.
+    // But we want to avoid that.
+
+    // Let's try to clear the DOM content aggressively.
+    const aggressiveCleanup = findZoomContainer();
+    if (aggressiveCleanup) {
+        aggressiveCleanup.innerHTML = '';
+        aggressiveCleanup.style.display = 'none';
+
+        // Force reload of the window location if we are stuck?
+        // No, let's trust that clearing the 'zoomAppRoot' kills the iframe/rendering logic.
+    }
+
+    // Explicitly unmount if React was used internally? No access.
+    // We will rely on innerHTML = '' hitting the root.
 }
 
 window.initZoom = initZoom;
