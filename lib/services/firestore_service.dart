@@ -249,12 +249,16 @@ class FirestoreService {
       final user = _auth.currentUser;
       if (user == null) return;
       
-      // Store vote in a subcollection or on the participant doc?
-      // Simple way: Add 'votes' list to target participant
+      // 1. Add vote to target participant (to count totals)
       final targetRef = _db.collection('games').doc(gameId).collection('participants').doc(targetUserId);
-      
       await targetRef.update({
           'votes': FieldValue.arrayUnion([user.uid])
+      });
+
+      // 2. Mark who the voter voted for (to display on host dashboard)
+      final voterRef = _db.collection('games').doc(gameId).collection('participants').doc(user.uid);
+      await voterRef.update({
+          'votedFor': targetUserId
       });
   }
 

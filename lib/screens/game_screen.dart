@@ -220,60 +220,99 @@ class _GameScreenState extends State<GameScreen> {
                         crossAxisSpacing: 8, mainAxisSpacing: 8
                       ),
                       itemCount: docs.length,
-                      itemBuilder: (context, index) {
-                         final data = docs[index].data();
-                         final name = data['name'] ?? 'Unknown';
-                         final pNum = data['playerNumber'];
-                         final roleId = data['selectedRole'];
-                         final numbers = List<int>.from(data['numbers'] ?? []);
-                         final status = data['status'];
-                         
-                         return Card(
-                            color: Colors.white12,
-                            child: Column(
-                               mainAxisAlignment: MainAxisAlignment.center,
-                               children: [
-                                  // Header: Number + Name
-                                  if (pNum != null)
-                                     CircleAvatar(radius: 12, backgroundColor: Colors.white24, child: Text("$pNum", style: const TextStyle(fontSize: 12, color: Colors.white))),
-                                  const SizedBox(height: 4),
-                                  Text(name, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold), textAlign: TextAlign.center),
-                                  
-                                  const Spacer(),
-                                  if (status == 'pending')
-                                      ElevatedButton(
-                                         style: ElevatedButton.styleFrom(minimumSize: const Size(0,30), backgroundColor: Colors.green),
-                                         onPressed: () => _firestoreService.approveParticipant(_targetGameId!, docs[index].id),
-                                         child: const Text("Принять", style: TextStyle(fontSize: 10))
-                                      )
-                                  else if (_gameStage == 'selection') ...[
-                                      // Show Diagnostic Card preview link
-                                      if (numbers.isNotEmpty)
-                                         TextButton(
-                                            onPressed: () => _showDiagnosticCard(numbers, name),
-                                            child: const Text("Карта", style: TextStyle(color: Colors.blueAccent, fontSize: 12, decoration: TextDecoration.underline))
-                                         ),
-                                      const SizedBox(height: 4),
-                                      if (roleId != null) 
-                                         Container(
-                                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                            decoration: BoxDecoration(color: Colors.orange, borderRadius: BorderRadius.circular(4)),
-                                            child: Text("#$roleId", style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 10))
+                       itemBuilder: (context, index) {
+                          final data = docs[index].data();
+                          final name = data['name'] ?? 'Unknown';
+                          final pNum = data['playerNumber'];
+                          final roleId = data['selectedRole'];
+                          final numbers = List<int>.from(data['numbers'] ?? []);
+                          final status = data['status'];
+                          final votedForId = data['votedFor'];
+                          
+                          // Find target player name for voting display
+                          String votedForName = "...";
+                          if (votedForId != null) {
+                             final target = docs.where((d) => d.id == votedForId).firstOrNull;
+                             if (target != null) {
+                                final tData = target.data();
+                                votedForName = tData['playerNumber'] != null ? "Игрок ${tData['playerNumber']}" : tData['name'];
+                             }
+                          }
+
+                          return Card(
+                             clipBehavior: Clip.antiAlias,
+                             color: Colors.white12,
+                             child: Stack(
+                                children: [
+                                   // Semi-transparent background of selected role
+                                   if (_gameStage == 'voting' && roleId != null)
+                                      Positioned.fill(
+                                         child: Opacity(
+                                            opacity: 0.25,
+                                            child: Image.asset(
+                                               'assets/images/cards/role_$roleId.png',
+                                               fit: BoxFit.cover,
+                                               errorBuilder: (c, e, s) => Container(),
+                                            )
                                          )
-                                      else
-                                         const Text("Выбирает...", style: TextStyle(color: Colors.white54, fontSize: 10))
-                                   ] else ...[
-                                      // Voting Mode: Show Role 
-                                      if (roleId != null)
-                                         Text("Роль: $roleId", style: const TextStyle(color: Colors.orangeAccent, fontSize: 16, fontWeight: FontWeight.bold))
-                                      else
-                                         const Text("?", style: TextStyle(color: Colors.white54))
-                                  ],
-                                  const Spacer(),
-                               ],
-                            ),
-                         );
-                      },
+                                      ),
+                                   
+                                   Center(
+                                     child: Column(
+                                       mainAxisAlignment: MainAxisAlignment.center,
+                                       children: [
+                                          // Header: Number + Name
+                                          if (pNum != null)
+                                             CircleAvatar(radius: 12, backgroundColor: Colors.white24, child: Text("$pNum", style: const TextStyle(fontSize: 12, color: Colors.white))),
+                                          const SizedBox(height: 4),
+                                          Text(name, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold), textAlign: TextAlign.center),
+                                          
+                                          const Spacer(),
+                                          if (status == 'pending')
+                                              ElevatedButton(
+                                                 style: ElevatedButton.styleFrom(minimumSize: const Size(0,30), backgroundColor: Colors.green),
+                                                 onPressed: () => _firestoreService.approveParticipant(_targetGameId!, docs[index].id),
+                                                 child: const Text("Принять", style: TextStyle(fontSize: 10))
+                                              )
+                                          else if (_gameStage == 'selection') ...[
+                                              // Show Diagnostic Card preview link
+                                              if (numbers.isNotEmpty)
+                                                 TextButton(
+                                                    onPressed: () => _showDiagnosticCard(numbers, name),
+                                                    child: const Text("Карта", style: TextStyle(color: Colors.blueAccent, fontSize: 12, decoration: TextDecoration.underline))
+                                                 ),
+                                              const SizedBox(height: 4),
+                                              if (roleId != null) 
+                                                 Container(
+                                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                                    decoration: BoxDecoration(color: Colors.orange, borderRadius: BorderRadius.circular(4)),
+                                                    child: Text("#$roleId", style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 10))
+                                                 )
+                                              else
+                                                 const Text("Выбирает...", style: TextStyle(color: Colors.white54, fontSize: 10))
+                                          ] else ...[
+                                              // Voting Mode: Show who they voted for
+                                              if (roleId != null)
+                                                 Text("#$roleId", style: const TextStyle(color: Colors.orangeAccent, fontSize: 14, fontWeight: FontWeight.bold)),
+                                              
+                                              const SizedBox(height: 4),
+                                              if (votedForId != null)
+                                                 Container(
+                                                     padding: const EdgeInsets.all(4),
+                                                     decoration: BoxDecoration(color: Colors.white10, borderRadius: BorderRadius.circular(4)),
+                                                     child: Text("Голос за: \n$votedForName", textAlign: TextAlign.center, style: const TextStyle(color: Colors.greenAccent, fontSize: 9))
+                                                 )
+                                              else
+                                                 const Text("Не голосовал", style: TextStyle(color: Colors.white38, fontSize: 9)),
+                                          ],
+                                          const Spacer(),
+                                       ],
+                                     ),
+                                   ),
+                                ],
+                             ),
+                          );
+                       },
                    );
                 },
              ),
@@ -867,52 +906,100 @@ class _GameScreenState extends State<GameScreen> {
 
   
   void _showDiagnosticCard(List<int> numbers, String name) {
-     // Show the 8 main diagnostic cards (indices 4, 5, 6, 7, 8, 9, 10, 12 usually in my result card logic)
-     // Actually, let's show all available unique numbers from registration
-     final unique = numbers.toSet().toList()..sort();
+     // Indices for specific roles:
+     // [0, 1, 2] -> Phases (0-30, 30-60, 60-90)
+     // [3] -> Entry Point
+     // [5, 4] -> Female Duality (Inner/Outer)
+     // [6, 7] -> Male Duality (Inner/Outer)
+     // [8] -> Main Motivation
+     // [9, 10] -> Implementation (Method/Sphere)
+     // [11, 12, 13] -> Harmony (Fears, Output, Balance)
      
+     // Note: If 0, use 22.
+     int n(int idx) => (idx < numbers.length) ? (numbers[idx] == 0 ? 22 : numbers[idx]) : 22;
+
      showDialog(
        context: context,
-       builder: (context) => AlertDialog(
-         backgroundColor: const Color(0xFF1E293B),
-         title: Text("Карта: $name", style: const TextStyle(color: Colors.white)),
-         content: SizedBox(
-           width: double.maxFinite,
-           child: GridView.builder(
-              shrinkWrap: true,
-              itemCount: unique.length,
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                 crossAxisCount: 4,
-                 childAspectRatio: 0.7,
-                 crossAxisSpacing: 8,
-                 mainAxisSpacing: 8,
-              ),
-              itemBuilder: (context, index) {
-                 final n = unique[index] == 0 ? 22 : unique[index];
-                 return Column(
-                    children: [
-                       Expanded(
-                          child: ClipRRect(
-                             borderRadius: BorderRadius.circular(4),
-                             child: Image.asset(
-                                'assets/images/cards/role_$n.png',
-                                fit: BoxFit.cover,
-                                errorBuilder: (c, e, s) => Container(color: Colors.white10),
-                             ),
-                          )
-                       ),
-                       Text("$n", style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold))
-                    ],
-                 );
-              },
+       builder: (context) => Dialog(
+         backgroundColor: Colors.transparent,
+         child: Container(
+           width: 400,
+           padding: const EdgeInsets.all(16),
+           decoration: BoxDecoration(
+             color: const Color(0xFF0F172A),
+             borderRadius: BorderRadius.circular(20),
+             border: Border.all(color: Colors.white24),
+             boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.5), blurRadius: 20)],
+           ),
+           child: SingleChildScrollView(
+             child: Column(
+               children: [
+                  Text("Диагностика: $name", style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+                  const Divider(color: Colors.white24, height: 24),
+                  
+                  // Phase Section
+                  _rowTitle("Фазы (0-30, 30-60, 60-90)"),
+                  _rowCards([n(0), n(1), n(2)]),
+                  
+                  const SizedBox(height: 12),
+                  _rowTitle("Точка входа"),
+                  _rowCards([n(3)]),
+                  
+                  const SizedBox(height: 12),
+                  _rowTitle("Женская дуальность (Инь)"),
+                  _rowCards([n(5), n(4)]),
+
+                  const SizedBox(height: 12),
+                  _rowTitle("Мужская дуальность (Ян)"),
+                  _rowCards([n(6), n(7)]),
+
+                  const SizedBox(height: 12),
+                  _rowTitle("Ядро мотивации"),
+                  _rowCards([n(8)]),
+
+                  const SizedBox(height: 12),
+                  _rowTitle("Реализация (Метод и Сфера)"),
+                  _rowCards([n(9), n(10)]),
+
+                  const SizedBox(height: 12),
+                  _rowTitle("Гармония (Страхи, Выход, Баланс)"),
+                  _rowCards([n(11), n(12), n(13)]),
+                  
+                  const SizedBox(height: 24),
+                  ElevatedButton(onPressed: () => Navigator.pop(context), child: const Text("Закрыть"))
+               ],
+             ),
            ),
          ),
-         actions: [
-            TextButton(onPressed: () => Navigator.pop(context), child: const Text("Закрыть"))
-         ],
        ),
      );
   }
+
+  Widget _rowTitle(String title) => Padding(
+     padding: const EdgeInsets.only(bottom: 4),
+     child: Text(title, style: const TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.w600)),
+  );
+
+  Widget _rowCards(List<int> cardNumbers) => Row(
+     mainAxisAlignment: MainAxisAlignment.center,
+     children: cardNumbers.map((num) => Container(
+        width: 60,
+        height: 85,
+        margin: const EdgeInsets.symmetric(horizontal: 4),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(4),
+          border: Border.all(color: Colors.white12),
+        ),
+        child: ClipRRect(
+           borderRadius: BorderRadius.circular(4),
+           child: Image.asset(
+              'assets/images/cards/role_$num.png',
+              fit: BoxFit.cover,
+              errorBuilder: (c, e, s) => Container(color: Colors.white10, child: Center(child: Text("$num", style: const TextStyle(color: Colors.white)))),
+           ),
+        ),
+     )).toList(),
+  );
 
   void _showRoomDialog() async {
     final controller = TextEditingController(text: _roomName);
