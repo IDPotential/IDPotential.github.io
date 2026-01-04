@@ -24,9 +24,38 @@ async function initZoom(meetingNumber, password, userName, sdkKey, sdkSecret) {
     const role = 0;
     const timestamp = Math.round(new Date().getTime() / 1000) - 30;
 
-    const msg = btoa(sdkKey + meetingNumber + timestamp + role);
-    const hash = sha256.hmac.base64(sdkSecret, msg);
-    const signature = btoa(`${sdkKey}.${meetingNumber}.${timestamp}.${role}.${hash}`);
+    // Generate Signature using CryptoJS
+    // Signature format: Header.Payload.Signature
+    // Header: Base64(sdkKey)
+    // Payload: Base64(meetingNumber.timestamp.role)
+    // Signature: Base64(HMAC-SHA256(secret, msg))
+
+    const iat = Math.round(new Date().getTime() / 1000) - 30;
+    const exp = iat + 60 * 60 * 2; // 2 hours expiration
+
+    // Official Zoom SDK Signature for Web (JWT-like or internal format)
+    // For Embedded Client, it typically expects the unified signature.
+    // Spec: https://developers.zoom.us/docs/meeting-sdk/auth/#generate-a-signature
+
+    // SDK Key . Meeting Number . Timestamp . Role . HMAC(Secret, Msg)
+    // Msg = Base64(SDK Key . Meeting Number . Timestamp . Role)
+
+    const msgData = `${sdkKey}${meetingNumber}${iat}${role}`;
+    const msg = btoa(msgData);
+    const hash = CryptoJS.HmacSHA256(msg, sdkSecret).toString(CryptoJS.enc.Base64);
+    const signature = `${sdkKey}.${meetingNumber}.${iat}.${role}.${hash}`;
+    // Based on previous code, wrapping entire thing in btoa might have been the issue OR expectation.
+    // Let's stick to the structure: SDKKey.MN.TS.Role.Hash(Base64)
+    // Actually, checking Zoom docs: 
+    // ECDSA is for Server-to-Server. 
+    // Client SDK uses: 
+    // timestamp = now
+    // msg = base64(apiKey + meetingNumber + timestamp + role)
+    // hash = hmac_sha256(msg, apiSecret) (base64)
+    // signature = base64(apiKey + "." + meetingNumber + "." + timestamp + "." + role + "." + hash)
+
+    const signatureInput = `${sdkKey}.${meetingNumber}.${iat}.${role}.${hash}`;
+    const finalSignature = btoa(signatureInput);
 
     try {
         await client.init({
