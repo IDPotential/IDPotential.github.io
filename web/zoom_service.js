@@ -1,9 +1,15 @@
+```javascript
 
-const client = ZoomMtgEmbedded.createClient();
+let client = null;
 
 async function initZoom(meetingNumber, password, userName, sdkKey, sdkSecret) {
     // Ensure strict cleanup before trying to initialize a new session
     await leaveZoom();
+    
+    // Create new client instance (since we destroy it on leave)
+    if (!client) {
+        client = ZoomMtgEmbedded.createClient();
+    }
 
     let meetingElement = findZoomContainer();
 
@@ -68,7 +74,7 @@ async function initZoom(meetingNumber, password, userName, sdkKey, sdkSecret) {
         .replace(/\//g, '_')
         .replace(/=+$/, '');
 
-    const jwtSignature = `${base64UrlHeader}.${base64UrlPayload}.${base64UrlSignature}`;
+    const jwtSignature = `${ base64UrlHeader }.${ base64UrlPayload }.${ base64UrlSignature } `;
 
     try {
         console.log('Initializing Zoom client...');
@@ -135,10 +141,10 @@ async function initZoom(meetingNumber, password, userName, sdkKey, sdkSecret) {
                     // Better Strategy: Find #zmmtg-root specifically (it's global usually) or the root child.
                     const zoomRoot = document.getElementById('zmmtg-root') || container.firstElementChild;
                     if (zoomRoot) {
-                        zoomRoot.style.transform = `scale(${scale})`;
+                        zoomRoot.style.transform = `scale(${ scale })`;
                         zoomRoot.style.transformOrigin = 'top left';
-                        zoomRoot.style.width = `${100 / scale}%`;
-                        zoomRoot.style.height = `${100 / scale}%`;
+                        zoomRoot.style.width = `${ 100 / scale }% `;
+                        zoomRoot.style.height = `${ 100 / scale }% `;
                     }
                 }
             };
@@ -200,6 +206,7 @@ async function leaveZoom() {
     try {
         if (typeof ZoomMtgEmbedded.destroyClient === 'function') {
             ZoomMtgEmbedded.destroyClient();
+            client = null; // Important: reset global variable
             console.log('Destroyed Zoom Client');
         }
     } catch (e) { console.warn('Destroy client failed', e); }
