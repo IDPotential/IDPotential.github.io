@@ -1,11 +1,12 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import '../models/calculation.dart';
 import 'database_service.dart';
 import 'package:share_plus/share_plus.dart';
 
 class DataTransferService {
-  static const int CURRENT_VERSION = 1;
+  static const int currentVersion = 1;
 
   /// Exports all data to a JSON string
   static Future<String> exportData() async {
@@ -13,7 +14,7 @@ class DataTransferService {
     final folders = await DatabaseService().getFolders();
     
     final data = {
-      'version': CURRENT_VERSION,
+      'version': currentVersion,
       'timestamp': DateTime.now().toIso8601String(),
       'calculations': calculations.map((c) => c.toMap()).toList(),
       'folders': folders,
@@ -94,7 +95,7 @@ class DataTransferService {
         } catch (e) {
           errors++;
           errorDetails.add(e.toString());
-          print("Error parsing item: $e");
+          debugPrint("Error parsing item: $e");
         }
       }
       
