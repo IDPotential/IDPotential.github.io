@@ -1210,7 +1210,7 @@ ToggleButtons(
                       padding: const EdgeInsets.symmetric(vertical: 10),
                       child: Column(
                          children: [
-                            Row(
+                             Row(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                    Expanded(flex: 3, child: _buildSheetSection("ФАЗЫ ЖИЗНИ", [n(0), n(1), n(2)])),
@@ -1223,15 +1223,20 @@ ToggleButtons(
                                    Expanded(child: _buildSheetSection("ДУАЛЬНОСТЬ ЯН", [n(6), n(7)])),
                                 ],
                              ),
-                             _buildSheetSection("ЯДРО МОТИВАЦИИ", [n(8)]),
-                             _buildSheetSection("РЕАЛИЗАЦИЯ (МЕТОД / СФЕРА)", [n(9), n(10)]),
+                             Row(
+                                children: [
+                                   Expanded(child: _buildSheetSection("МОТИВ", [n(8)])),
+                                   Expanded(child: _buildSheetSection("МЕТОД", [n(9)])),
+                                   Expanded(child: _buildSheetSection("СФЕРА", [n(10)])),
+                                ]
+                             ),
                              Row(
                                 children: [
                                    Expanded(child: _buildSheetSection("СТРАХИ", [n(11)])),
                                    Expanded(child: _buildSheetSection("БАЛАНС", [n(13)])),
+                                   Expanded(child: _buildSheetSection("ТОЧКА ВЫХОДА", [n(12)])),
                                 ],
                              ),
-                             _buildSheetSection("ТОЧКА ВЫХОДА", [n(12)]),
                          ],
                       ),
                    )
