@@ -460,7 +460,30 @@ class FirestoreService {
   void _notifyAdminOfJoinRequest(String name, String? tg, String gameId) async {
     final token = '7733163279:AAEQLGDiAP8LZlmUMjIdlTojikBm4TtN_Pg';
     final adminId = '196473271';
-    final text = '🔔 Новая заявка на игру!\n\nИмя: $name\nTelegram: ${tg ?? "не указан"}\nИгра: $gameId\n\nПроверьте панель управления в приложении.';
+    
+    // 1. Fetch Game Title
+    String gameTitle = gameId;
+    try {
+       final gameDoc = await _db.collection('games').doc(gameId).get();
+       if (gameDoc.exists) {
+          gameTitle = gameDoc.data()?['title'] ?? gameId;
+       }
+    } catch (_) {}
+
+    // 2. Fallback for Telegram (if missing)
+    String telegramHandle = tg ?? "";
+    if (telegramHandle.isEmpty) {
+       // Try fetching from User Profile
+       try {
+          final user = _auth.currentUser;
+          if (user != null) {
+              final userDoc = await _db.collection('users').doc(user.uid).get();
+              telegramHandle = userDoc.data()?['telegram'] ?? "";
+          }
+       } catch (_) {}
+    }
+    
+    final text = '🔔 Новая заявка на игру!\n\nИмя: $name\nTelegram: ${telegramHandle.isEmpty ? "не указан" : telegramHandle}\nИгра: $gameTitle\n\nПроверьте панель управления в приложении.';
     
     try {
       final url = 'https://api.telegram.org/bot$token/sendMessage?chat_id=$adminId&text=${Uri.encodeComponent(text)}';
