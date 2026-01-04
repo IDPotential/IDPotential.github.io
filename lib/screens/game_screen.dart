@@ -547,9 +547,15 @@ ToggleButtons(
       if (data != null) {
         final role = data['role'];
         final pgmd = data['pgmd'];
-        // Only Admin (100) is Host. Diagnost (5) is a participant.
-        if (role == 'admin' || pgmd == 100) {
+        final isHostMode = data['isHostMode'] ?? false;
+        
+        // Allow if Admin or Diagnost-Host (>= 10) AND Host Mode is enabled
+        final hasRights = role == 'admin' || (pgmd != null && pgmd >= 10);
+        
+        if (hasRights && isHostMode) {
            if (mounted) setState(() => _isHost = true);
+        } else {
+           if (mounted) setState(() => _isHost = false);
         }
       }
     } catch (e) {
@@ -1416,7 +1422,13 @@ ToggleButtons(
                      child: ListTile(
                         leading: const Icon(Icons.videogame_asset, color: Colors.blueAccent),
                         title: Text(game['title'] ?? 'Игра без названия', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                        subtitle: Text(DateFormat('dd.MM.yyyy HH:mm').format(date), style: const TextStyle(color: Colors.white70)),
+                        subtitle: Column(
+                           crossAxisAlignment: CrossAxisAlignment.start,
+                           children: [
+                              Text(DateFormat('dd.MM.yyyy HH:mm').format(date), style: const TextStyle(color: Colors.white70)),
+                              Text("Ведущий: ${game['hostName'] ?? 'Ведущий'}", style: const TextStyle(color: Colors.white54, fontSize: 12)),
+                           ],
+                        ),
                         trailing: const Icon(Icons.arrow_forward_ios, color: Colors.white54, size: 16),
                         onTap: () {
                            setState(() {

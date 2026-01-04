@@ -243,6 +243,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 
                 const SizedBox(height: 20),
                 
+                if (pgmd >= 10)
+                   Card(
+                      color: (userData['isHostMode'] ?? false) ? Colors.purple.withOpacity(0.1) : Colors.grey.withOpacity(0.1),
+                      child: SwitchListTile(
+                         title: const Text("Режим Ведущего", style: TextStyle(fontWeight: FontWeight.bold)),
+                         subtitle: const Text("Включите, чтобы видеть панель управления игрой"),
+                         secondary: Icon(Icons.manage_accounts, color: (userData['isHostMode'] ?? false) ? Colors.purple : Colors.grey),
+                         value: userData['isHostMode'] ?? false,
+                         onChanged: (val) {
+                            _firestoreService.toggleHostMode(val);
+                         },
+                      ),
+                   ),
+
+                const SizedBox(height: 20),
+                
                 // Actions
                 Wrap(
                   spacing: 10,

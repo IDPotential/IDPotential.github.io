@@ -383,13 +383,16 @@ class FirestoreService {
     final userDoc = await _db.collection('users').doc(user.uid).get();
     final role = userDoc.data()?['role'];
     final pgmd = userDoc.data()?['pgmd'];
+    final userName = userDoc.data()?['first_name'] ?? 'Ведущий';
     
-    if (role != 'admin' && role != 'diagnost' && pgmd != 100) {
+    // Level 10 (Diagnost-Host) and above can create games
+    if (role != 'admin' && (pgmd == null || pgmd < 10)) {
       throw Exception("Unauthorized");
     }
 
     final docRef = await _db.collection('games').add({
       'hostId': user.uid,
+      'hostName': userName,
       'title': title,
       'scheduledAt': date.toIso8601String(),
       'zoomId': zoomId,
