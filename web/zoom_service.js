@@ -123,24 +123,32 @@ function findZoomContainer() {
 async function leaveZoom() {
     try {
         if (client) {
-            // "endSession" is sometimes needed for Component View to fully clear
-            // But standard is .leave(). We try both or ensuring leave completes.
+            // "endSession" is the command to completely stop the meeting in Component View
+            // It defaults to 'leave' logic but ensure we await it.
             await client.leave();
             console.log('Left Zoom meeting');
+
+            // Experimental: Try to destroy client to kill all connections
+            // (ZoomMtgEmbedded usually creates a singleton, but this might reset it)
+            // client = null; // Don't null it if we need to reuse it, but createClient is at top.
+            // Actually, for Component View, removing the element is often key, 
+            // but we must wait for the promise above.
         }
     } catch (error) {
         console.error('Zoom leave error:', error);
     }
 
-    // Force cleanup DOM immediately to give user feedback
+    // Force cleanup DOM
     const meetingElement = findZoomContainer();
     if (meetingElement) {
+        // Destroy method from SDK if available (check documentation or common usage)
+        // Zoom Embedded often relies on 'leave' + removing DOM.
+
         meetingElement.innerHTML = '';
-        // Also hide the container strictly to prevent "ghost" inputs
         meetingElement.style.display = 'none';
 
-        // Timeout to restore display property if needed for next join? 
-        // No, initZoom should handle it.
+        // Reload to force-kill audio? User requested "exit". 
+        // window.location.reload(); // Too aggressive for SPA.
     }
 }
 

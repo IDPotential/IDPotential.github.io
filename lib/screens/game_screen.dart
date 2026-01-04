@@ -955,7 +955,7 @@ ToggleButtons(
           ElevatedButton.icon(
             icon: const Icon(Icons.videocam),
             label: const Text("Подключиться к видео"),
-            onPressed: () => setState(() => _isVideoActive = true),
+            onPressed: _connectToZoom,
           ),
           const SizedBox(height: 10),
           TextButton(
@@ -986,34 +986,44 @@ ToggleButtons(
           ElevatedButton.icon(
              icon: const Icon(Icons.videocam),
              label: const Text("Войти в конференцию"),
-             onPressed: () => setState(() => _isVideoActive = true),
+             onPressed: _connectToZoom,
           )
         ],
       ),
     );
   }
 
+  void _connectToZoom() {
+      if (_zoomId == null || _zoomId!.isEmpty) return;
+      
+      setState(() => _isVideoActive = true);
+      
+      final user = FirebaseAuth.instance.currentUser;
+      final userName = user?.displayName ?? _nameController.text.split(' ')[0] ?? "Player";
+
+      // Call JS init
+      Future.delayed(const Duration(milliseconds: 500), () {
+          js.context.callMethod('initZoom', [
+              _zoomId, 
+              _zoomPassword ?? "", 
+              userName,
+              "EpevSkKvRxGrNoetCoYmOQ",
+              "pZKWEleW18O3poQ9MYots4vyEVU3O6tc"
+          ]);
+      });
+  }
+
   Widget _buildZoomPanel() {
     if (!_isVideoActive) return _buildVideoOffPlaceholder();
     
-    if (_zoomId != null && _zoomId!.isNotEmpty) {
-        final user = FirebaseAuth.instance.currentUser;
-        final userName = user?.displayName ?? _nameController.text.split(' ')[0] ?? "Player";
-        
-        Future.delayed(const Duration(milliseconds: 500), () {
-            js.context.callMethod('initZoom', [
-                _zoomId, 
-                _zoomPassword ?? "", 
-                userName,
-                "EpevSkKvRxGrNoetCoYmOQ",
-                "pZKWEleW18O3poQ9MYots4vyEVU3O6tc"
-            ]);
-        });
-    }
+    // Logic moved to _connectToZoom to prevent re-init on build
 
     return Stack(
       children: [
-        HtmlElementView(viewType: 'zoom-container'),
+        const HtmlElementView(
+          key: ValueKey('zoom-view'),
+          viewType: 'zoom-container',
+        ),
         Positioned(
           top: 10,
           right: 10,
