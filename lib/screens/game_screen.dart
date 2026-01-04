@@ -62,6 +62,16 @@ class _GameScreenState extends State<GameScreen> {
        _fetchNearestGame();
     }
   }
+  
+  @override
+  void dispose() {
+      if (kIsWeb) {
+          js.context.callMethod('leaveZoom');
+      }
+      _nameController.dispose();
+      _telegramController.dispose();
+      super.dispose();
+  }
 
   bool _showGameSelection = false;
   List<QueryDocumentSnapshot<Map<String, dynamic>>> _availableGames = [];
