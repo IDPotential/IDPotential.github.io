@@ -191,12 +191,17 @@ async function leaveZoom() {
 
     // Attempt SDK leave, but don't let it block cleanup
     try {
-        if (client && typeof client.leave === 'function') {
-            // Give it 2 seconds to leave gracefully
-            const leavePromise = client.leave();
-            const timeoutPromise = new Promise(resolve => setTimeout(resolve, 2000));
-            await Promise.race([leavePromise, timeoutPromise]);
-            console.log('Client leave completed (or timed out)');
+        if (client) {
+            console.log('Client object keys:', Object.keys(client));
+            if (typeof client.leave === 'function') {
+                // Give it 2 seconds to leave gracefully
+                const leavePromise = client.leave();
+                const timeoutPromise = new Promise(resolve => setTimeout(resolve, 2000));
+                await Promise.race([leavePromise, timeoutPromise]);
+                console.log('Client leave completed (or timed out)');
+            } else {
+                console.warn('client.leave is not a function', client);
+            }
         }
     } catch (error) {
         console.warn('Zoom SDK leave warning (ignoring):', error);
