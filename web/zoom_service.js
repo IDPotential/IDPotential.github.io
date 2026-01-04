@@ -2,6 +2,9 @@
 const client = ZoomMtgEmbedded.createClient();
 
 async function initZoom(meetingNumber, password, userName, sdkKey, sdkSecret) {
+    // Ensure strict cleanup before trying to initialize a new session
+    await leaveZoom();
+
     let meetingElement = findZoomContainer();
 
     // Retry finding container if not found immediately (give it up to 2 seconds)
