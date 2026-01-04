@@ -265,16 +265,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   runSpacing: 10,
                   alignment: WrapAlignment.center,
                   children: [
-                    ElevatedButton.icon(
-                      onPressed: () => _showTopUpDialog(snapshot.data!.id),
-                      icon: const Icon(Icons.add_card),
-                      label: const Text('Пополнить баланс'),
-                    ),
-                    ElevatedButton.icon(
-                      onPressed: _showAskQuestionDialog,
-                      icon: const Icon(Icons.help_outline),
-                      label: const Text('Задать вопрос'),
-                    ),
+                    if (pgmd != 100) ...[
+                      ElevatedButton.icon(
+                        onPressed: () => _showTopUpDialog(snapshot.data!.id),
+                        icon: const Icon(Icons.add_card),
+                        label: const Text('Пополнить баланс'),
+                      ),
+                      ElevatedButton.icon(
+                        onPressed: _showAskQuestionDialog,
+                        icon: const Icon(Icons.help_outline),
+                        label: const Text('Задать вопрос'),
+                      ),
+                    ],
                     if (pgmd < 2)
                       ElevatedButton.icon(
                         onPressed: () => _submitRequest(type: 'upgrade', text: 'Запрос на повышение'),
