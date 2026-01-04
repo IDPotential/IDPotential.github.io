@@ -10,6 +10,7 @@ import '../services/firestore_service.dart';
 import '../services/knowledge_service.dart';
 import '../models/calculation.dart';
 import 'package:intl/intl.dart';
+import 'active_game_screen.dart';
 
 class GameScreen extends StatefulWidget {
   final String? gameId;
@@ -67,9 +68,7 @@ class _GameScreenState extends State<GameScreen> {
   
   @override
   void dispose() {
-      if (kIsWeb) {
-          js.context.callMethod('leaveZoom');
-      }
+      // Zoom cleanup handled in ActiveGameScreen
       _nameController.dispose();
       _telegramController.dispose();
       super.dispose();
@@ -173,65 +172,77 @@ class _GameScreenState extends State<GameScreen> {
          return _buildGameSelectionScreen();
       }
 
-      if (_isHost && _targetGameId != null) {
-         // Host see split layout
-         return Scaffold(
-             extendBodyBehindAppBar: true, 
-             body: Container(
-                decoration: const BoxDecoration(
-                  gradient: LinearGradient(colors: [Color(0xFF0F172A), Color(0xFF1E293B)])
-                ),
-                child: SafeArea(
-                  child: _gameStatus == 'archived' 
-                    ? _buildGameArchivedScreen()
-                    : Column(
-                        children: [
-                          // Top Section: Video
-                          Expanded(
-                        flex: 5,
-                        child: Container(
-                          color: Colors.black87,
-                          child: _isVideoActive 
-                            ? _buildZoomPanel() 
-                            : _buildVideoPlaceholder(),
-                        ),
-                      ),
-                      const Divider(height: 1, thickness: 1, color: Colors.grey),
-                      // Bottom Section: Management Dashboard
-                      Expanded(
-                        flex: 5,
-                        child: _buildHostDashboard(),
-                      ),
-                    ],
-                  ),
-                )
-             )
-         );
-      }
-      
-    // Participant View
-    return Scaffold(
-      extendBodyBehindAppBar: true, 
-      appBar: _gameProfile == null 
-        ? AppBar(title: const Text('Загрузка...'), backgroundColor: Colors.transparent, elevation: 0) 
-        : null,
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [Color(0xFF0F172A), Color(0xFF1E293B)],
-          )
+      // Main Lobby View
+      return Scaffold(
+        extendBodyBehindAppBar: true, 
+        appBar: _gameProfile == null 
+          ? AppBar(title: const Text('Загрузка...'), backgroundColor: Colors.transparent, elevation: 0) 
+          : null,
+        body: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [Color(0xFF0F172A), Color(0xFF1E293B)],
+            )
+          ),
+          child: SafeArea(
+            child: _isLoading 
+              ? const Center(child: CircularProgressIndicator())
+              : (_gameStatus == 'archived' && !_isHost
+                  ? _buildGameSelectionScreen() // Or archived view
+                  : (_gameProfile == null ? _buildSetupForm() : _buildLobbyUI())),
+          ),
         ),
-        child: SafeArea(
-          child: _isLoading 
-            ? const Center(child: CircularProgressIndicator())
-            : (_gameStatus == 'archived' 
-                ? _buildGameArchivedScreen() 
-                : (_gameProfile == null ? _buildSetupForm() : _buildSplitScreenGame())),
-        ),
-      ),
-    );
+      );
+  }
+
+  Widget _buildLobbyUI() {
+     // Check if Host
+     if (_isHost && _targetGameId != null) {
+        return Center(
+           child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                 const Icon(Icons.admin_panel_settings, color: Colors.orange, size: 60),
+                 const SizedBox(height: 20),
+                 Text("Ведущий игры: ${_targetGameTitle ?? '...'}", style: const TextStyle(color: Colors.white, fontSize: 18)),
+                 const SizedBox(height: 30),
+                 ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                       padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 20),
+                       backgroundColor: Colors.blueAccent
+                    ),
+                    onPressed: _openActiveGame,
+                    child: const Text("ВОЙТИ В ИГРУ", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                 ),
+                 const SizedBox(height: 20),
+                 TextButton(
+                    onPressed: () => setState(() => _showGameSelection = true),
+                    child: const Text("Выбрать другую игру/Создать", style: TextStyle(color: Colors.white54)),
+                 )
+              ],
+           ),
+        );
+     }
+     
+     // Participant
+     return _buildTopPanel();
+  }
+
+  void _openActiveGame() {
+     if (_targetGameId == null) return;
+     
+     Navigator.of(context).push(
+        MaterialPageRoute(
+           builder: (_) => ActiveGameScreen(
+              gameId: _targetGameId!, 
+              gameProfile: _gameProfile,
+              isHost: _isHost,
+              initialRoomName: _roomName,
+           )
+        )
+     );
   }
   
   Widget _buildHostDashboard() {
@@ -478,9 +489,32 @@ ToggleButtons(
           // Need to choose number
           return _buildNumberSelection();
        }
-       return _isVideoActive 
-          ? _buildZoomPanel() 
-          : _buildVideoPlaceholder();
+       
+       // Ready to Enter
+       return Center(
+          child: Column(
+             mainAxisAlignment: MainAxisAlignment.center,
+             children: [
+                const Icon(Icons.play_circle_fill, color: Colors.green, size: 80),
+                const SizedBox(height: 20),
+                Text("Вы в игре: ${_targetGameTitle ?? ''}", style: const TextStyle(color: Colors.white, fontSize: 18)),
+                const SizedBox(height: 30),
+                ElevatedButton(
+                   style: ElevatedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 20),
+                      backgroundColor: Colors.green
+                   ),
+                   onPressed: _openActiveGame,
+                   child: const Text("ВОЙТИ В ИГРУ", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                ),
+                const SizedBox(height: 20),
+                TextButton(
+                  onPressed: () => setState(() => _showGameSelection = true),
+                  child: const Text("Выбрать другую игру", style: TextStyle(color: Colors.white54, decoration: TextDecoration.underline))
+                )
+             ],
+          ),
+       );
     } else if (_participantStatus == 'pending') {
       return Center(
         child: Column(

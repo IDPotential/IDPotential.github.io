@@ -141,10 +141,10 @@ async function initZoom(meetingNumber, password, userName, sdkKey, sdkSecret) {
                     // Better Strategy: Find #zmmtg-root specifically (it's global usually) or the root child.
                     const zoomRoot = document.getElementById('zmmtg-root') || container.firstElementChild;
                     if (zoomRoot) {
-                        zoomRoot.style.transform = `scale(${ scale })`;
+                        zoomRoot.style.transform = "scale(" + scale + ")";
                         zoomRoot.style.transformOrigin = 'top left';
-                        zoomRoot.style.width = `${ 100 / scale }% `;
-                        zoomRoot.style.height = `${ 100 / scale }% `;
+                        zoomRoot.style.width = (100 / scale) + "%";
+                        zoomRoot.style.height = (100 / scale) + "%";
                     }
                 }
             };
