@@ -244,11 +244,11 @@ class _GameScreenState extends State<GameScreen> {
                              color: Colors.white12,
                              child: Stack(
                                 children: [
-                                   // Semi-transparent background of selected role
-                                   if (_gameStage == 'voting' && roleId != null)
+                                   // Semi-transparent background of selected role (visible in BOTH modes)
+                                   if (roleId != null)
                                       Positioned.fill(
                                          child: Opacity(
-                                            opacity: 0.25,
+                                            opacity: 0.15, // Slightly less for host dashboard clarity
                                             child: Image.asset(
                                                'assets/images/cards/role_$roleId.png',
                                                fit: BoxFit.cover,
@@ -634,77 +634,112 @@ class _GameScreenState extends State<GameScreen> {
   }
 
   Widget _buildVotingBoard() {
-     if (_targetGameId == null) return const Center(child: Text("Нет активной игры"));
-     
-     return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-        stream: _firestoreService.getGameParticipantsStream(_targetGameId!),
-        builder: (context, snapshot) {
-           if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
-           
-           final participants = snapshot.data!.docs;
-           
-           return Column(
-              children: [
-                const Padding(
-                  padding: EdgeInsets.all(8.0),
-                  child: Text("Голосование", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
-                ),
-                Expanded(
-                  child: GridView.builder(
-                    padding: const EdgeInsets.all(12),
-                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 3,
-                      childAspectRatio: 0.7,
-                      crossAxisSpacing: 10,
-                      mainAxisSpacing: 10,
-                    ),
-                    itemCount: participants.length,
-                    itemBuilder: (context, index) {
-                      final data = participants[index].data();
-                      final uid = participants[index].id;
-                      final name = data['name'] ?? 'Unknown';
-                      final roleId = data['selectedRole'];
-                      // final myVote = ... if we want to show if I voted
-                      
-                      return Card(
-                         color: Colors.white10,
-                         child: Column(
-                           mainAxisAlignment: MainAxisAlignment.center,
-                           children: [
-                              CircleAvatar(
-                                radius: 25, 
-                                backgroundColor: Colors.purple.withOpacity(0.3),
-                                child: Text(name[0].toUpperCase(), style: const TextStyle(color: Colors.white)),
+      if (_targetGameId == null) return const Center(child: Text("Нет активной игры"));
+      
+      return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+         stream: _firestoreService.getGameParticipantsStream(_targetGameId!),
+         builder: (context, snapshot) {
+            if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
+            
+            final participants = snapshot.data!.docs;
+            final String? myUid = FirebaseAuth.instance.currentUser?.uid;
+            final myDoc = participants.where((d) => d.id == myUid).firstOrNull;
+            final String? myVoteId = myDoc?.data()['votedFor'];
+            
+            return Column(
+               children: [
+                 const Padding(
+                   padding: EdgeInsets.all(8.0),
+                   child: Text("Голосование", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+                 ),
+                 Expanded(
+                   child: GridView.builder(
+                     padding: const EdgeInsets.all(12),
+                     gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                       crossAxisCount: 3,
+                       childAspectRatio: 0.7,
+                       crossAxisSpacing: 10,
+                       mainAxisSpacing: 10,
+                     ),
+                     itemCount: participants.length,
+                     itemBuilder: (context, index) {
+                        final pData = participants[index].data();
+                        final pUid = participants[index].id;
+                        final pNum = pData['playerNumber'];
+                        final pName = pData['name'] ?? '...';
+                        final pRoleId = pData['selectedRole'];
+                        
+                        final bool isSelected = myVoteId == pUid;
+                        final bool isMe = myUid == pUid;
+
+                        return GestureDetector(
+                           onTap: () {
+                              if (isSelected) {
+                                 _firestoreService.clearVote(_targetGameId!);
+                              } else {
+                                 _firestoreService.voteForPlayer(_targetGameId!, pUid);
+                              }
+                           },
+                           child: Container(
+                              decoration: BoxDecoration(
+                                 borderRadius: BorderRadius.circular(12),
+                                 border: Border.all(
+                                    color: isSelected ? Colors.green : (isMe ? Colors.white24 : Colors.transparent),
+                                    width: 3
+                                 ),
+                                 boxShadow: isSelected ? [BoxShadow(color: Colors.green.withOpacity(0.5), blurRadius: 8)] : null,
                               ),
-                              const SizedBox(height: 8),
-                              Text(name, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold), textAlign: TextAlign.center),
-                              const SizedBox(height: 4),
-                              if (roleId != null)
-                                 Text("Роль: $roleId", style: const TextStyle(color: Colors.orangeAccent)),
-                              
-                              const SizedBox(height: 8),
-                              ElevatedButton(
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.blueAccent,
-                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                                  minimumSize: const Size(0, 30),
-                                ),
-                                onPressed: () {
-                                   _firestoreService.voteForPlayer(_targetGameId!, uid);
-                                   ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Голос за $name учтен')));
-                                },
-                                child: const Text("Голос", style: TextStyle(fontSize: 12)),
-                              )
-                           ],
-                         ),
-                      );
-                    },
-                  ),
-                ),
-              ],
-           );
-        }
-     );
+                              child: Card(
+                                 clipBehavior: Clip.antiAlias,
+                                 elevation: isSelected ? 8 : 2,
+                                 color: isMe ? Colors.white12 : Colors.white10,
+                                 child: Stack(
+                                    children: [
+                                       // Semi-transparent role background
+                                       if (pRoleId != null)
+                                          Positioned.fill(
+                                             child: Opacity(
+                                                opacity: 0.2,
+                                                child: Image.asset(
+                                                   'assets/images/cards/role_$pRoleId.png',
+                                                   fit: BoxFit.cover,
+                                                   errorBuilder: (c, e, s) => Container(),
+                                                )
+                                             )
+                                          ),
+                                       
+                                       Center(
+                                          child: Column(
+                                             mainAxisAlignment: MainAxisAlignment.center,
+                                             children: [
+                                                if (pNum != null)
+                                                   CircleAvatar(
+                                                      radius: 12,
+                                                      backgroundColor: isSelected ? Colors.green : Colors.white24,
+                                                      child: Text("$pNum", style: const TextStyle(fontSize: 12, color: Colors.white)),
+                                                   ),
+                                                const SizedBox(height: 5),
+                                                Text(pName, style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold), textAlign: TextAlign.center),
+                                                if (isSelected)
+                                                   const Padding(
+                                                      padding: EdgeInsets.only(top: 4),
+                                                      child: Icon(Icons.check_circle, color: Colors.green, size: 20),
+                                                   ),
+                                             ],
+                                          )
+                                       ),
+                                    ],
+                                 ),
+                              ),
+                           ),
+                        );
+                     },
+                   ),
+                 ),
+               ],
+            );
+         }
+      );
   }
 
 
@@ -717,9 +752,25 @@ class _GameScreenState extends State<GameScreen> {
         // Top Section: Registration / Status / Video
         Expanded(
           flex: 4,
-          child: Container(
-            color: Colors.black87,
-            child: _buildTopPanel(),
+          child: Stack(
+            children: [
+               // Background Role Card for UI
+               if (_selectedRole != null)
+                  Positioned.fill(
+                     child: Opacity(
+                        opacity: 0.2, // Subtle background
+                        child: Image.asset(
+                           'assets/images/cards/role_$_selectedRole.png',
+                           fit: BoxFit.cover,
+                           errorBuilder: (c, e, s) => Container(),
+                        )
+                     )
+                  ),
+               Container(
+                 color: Colors.black54, // Semi-transparent overlay for readability
+                 child: _buildTopPanel(),
+               ),
+            ],
           ),
         ),
         
@@ -906,16 +957,6 @@ class _GameScreenState extends State<GameScreen> {
 
   
   void _showDiagnosticCard(List<int> numbers, String name) {
-     // Indices for specific roles:
-     // [0, 1, 2] -> Phases (0-30, 30-60, 60-90)
-     // [3] -> Entry Point
-     // [5, 4] -> Female Duality (Inner/Outer)
-     // [6, 7] -> Male Duality (Inner/Outer)
-     // [8] -> Main Motivation
-     // [9, 10] -> Implementation (Method/Sphere)
-     // [11, 12, 13] -> Harmony (Fears, Output, Balance)
-     
-     // Note: If 0, use 22.
      int n(int idx) => (idx < numbers.length) ? (numbers[idx] == 0 ? 22 : numbers[idx]) : 22;
 
      showDialog(
@@ -923,83 +964,106 @@ class _GameScreenState extends State<GameScreen> {
        builder: (context) => Dialog(
          backgroundColor: Colors.transparent,
          child: Container(
-           width: 400,
-           padding: const EdgeInsets.all(16),
+           width: 380, // Mimicking mobile/sheet width
+           height: 550,
+           padding: const EdgeInsets.all(12),
            decoration: BoxDecoration(
              color: const Color(0xFF0F172A),
-             borderRadius: BorderRadius.circular(20),
+             borderRadius: BorderRadius.circular(24),
              border: Border.all(color: Colors.white24),
-             boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.5), blurRadius: 20)],
-           ),
-           child: SingleChildScrollView(
-             child: Column(
-               children: [
-                  Text("Диагностика: $name", style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
-                  const Divider(color: Colors.white24, height: 24),
-                  
-                  // Phase Section
-                  _rowTitle("Фазы (0-30, 30-60, 60-90)"),
-                  _rowCards([n(0), n(1), n(2)]),
-                  
-                  const SizedBox(height: 12),
-                  _rowTitle("Точка входа"),
-                  _rowCards([n(3)]),
-                  
-                  const SizedBox(height: 12),
-                  _rowTitle("Женская дуальность (Инь)"),
-                  _rowCards([n(5), n(4)]),
-
-                  const SizedBox(height: 12),
-                  _rowTitle("Мужская дуальность (Ян)"),
-                  _rowCards([n(6), n(7)]),
-
-                  const SizedBox(height: 12),
-                  _rowTitle("Ядро мотивации"),
-                  _rowCards([n(8)]),
-
-                  const SizedBox(height: 12),
-                  _rowTitle("Реализация (Метод и Сфера)"),
-                  _rowCards([n(9), n(10)]),
-
-                  const SizedBox(height: 12),
-                  _rowTitle("Гармония (Страхи, Выход, Баланс)"),
-                  _rowCards([n(11), n(12), n(13)]),
-                  
-                  const SizedBox(height: 24),
-                  ElevatedButton(onPressed: () => Navigator.pop(context), child: const Text("Закрыть"))
-               ],
+             image: const DecorationImage(
+                image: AssetImage('assets/images/IDPGMD092025.png'),
+                opacity: 0.1, // Using it as background template reference
+                fit: BoxFit.cover,
              ),
+             boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.7), blurRadius: 30)],
+           ),
+           child: Column(
+             children: [
+                Row(
+                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                   children: [
+                      Padding(
+                        padding: const EdgeInsets.all(8.0),
+                        child: Text(name.toUpperCase(), style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold, letterSpacing: 1.2)),
+                      ),
+                      IconButton(onPressed: () => Navigator.pop(context), icon: const Icon(Icons.close, color: Colors.white54, size: 20)),
+                   ],
+                ),
+                const Divider(color: Colors.white10, height: 1),
+                Expanded(
+                   child: SingleChildScrollView(
+                      padding: const EdgeInsets.symmetric(vertical: 10),
+                      child: Column(
+                         children: [
+                            _buildSheetSection("ФАЗЫ ЖИЗНИ", [n(0), n(1), n(2)]),
+                            _buildSheetSection("ТОЧКА ВХОДА", [n(3)]),
+                            Row(
+                               children: [
+                                  Expanded(child: _buildSheetSection("ДУАЛЬНОСТЬ ИНЬ", [n(5), n(4)])),
+                                  Expanded(child: _buildSheetSection("ДУАЛЬНОСТЬ ЯН", [n(6), n(7)])),
+                               ],
+                            ),
+                            _buildSheetSection("ЯДРО МОТИВАЦИИ", [n(8)]),
+                            _buildSheetSection("РЕАЛИЗАЦИЯ (МЕТОД / СФЕРА)", [n(9), n(10)]),
+                            _buildSheetSection("ГАРМОНИЯ", [n(11), n(12), n(13)]),
+                         ],
+                      ),
+                   )
+                ),
+             ],
            ),
          ),
        ),
      );
   }
 
-  Widget _rowTitle(String title) => Padding(
-     padding: const EdgeInsets.only(bottom: 4),
-     child: Text(title, style: const TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.w600)),
-  );
-
-  Widget _rowCards(List<int> cardNumbers) => Row(
-     mainAxisAlignment: MainAxisAlignment.center,
-     children: cardNumbers.map((num) => Container(
-        width: 60,
-        height: 85,
-        margin: const EdgeInsets.symmetric(horizontal: 4),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(4),
-          border: Border.all(color: Colors.white12),
-        ),
-        child: ClipRRect(
-           borderRadius: BorderRadius.circular(4),
-           child: Image.asset(
-              'assets/images/cards/role_$num.png',
-              fit: BoxFit.cover,
-              errorBuilder: (c, e, s) => Container(color: Colors.white10, child: Center(child: Text("$num", style: const TextStyle(color: Colors.white)))),
+  Widget _buildSheetSection(String title, List<int> cardNums) {
+     return Column(
+        children: [
+           Padding(
+              padding: const EdgeInsets.symmetric(vertical: 6),
+              child: Text(title, style: const TextStyle(color: Colors.white38, fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 0.5)),
            ),
-        ),
-     )).toList(),
-  );
+           Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: cardNums.map((num) => Container(
+                 width: 55,
+                 height: 78,
+                 margin: const EdgeInsets.symmetric(horizontal: 4),
+                 decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(6),
+                    border: Border.all(color: Colors.white12, width: 0.5),
+                    boxShadow: [BoxShadow(color: Colors.black26, blurRadius: 4)],
+                 ),
+                 child: Stack(
+                    children: [
+                       ClipRRect(
+                          borderRadius: BorderRadius.circular(6),
+                          child: Image.asset(
+                             'assets/images/cards/role_$num.png',
+                             fit: BoxFit.cover,
+                             errorBuilder: (c, e, s) => Container(color: Colors.white05, child: Center(child: Text("$num", style: const TextStyle(color: Colors.white54, fontSize: 10)))),
+                          ),
+                       ),
+                       Positioned(
+                          bottom: 0, right: 0, left: 0,
+                          child: Container(
+                             decoration: BoxDecoration(
+                                color: Colors.black54,
+                                borderRadius: const BorderRadius.only(bottomLeft: Radius.circular(6), bottomRight: Radius.circular(6)),
+                             ),
+                             padding: const EdgeInsets.symmetric(vertical: 1),
+                             child: Text("$num", textAlign: TextAlign.center, style: const TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold)),
+                          ),
+                       ),
+                    ],
+                 ),
+              )).toList(),
+           ),
+        ],
+     );
+  }
 
   void _showRoomDialog() async {
     final controller = TextEditingController(text: _roomName);

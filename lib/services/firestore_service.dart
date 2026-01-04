@@ -262,6 +262,26 @@ class FirestoreService {
       });
   }
 
+  Future<void> clearVote(String gameId) async {
+      final user = _auth.currentUser;
+      if (user == null) return;
+      
+      final voterRef = _db.collection('games').doc(gameId).collection('participants').doc(user.uid);
+      final voterDoc = await voterRef.get();
+      final targetUserId = voterDoc.data()?['votedFor'];
+
+      if (targetUserId != null) {
+          final targetRef = _db.collection('games').doc(gameId).collection('participants').doc(targetUserId);
+          await targetRef.update({
+              'votes': FieldValue.arrayRemove([user.uid])
+          });
+      }
+
+      await voterRef.update({
+          'votedFor': FieldValue.delete()
+      });
+  }
+
   Stream<DocumentSnapshot<Map<String, dynamic>>> getGameStream(String gameId) {
       return _db.collection('games').doc(gameId).snapshots();
   }
