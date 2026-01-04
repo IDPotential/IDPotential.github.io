@@ -186,14 +186,23 @@ async function leaveZoom() {
     // Attempt SDK leave, but don't let it block cleanup
     try {
         if (client && typeof client.leave === 'function') {
-            // Give it 1 second to leave gracefully, otherwise force kill
+            // Give it 2 seconds to leave gracefully
             const leavePromise = client.leave();
-            const timeoutPromise = new Promise(resolve => setTimeout(resolve, 1000));
+            const timeoutPromise = new Promise(resolve => setTimeout(resolve, 2000));
             await Promise.race([leavePromise, timeoutPromise]);
+            console.log('Client leave completed (or timed out)');
         }
     } catch (error) {
         console.warn('Zoom SDK leave warning (ignoring):', error);
     }
+
+    // Try to destroy the client instance if method exists (cleaner teardown)
+    try {
+        if (typeof ZoomMtgEmbedded.destroyClient === 'function') {
+            ZoomMtgEmbedded.destroyClient();
+            console.log('Destroyed Zoom Client');
+        }
+    } catch (e) { console.warn('Destroy client failed', e); }
 
     // FORCE CLEANUP: This is the nuclear option to stop audio.
     const meetingElement = findZoomContainer();
