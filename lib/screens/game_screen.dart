@@ -960,7 +960,7 @@ ToggleButtons(
         children: [
           const Icon(Icons.video_call, size: 50, color: Colors.white54),
           const SizedBox(height: 10),
-          Text("Игра: ${_roomName.isEmpty ? 'IdPotentialGame' : _roomName}", style: const TextStyle(color: Colors.white70)),
+          Text("Игра: ${_targetGameTitle ?? _roomName}", style: const TextStyle(color: Colors.white70)),
           const SizedBox(height: 20),
           ElevatedButton.icon(
             icon: const Icon(Icons.videocam),
@@ -969,7 +969,7 @@ ToggleButtons(
           ),
           const SizedBox(height: 10),
           TextButton(
-            onPressed: _showRoomDialog,
+            onPressed: () => setState(() => _showGameSelection = true),
             child: const Text("Выбрать другую игру", style: TextStyle(color: Colors.blueAccent)),
           )
         ],
