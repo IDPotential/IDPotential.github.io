@@ -90,8 +90,8 @@ async function initZoom(meetingNumber, password, userName, sdkKey, sdkSecret) {
 
         await client.join({
             signature: jwtSignature,
-            sdkKey: sdkKey,
-            meetingNumber: meetingNumber,
+            sdkKey: safeSdkKey,
+            meetingNumber: mnInt,
             password: password,
             userName: userName,
             userEmail: '',
