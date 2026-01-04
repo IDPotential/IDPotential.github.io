@@ -509,20 +509,4 @@ class _ResultScreenState extends State<ResultScreen> {
       ),
     );
   }
-  
-  Widget _buildAnalysisItem(String title, List<dynamic> values) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            title,
-            style: const TextStyle(fontWeight: FontWeight.bold),
-          ),
-          Text(values.join(', ')),
-        ],
-      ),
-    );
-  }
 }

@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
 import 'package:chewie/chewie.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
-import 'package:flutter/foundation.dart'; // for kIsWeb
 import '../data/diagnostic_data.dart';
 
 class RoleDetailScreen extends StatefulWidget {

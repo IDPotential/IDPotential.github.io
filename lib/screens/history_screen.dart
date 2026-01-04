@@ -4,11 +4,8 @@ import 'package:file_picker/file_picker.dart'; // import file_picker
 import 'package:flutter/foundation.dart'; // for kIsWeb
 import 'package:universal_io/io.dart'; // Handles File cross-platform (io for mobile, stub for web)
 import 'dart:convert'; // for utf8
-import 'package:intl/intl.dart';
 import '../models/calculation.dart';
 import '../services/firestore_service.dart';
-import '../services/data_transfer_service.dart';
-import '../services/calculator_service.dart';
 import 'result_screen.dart';
 import 'calculation_screen.dart';
 
