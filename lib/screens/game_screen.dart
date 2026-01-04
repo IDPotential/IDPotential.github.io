@@ -188,7 +188,7 @@ class _GameScreenState extends State<GameScreen> {
                         children: [
                           // Top Section: Video
                           Expanded(
-                        flex: 4,
+                        flex: 5,
                         child: Container(
                           color: Colors.black87,
                           child: _isVideoActive 
@@ -199,7 +199,7 @@ class _GameScreenState extends State<GameScreen> {
                       const Divider(height: 1, thickness: 1, color: Colors.grey),
                       // Bottom Section: Management Dashboard
                       Expanded(
-                        flex: 6,
+                        flex: 5,
                         child: _buildHostDashboard(),
                       ),
                     ],
@@ -244,7 +244,11 @@ class _GameScreenState extends State<GameScreen> {
              padding: const EdgeInsets.all(8),
              child: Row(
                children: [
-                 const Text("Ведущий", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                 IconButton(
+                    icon: const Icon(Icons.home, color: Colors.white70, size: 20),
+                    tooltip: 'Выйти в меню',
+                    onPressed: () => setState(() => _showGameSelection = true),
+                 ),
                  const Spacer(),
                   if (_gameStatus == 'finished')
                      ElevatedButton(
