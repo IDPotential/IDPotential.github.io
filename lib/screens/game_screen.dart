@@ -1023,15 +1023,16 @@ ToggleButtons(
       });
   }
 
+  // GlobalKey to preserve the platform view across builds
+  final GlobalKey _zoomViewKey = GlobalKey();
+
   Widget _buildZoomPanel() {
     if (!_isVideoActive) return _buildVideoOffPlaceholder();
-    
-    // Logic moved to _connectToZoom to prevent re-init on build
 
     return Stack(
       children: [
-        const HtmlElementView(
-          key: ValueKey('zoom-view'),
+        HtmlElementView(
+          key: _zoomViewKey, // GlobalKey prevents unmounting during SetState
           viewType: 'zoom-container',
         ),
         Positioned(
