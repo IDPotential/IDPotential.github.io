@@ -239,7 +239,7 @@ ToggleButtons(
              ),
            ),
            Expanded(
-             child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+           child: _gameStatus == 'finished' ? _buildFinalResults() : StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
                 stream: _firestoreService.getGameParticipantsStream(_targetGameId!),
                 builder: (context, snapshot) {
                    if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
@@ -1278,7 +1278,7 @@ ToggleButtons(
                         Padding(
                            padding: const EdgeInsets.only(top: 20),
                            child: ElevatedButton(
-                              onPressed: () => Navigator.pop(context),
+                              onPressed: () => Navigator.of(context).pushNamedAndRemoveUntil('/', (route) => false),
                               child: const Text("Выход в лобби"),
                            ),
                         )
@@ -1301,7 +1301,7 @@ ToggleButtons(
                const Text("Сессия закрыта ведущим", style: TextStyle(color: Colors.white70)),
                const SizedBox(height: 40),
                ElevatedButton(
-                  onPressed: () => Navigator.pop(context),
+                  onPressed: () => Navigator.of(context).pushNamedAndRemoveUntil('/', (route) => false),
                   child: const Text("Вернуться в главное меню"),
                )
             ],
