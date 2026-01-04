@@ -155,14 +155,12 @@ async function leaveZoom() {
     // FORCE CLEANUP: This is the nuclear option to stop audio.
     const meetingElement = findZoomContainer();
     if (meetingElement) {
-        // 1. Remove from DOM
-        meetingElement.remove();
+        // DO NOT use remove() as it breaks Flutter's Platform View Registry
+        meetingElement.innerHTML = '';
+        meetingElement.style.display = 'none';
 
-        // 2. Re-create the container for next time (since we just removed it)
-        // We find the parent (shim) or just let findZoomContainer fail next time 
-        // until Flutter rebuilds it? 
-        // Actually, Flutter manages the 'zmmtg-root' inside the view. 
-        // We should just clear innerHTML.
+        // Reload to force-kill audio? User requested "exit". 
+        // window.location.reload(); // Too aggressive for SPA.
     }
 
     // Re-finding to clear innerHTML specifically
