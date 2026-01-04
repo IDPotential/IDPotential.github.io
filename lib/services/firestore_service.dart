@@ -239,6 +239,14 @@ class FirestoreService {
 
   // --- Game Host Features ---
 
+  Future<void> toggleHostMode(bool isHostMode) async {
+    final user = _auth.currentUser;
+    if (user == null) return;
+    await _db.collection('users').doc(user.uid).update({
+      'isHostMode': isHostMode
+    });
+  }
+
   // --- Game Stage & Voting ---
 
   Future<void> updateGameStage(String gameId, String stage) async {
