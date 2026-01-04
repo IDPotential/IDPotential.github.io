@@ -917,7 +917,7 @@ ToggleButtons(
       children: [
         // Top Section: Registration / Status / Video
         Expanded(
-          flex: 4,
+          flex: 5,
           child: Stack(
             children: [
                // Background Role Card for UI
@@ -944,7 +944,7 @@ ToggleButtons(
 
         // Roles Section
         Expanded(
-          flex: 6,
+          flex: 5,
           child: Container(
             color: Colors.transparent, 
             child: Column(
@@ -955,17 +955,23 @@ ToggleButtons(
                     Expanded(child: _buildVotingBoard())
                  else ...[
                     Padding(
-                      padding: const EdgeInsets.all(8.0),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
+                      child: Stack(
+                        alignment: Alignment.center,
                         children: [
-                          const Text("Мои Роли", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.white)),
-                          if (_selectedRole != null)
-                             Chip(
-                               label: Text("Выбрано: $_selectedRole"), 
-                               backgroundColor: Colors.orangeAccent.withOpacity(0.2),
-                               onDeleted: () => setState(() => _selectedRole = null),
+                          const Align(
+                             alignment: Alignment.center,
+                             child: Text("Мои Роли", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.white)),
+                          ),
+                          Align(
+                             alignment: Alignment.centerRight,
+                             child: IconButton(
+                                icon: const Icon(Icons.home, color: Colors.white70),
+                                onPressed: () {
+                                   if (mounted) setState(() => _showGameSelection = true);
+                                },
                              ),
+                          )
                         ],
                       ),
                     ),
@@ -975,7 +981,13 @@ ToggleButtons(
             ),
           ),
         ),
-      ],
+        // Spacer to lift content above bottom nav if needed, or user wants it removed.
+        // We can't remove the nav easily, but we gave them more space.
+          TextButton(
+            onPressed: () => setState(() => _showGameSelection = true),
+            child: const Text("Выбрать другую игру", style: TextStyle(color: Colors.blueAccent)),
+          )
+        ],
     );
   }
 
@@ -996,10 +1008,6 @@ ToggleButtons(
             onPressed: _connectToZoom,
           ),
           const SizedBox(height: 10),
-          TextButton(
-            onPressed: () => setState(() => _showGameSelection = true),
-            child: const Text("Выбрать другую игру", style: TextStyle(color: Colors.blueAccent)),
-          )
         ],
       ),
     );
