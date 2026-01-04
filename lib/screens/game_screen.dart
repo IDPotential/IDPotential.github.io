@@ -69,6 +69,8 @@ class _GameScreenState extends State<GameScreen> {
             setState(() {
                _targetGameId = gameDoc.id;
                _targetGameTitle = gameDoc.data()['title'];
+               _zoomId = gameDoc.data()['zoomId'];
+               _zoomPassword = gameDoc.data()['zoomPassword'];
             });
             _initGameListeners();
          }
@@ -93,6 +95,8 @@ class _GameScreenState extends State<GameScreen> {
              _gameStage = data['stage'] ?? 'selection';
              _gameStatus = data['status'] ?? 'active';
              _gameStats = data['stats'] ?? {};
+             _zoomId = data['zoomId'];
+             _zoomPassword = data['zoomPassword'];
            });
         }
      });
