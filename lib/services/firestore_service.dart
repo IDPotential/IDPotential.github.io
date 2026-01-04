@@ -245,6 +245,52 @@ class FirestoreService {
       });
   }
 
+  Future<void> endRound(String gameId) async {
+      final participants = await _db.collection('games').doc(gameId).collection('participants').get();
+      final gameRef = _db.collection('games').doc(gameId);
+      final batch = _db.batch();
+
+      // 1. Calculate and record stats for this round
+      // cumulativeStats: { userId: totalVotes }
+      Map<String, int> roundVotes = {};
+      for (var doc in participants.docs) {
+          final data = doc.data();
+          final votedFor = data['votedFor'];
+          if (votedFor != null) {
+              roundVotes[votedFor] = (roundVotes[votedFor] ?? 0) + 1;
+          }
+      }
+
+      // Update cumulative stats on game doc
+      final gameDoc = await gameRef.get();
+      Map<String, dynamic> cumulative = Map<String, dynamic>.from(gameDoc.data()?['stats'] ?? {});
+      roundVotes.forEach((uid, voteCount) {
+          cumulative[uid] = (cumulative[uid] ?? 0) + voteCount;
+      });
+
+      batch.update(gameRef, {
+          'stats': cumulative,
+          'stage': 'selection' // Reset to selection for next round
+      });
+
+      // 2. Reset participant choices
+      for (var doc in participants.docs) {
+          batch.update(doc.reference, {
+              'selectedRole': FieldValue.delete(),
+              'votedFor': FieldValue.delete(),
+              'votes': [], // Clear voters list
+          });
+      }
+
+      await batch.commit();
+  }
+
+  Future<void> finishGame(String gameId) async {
+      await _db.collection('games').doc(gameId).update({
+          'status': 'finished'
+      });
+  }
+
   Future<void> voteForPlayer(String gameId, String targetUserId) async {
       final user = _auth.currentUser;
       if (user == null) return;

@@ -33,6 +33,8 @@ class _GameScreenState extends State<GameScreen> {
   String? _targetGameTitle;
   bool _isHost = false; 
   String _gameStage = 'selection'; // selection, voting
+  String _gameStatus = 'active'; // active, finished
+  Map<String, dynamic> _gameStats = {};
 
   // Registration State
   String? _participantStatus; // 'pending', 'approved', null
@@ -82,8 +84,12 @@ class _GameScreenState extends State<GameScreen> {
      _firestoreService.getGameStream(_targetGameId!).listen((doc) {
         if (!doc.exists) return;
         final data = doc.data();
-        if (data != null && data['stage'] != null) {
-           if (mounted) setState(() => _gameStage = data['stage']);
+        if (data != null) {
+           if (mounted) setState(() {
+             _gameStage = data['stage'] ?? 'selection';
+             _gameStatus = data['status'] ?? 'active';
+             _gameStats = data['stats'] ?? {};
+           });
         }
      });
   }
@@ -126,10 +132,12 @@ class _GameScreenState extends State<GameScreen> {
                   gradient: LinearGradient(colors: [Color(0xFF0F172A), Color(0xFF1E293B)])
                 ),
                 child: SafeArea(
-                  child: Column(
-                    children: [
-                      // Top Section: Video
-                      Expanded(
+                  child: _gameStatus == 'finished' 
+                    ? _buildFinalResults()
+                    : Column(
+                        children: [
+                          // Top Section: Video
+                          Expanded(
                         flex: 4,
                         child: Container(
                           color: Colors.black87,
@@ -168,7 +176,9 @@ class _GameScreenState extends State<GameScreen> {
         child: SafeArea(
           child: _isLoading 
             ? const Center(child: CircularProgressIndicator())
-            : (_gameProfile == null ? _buildSetupForm() : _buildSplitScreenGame()),
+            : (_gameStatus == 'finished' 
+                ? _buildFinalResults() 
+                : (_gameProfile == null ? _buildSetupForm() : _buildSplitScreenGame())),
         ),
       ),
     );
@@ -186,6 +196,21 @@ class _GameScreenState extends State<GameScreen> {
                children: [
                  const Text("Ведущий", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
                  const Spacer(),
+                 
+                 if (_gameStage == 'voting')
+                    ElevatedButton(
+                       style: ElevatedButton.styleFrom(backgroundColor: Colors.orange, minimumSize: const Size(0, 30)),
+                       onPressed: () => _showEndRoundDialog(),
+                       child: const Text("Завершить кон", style: TextStyle(fontSize: 10, color: Colors.black, fontWeight: FontWeight.bold))
+                    ),
+                 const SizedBox(width: 8),
+                 ElevatedButton(
+                    style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent, minimumSize: const Size(0, 30)),
+                    onPressed: () => _showEndGameDialog(),
+                    child: const Text("Финиш", style: TextStyle(fontSize: 10, color: Colors.white))
+                 ),
+                 const SizedBox(width: 8),
+
                  ToggleButtons(
                     isSelected: [_gameStage == 'selection', _gameStage == 'voting'],
                     onPressed: (index) {
@@ -1088,5 +1113,111 @@ class _GameScreenState extends State<GameScreen> {
         _isVideoActive = false;
       });
     }
+  }
+
+  void _showEndRoundDialog() {
+      showDialog(
+         context: context,
+         builder: (ctx) => AlertDialog(
+            backgroundColor: const Color(0xFF1E293B),
+            title: const Text("Завершить кон?", style: TextStyle(color: Colors.white)),
+            content: const Text("Все текущие голоса будут занесены в статистику, а выборы (роли и голоса) будут сброшены для следующего кона.", style: TextStyle(color: Colors.white70)),
+            actions: [
+               TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("Отмена")),
+               ElevatedButton(
+                  style: ElevatedButton.styleFrom(backgroundColor: Colors.orange),
+                  onPressed: () async {
+                     Navigator.pop(ctx);
+                     await _firestoreService.endRound(_targetGameId!);
+                  },
+                  child: const Text("Завершить", style: TextStyle(color: Colors.black))
+               )
+            ],
+         )
+      );
+  }
+
+  void _showEndGameDialog() {
+      showDialog(
+         context: context,
+         builder: (ctx) => AlertDialog(
+            backgroundColor: const Color(0xFF1E293B),
+            title: const Text("Завершить игру?", style: TextStyle(color: Colors.white)),
+            content: const Text("Игра будет остановлена, и всем участникам будет показана итоговая статистика.", style: TextStyle(color: Colors.white70)),
+            actions: [
+               TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("Отмена")),
+               ElevatedButton(
+                  style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent),
+                  onPressed: () async {
+                     Navigator.pop(ctx);
+                     await _firestoreService.finishGame(_targetGameId!);
+                  },
+                  child: const Text("Финиш", style: TextStyle(color: Colors.white))
+               )
+            ],
+         )
+      );
+  }
+
+  Widget _buildFinalResults() {
+      return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+         stream: _firestoreService.getGameParticipantsStream(_targetGameId!),
+         builder: (context, snapshot) {
+            if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
+            final participants = snapshot.data!.docs;
+            
+            final sorted = _gameStats.entries.toList()
+               ..sort((a, b) => (b.value as int).compareTo(a.value as int));
+
+            return Container(
+               padding: const EdgeInsets.all(24),
+               child: Column(
+                  children: [
+                     const Icon(Icons.emoji_events, color: Colors.orange, size: 60),
+                     const SizedBox(height: 10),
+                     const Text("ИГРА ЗАВЕРШЕНА", style: TextStyle(color: Colors.redAccent, fontSize: 24, fontWeight: FontWeight.bold)),
+                     const SizedBox(height: 10),
+                     const Text("Итоговая статистика (Голоса)", style: TextStyle(color: Colors.white70, fontSize: 16)),
+                     const Divider(color: Colors.white24, height: 40),
+                     Expanded(
+                        child: sorted.isEmpty 
+                          ? const Center(child: Text("Нет данных о голосовании", style: TextStyle(color: Colors.white54)))
+                          : ListView.builder(
+                              itemCount: sorted.length,
+                              itemBuilder: (context, index) {
+                                 final uid = sorted[index].key;
+                                 final score = sorted[index].value;
+                                 final pDoc = participants.where((d) => d.id == uid).firstOrNull;
+                                 final name = pDoc?.data()['name'] ?? "Unknown";
+                                 final pNum = pDoc?.data()['playerNumber'];
+
+                                 return Card(
+                                    color: index == 0 ? Colors.orange.withOpacity(0.2) : Colors.white10,
+                                    child: ListTile(
+                                       leading: CircleAvatar(
+                                          backgroundColor: index == 0 ? Colors.orange : Colors.white24,
+                                          child: Text("${index + 1}", style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+                                       ),
+                                       title: Text(name, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                                       subtitle: Text(pNum != null ? "Игрок $pNum" : ""),
+                                       trailing: Text("$score", style: const TextStyle(color: Colors.greenAccent, fontSize: 20, fontWeight: FontWeight.bold)),
+                                    ),
+                                 );
+                              }
+                           ),
+                     ),
+                     if (_isHost)
+                        Padding(
+                           padding: const EdgeInsets.only(top: 20),
+                           child: ElevatedButton(
+                              onPressed: () => Navigator.pop(context),
+                              child: const Text("Выход в лобби"),
+                           ),
+                        )
+                  ],
+               ),
+            );
+         }
+      );
   }
 }
