@@ -83,8 +83,8 @@ async function initZoom(meetingNumber, password, userName, sdkKey, sdkSecret) {
                     disableVideo: false,
                     viewSizes: {
                         default: {
-                            width: 320,
-                            height: 180
+                            width: 960,
+                            height: 540
                         }
                     }
                 }
@@ -139,15 +139,18 @@ function findZoomContainer() {
 }
 
 async function leaveZoom() {
+    console.log('Attempting to leave Zoom...');
+
+    // Attempt SDK leave, but don't let it block cleanup
     try {
         if (client && typeof client.leave === 'function') {
-            await client.leave();
-            console.log('Left Zoom meeting');
-        } else {
-            console.warn('Zoom client not ready or invalid during leave');
+            // Give it 1 second to leave gracefully, otherwise force kill
+            const leavePromise = client.leave();
+            const timeoutPromise = new Promise(resolve => setTimeout(resolve, 1000));
+            await Promise.race([leavePromise, timeoutPromise]);
         }
     } catch (error) {
-        console.error('Zoom leave error:', error);
+        console.warn('Zoom SDK leave warning (ignoring):', error);
     }
 
     // FORCE CLEANUP: This is the nuclear option to stop audio.
