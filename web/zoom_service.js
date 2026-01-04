@@ -74,7 +74,7 @@ async function initZoom(meetingNumber, password, userName, sdkKey, sdkSecret) {
         .replace(/\//g, '_')
         .replace(/=+$/, '');
 
-    const jwtSignature = `${ base64UrlHeader }.${ base64UrlPayload }.${ base64UrlSignature } `;
+    const jwtSignature = base64UrlHeader + "." + base64UrlPayload + "." + base64UrlSignature;
 
     try {
         console.log('Initializing Zoom client...');
