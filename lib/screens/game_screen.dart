@@ -342,15 +342,27 @@ ToggleButtons(
                                           Text(name, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold), textAlign: TextAlign.center),
                                           const Spacer(),
                                           if (status == 'pending') ...[
-                                              if (data['telegram'] != null && data['telegram'].toString().isNotEmpty)
-                                                 TextButton.icon(
-                                                    icon: const Icon(Icons.alternate_email, size: 14, color: Colors.blueAccent),
-                                                    label: const Text("Написать", style: TextStyle(color: Colors.blueAccent, fontSize: 10)),
-                                                    onPressed: () {
-                                                       String tg = data['telegram'].toString().replaceAll('@', '');
-                                                       launchUrl(Uri.parse("https://t.me/$tg"));
-                                                    },
-                                                 ),
+                                                  FutureBuilder<DocumentSnapshot>(
+                                                     future: FirebaseFirestore.instance.collection('users').doc(data['userId'] ?? 'unknown').get(),
+                                                     builder: (context, snapshot) {
+                                                        if (!snapshot.hasData || snapshot.data == null) return const SizedBox.shrink();
+                                                        final userData = snapshot.data!.data() as Map<String, dynamic>?;
+                                                        final telegram = userData?['telegram'] as String?;
+                                                        
+                                                        if (telegram != null && telegram.isNotEmpty) {
+                                                            return TextButton.icon(
+                                                                icon: const Icon(Icons.alternate_email, size: 14, color: Colors.blueAccent),
+                                                                label: const Text("Написать", style: TextStyle(color: Colors.blueAccent, fontSize: 10)),
+                                                                onPressed: () {
+                                                                    String tg = telegram.replaceAll('@', '');
+                                                                    launchUrl(Uri.parse("https://t.me/$tg"));
+                                                                },
+                                                            );
+                                                        } else {
+                                                            return const Text("Telegram: не указан", style: TextStyle(color: Colors.white30, fontSize: 10));
+                                                        }
+                                                     }
+                                                  ),
                                               Row(
                                                  mainAxisAlignment: MainAxisAlignment.center,
                                                  children: [
