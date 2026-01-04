@@ -391,7 +391,16 @@ class FirestoreService {
     final userDoc = await _db.collection('users').doc(user.uid).get();
     final role = userDoc.data()?['role'];
     final pgmd = userDoc.data()?['pgmd'];
-    final userName = userDoc.data()?['first_name'] ?? 'Ведущий';
+    
+    // Attempt to get name from multiple sources
+    String userName = userDoc.data()?['first_name'] ?? "";
+    if (userName.isEmpty) {
+       final gameProfile = userDoc.data()?['gameProfile'];
+       if (gameProfile != null && gameProfile['name'] != null) {
+          userName = gameProfile['name'];
+       }
+    }
+    if (userName.isEmpty) userName = 'Ведущий';
     
     // Level 10 (Diagnost-Host) and above can create games
     if (role != 'admin' && (pgmd == null || pgmd < 10)) {

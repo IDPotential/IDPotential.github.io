@@ -58,20 +58,34 @@ class _GamesListScreenState extends State<GamesListScreen> {
                 ListTile(
                   contentPadding: EdgeInsets.zero,
                   title: Text(
-                      "Дата: ${DateFormat('dd.MM.yyyy').format(selectedDate)}"),
-                  trailing: const Icon(Icons.calendar_today),
+                      "Дата и время: ${DateFormat('dd.MM.yyyy HH:mm').format(selectedDate)}"),
+                  trailing: const Icon(Icons.access_time),
                   onTap: () async {
-                    final picked = await showDatePicker(
+                    final pickedDate = await showDatePicker(
                       context: context,
                       initialDate: selectedDate,
                       firstDate: DateTime.now().subtract(const Duration(days: 1)),
                       lastDate: DateTime.now().add(const Duration(days: 365)),
                       locale: const Locale('ru', 'RU'),
                     );
-                    if (picked != null) {
-                      setStateDialog(() {
-                        selectedDate = picked;
-                      });
+                    
+                    if (pickedDate != null && context.mounted) {
+                       final pickedTime = await showTimePicker(
+                          context: context,
+                          initialTime: TimeOfDay.fromDateTime(selectedDate),
+                       );
+
+                       if (pickedTime != null) {
+                          setStateDialog(() {
+                            selectedDate = DateTime(
+                               pickedDate.year, 
+                               pickedDate.month, 
+                               pickedDate.day, 
+                               pickedTime.hour, 
+                               pickedTime.minute
+                            );
+                          });
+                       }
                     }
                   },
                 ),
