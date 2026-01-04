@@ -498,7 +498,14 @@ class FirestoreService {
           final user = _auth.currentUser;
           if (user != null) {
               final userDoc = await _db.collection('users').doc(user.uid).get();
-              telegramHandle = userDoc.data()?['telegram'] ?? "";
+              final data = userDoc.data();
+              if (data != null) {
+                  telegramHandle = data['telegram'] ?? data['username'] ?? "";
+                  // Add @ for better readability if missing
+                  if (telegramHandle.isNotEmpty && !telegramHandle.startsWith('@')) {
+                      telegramHandle = '@$telegramHandle';
+                  }
+              }
           }
        } catch (_) {}
     }
