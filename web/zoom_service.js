@@ -68,23 +68,11 @@ async function initZoom(meetingNumber, password, userName, sdkKey, sdkSecret) {
     const jwtSignature = `${base64UrlHeader}.${base64UrlPayload}.${base64UrlSignature}`;
 
     try {
-        // Detect meeting end/leave
-        client.on('connection-change', (e) => {
-            console.log('Zoom Connection Change:', e);
-            if (e.state === 'Closed') {
-                console.log('Meeting Closed, cleaning up...');
-                const el = findZoomContainer();
-                if (el) {
-                    el.innerHTML = '';
-                    el.style.display = 'none';
-                }
-            }
-        });
-
+        console.log('Initializing Zoom client...');
         await client.init({
             zoomAppRoot: meetingElement,
             language: 'ru-RU',
-            patchJsMedia: true,
+            // patchJsMedia: true, // Removed as it might conflict without SharedArrayBuffer
             customize: {
                 video: {
                     isResizable: true,
@@ -100,6 +88,7 @@ async function initZoom(meetingNumber, password, userName, sdkKey, sdkSecret) {
             }
         });
 
+        console.log('Joining Zoom meeting...');
         await client.join({
             signature: jwtSignature,
             sdkKey: safeSdkKey,
@@ -111,6 +100,20 @@ async function initZoom(meetingNumber, password, userName, sdkKey, sdkSecret) {
         });
 
         console.log('Joined Zoom meeting successfully');
+
+        // Re-attach listener only if initialization succeeded
+        try {
+            client.on('connection-change', (e) => {
+                if (e.state === 'Closed') {
+                    const el = findZoomContainer();
+                    if (el) {
+                        el.innerHTML = '';
+                        el.style.display = 'none';
+                    }
+                }
+            });
+        } catch (e) { console.warn('Could not attach listener', e); }
+
     } catch (error) {
         console.error('Zoom join error:', error);
     }
@@ -122,7 +125,6 @@ function findZoomContainer() {
     if (element) return element;
 
     // Search in Flutter Platform Views (Shadow DOM)
-    // Flutter Web typically renders platform views inside <flt-platform-view> elements
     const platformViews = document.querySelectorAll('flt-platform-view');
     for (let view of platformViews) {
         if (view.shadowRoot) {
@@ -135,18 +137,11 @@ function findZoomContainer() {
 
 async function leaveZoom() {
     try {
-        if (client) {
-            // Attempt to end meeting (for host) or leave (for participant)
-            // The SDK logic is often: leave() just leaves, endMeeting() ends for all.
-            // We'll try a generic leave first, but if we are host, we might want end.
-            // However, straightforward 'leave()' should kill local audio.
-
+        if (client && typeof client.leave === 'function') {
             await client.leave();
             console.log('Left Zoom meeting');
-
-            // CRITICAL: Component View sometimes keeps connections alive if not properly destroyed.
-            // There isn't a documented client.destroy() for the singleton, 
-            // BUT initializing a new one or clearing the DOM is key.
+        } else {
+            console.warn('Zoom client not ready or invalid during leave');
         }
     } catch (error) {
         console.error('Zoom leave error:', error);
