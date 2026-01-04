@@ -20,6 +20,7 @@ async function initZoom(meetingNumber, password, userName, sdkKey, sdkSecret) {
 
     // Clear previous content if any (important for re-joining)
     meetingElement.innerHTML = '';
+    meetingElement.style.display = 'block'; // Ensure visibility if it was hidden
 
     const role = 0;
 
@@ -122,6 +123,8 @@ function findZoomContainer() {
 async function leaveZoom() {
     try {
         if (client) {
+            // "endSession" is sometimes needed for Component View to fully clear
+            // But standard is .leave(). We try both or ensuring leave completes.
             await client.leave();
             console.log('Left Zoom meeting');
         }
@@ -129,10 +132,15 @@ async function leaveZoom() {
         console.error('Zoom leave error:', error);
     }
 
-    // Force cleanup DOM
+    // Force cleanup DOM immediately to give user feedback
     const meetingElement = findZoomContainer();
     if (meetingElement) {
         meetingElement.innerHTML = '';
+        // Also hide the container strictly to prevent "ghost" inputs
+        meetingElement.style.display = 'none';
+
+        // Timeout to restore display property if needed for next join? 
+        // No, initZoom should handle it.
     }
 }
 
