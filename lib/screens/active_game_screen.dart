@@ -254,7 +254,30 @@ class _ActiveGameScreenState extends State<ActiveGameScreen> {
            if (_gameStatus == 'finished')
               Expanded(child: _buildFinalResults())
            else if (_gameStage == 'voting')
-              Expanded(child: _buildVotingBoard())
+              Expanded(
+                child: Column(
+                  children: [
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
+                        child: Row(
+                           children: [
+                              IconButton(
+                                  icon: const Icon(Icons.home, color: Colors.white70),
+                                  onPressed: _goHome,
+                              ),
+                              const Expanded(
+                                 child: Center(
+                                    child: Text("Голосование", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.white))
+                                 )
+                              ),
+                              const SizedBox(width: 48), 
+                           ],
+                        ),
+                      ),
+                      Expanded(child: _buildVotingBoard()),
+                  ],
+                )
+              )
            else ...[
               // Custom Header per request
               Padding(
@@ -438,8 +461,15 @@ class _ActiveGameScreenState extends State<ActiveGameScreen> {
          builder: (context, snapshot) {
             if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
             
-            final participants = snapshot.data!.docs;
+            final participants = snapshot.data!.docs.toList();
             final String? myUid = FirebaseAuth.instance.currentUser?.uid;
+            
+            // Sort by player number
+            participants.sort((a, b) {
+                final nA = a.data()['playerNumber'] ?? 999;
+                final nB = b.data()['playerNumber'] ?? 999;
+                return nA.compareTo(nB);
+            });
             
             // Check own vote
             String? myVoteId;
@@ -452,12 +482,13 @@ class _ActiveGameScreenState extends State<ActiveGameScreen> {
                padding: const EdgeInsets.all(8.0),
                child: Column(
                  children: [
-                   const Text("Голосование", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+                   if (widget.isHost)
+                      const Text("Голосование", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
                    const SizedBox(height: 8),
                    Expanded(
                      child: GridView.builder(
                        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                         crossAxisCount: 5, childAspectRatio: 0.7, crossAxisSpacing: 10, mainAxisSpacing: 10,
+                         crossAxisCount: 5, childAspectRatio: 0.65, crossAxisSpacing: 8, mainAxisSpacing: 8,
                        ),
                        itemCount: participants.length,
                        itemBuilder: (context, index) {
@@ -466,60 +497,78 @@ class _ActiveGameScreenState extends State<ActiveGameScreen> {
                           final pUid = doc.id;
                           final pNum = pData['playerNumber'];
                           final pName = pData['name'] ?? '...';
-                          final pRoleId = pData['selectedRole']; // Only show during voting result? 
-                          // Logic from GameScreen: if stage==voting, show roles? Or just avatars?
-                          // In GameScreen, roleId was shown.
+                          final pRoleId = pData['selectedRole'];
                           
                           final bool isSelected = myVoteId == pUid;
                           final bool isMe = myUid == pUid;
 
                           return GestureDetector(
                              onTap: () {
-                                if (!widget.isHost) {
+                                if (!widget.isHost && !isMe) {
                                    if (isSelected) _firestoreService.clearVote(_targetGameId);
                                    else _firestoreService.voteForPlayer(_targetGameId, pUid);
                                 }
                              },
                              child: Container(
                                 decoration: BoxDecoration(
-                                   borderRadius: BorderRadius.circular(12),
+                                   borderRadius: BorderRadius.circular(8),
                                    border: Border.all(color: isSelected ? Colors.green : Colors.transparent, width: 3),
                                    boxShadow: isSelected ? [BoxShadow(color: Colors.green.withOpacity(0.5), blurRadius: 8)] : null,
                                 ),
                                 child: Card(
-                                   color: isMe ? Colors.white12 : Colors.white10,
+                                   color: isMe ? Colors.white10 : Colors.white12,
                                    clipBehavior: Clip.antiAlias,
-                                   child: Stack(
+                                   margin: EdgeInsets.zero,
+                                   child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.stretch,
                                       children: [
-                                         if (pRoleId != null)
-                                            Positioned.fill(child: Opacity(opacity: 0.2, child: Image.asset('assets/images/cards/role_$pRoleId.png', fit: BoxFit.cover))),
-                                         Center(child: Column(
-                                            mainAxisAlignment: MainAxisAlignment.center,
-                                            children: [
-                                               if (pNum != null) CircleAvatar(radius: 12, backgroundColor: Colors.white24, child: Text("$pNum", style: const TextStyle(color: Colors.white, fontSize: 12))),
-                                               const SizedBox(height: 4),
-                                               Text(pName, textAlign: TextAlign.center, style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
-                                               
-                                               // Host sees votes
-                                               if (widget.isHost && pData['votedFor'] != null) ...[
-                                                  const SizedBox(height: 4),
-                                                  Builder(builder: (context) {
-                                                     final vId = pData['votedFor'];
-                                                     final target = participants.where((d) => d.id == vId).firstOrNull;
-                                                     final tName = target != null 
-                                                         ? (target.data()['playerNumber'] != null ? "${target.data()['playerNumber']}" : (target.data()['name'] ?? '?'))
-                                                         : '?';
-                                                     return Container(
-                                                       padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-                                                       decoration: BoxDecoration(color: Colors.white10, borderRadius: BorderRadius.circular(4)),
-                                                       child: Text("За: $tName", style: const TextStyle(color: Colors.yellowAccent, fontSize: 9, fontWeight: FontWeight.bold))
-                                                     );
-                                                  })
-                                               ]
-                                            ],
-                                         ))
-                                      ]
-                                   )
+                                         Expanded(
+                                            child: Stack(
+                                               fit: StackFit.expand,
+                                               children: [
+                                                  if (pRoleId != null)
+                                                     Opacity(opacity: 0.3, child: Image.asset('assets/images/cards/role_$pRoleId.png', fit: BoxFit.cover, errorBuilder: (c,e,s)=>Container())),
+                                                  
+                                                  Center(child: Column(
+                                                     mainAxisAlignment: MainAxisAlignment.center,
+                                                     children: [
+                                                        if (pNum != null) CircleAvatar(radius: 14, backgroundColor: Colors.white24, child: Text("$pNum", style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold))),
+                                                        const SizedBox(height: 4),
+                                                        Text(pName, textAlign: TextAlign.center, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)),
+                                                        
+                                                        // Host sees votes
+                                                        if (widget.isHost && pData['votedFor'] != null) ...[
+                                                           const SizedBox(height: 4),
+                                                           Builder(builder: (context) {
+                                                              final vId = pData['votedFor'];
+                                                              final target = participants.where((d) => d.id == vId).firstOrNull;
+                                                              final tName = target != null 
+                                                                  ? (target.data()['playerNumber'] != null ? "${target.data()['playerNumber']}" : (target.data()['name'] ?? '?'))
+                                                                  : '?';
+                                                              return Container(
+                                                                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                                                                decoration: BoxDecoration(color: Colors.white10, borderRadius: BorderRadius.circular(4)),
+                                                                child: Text("За: $tName", style: const TextStyle(color: Colors.yellowAccent, fontSize: 10, fontWeight: FontWeight.bold))
+                                                              );
+                                                           })
+                                                        ]
+                                                     ],
+                                                  ))
+                                               ],
+                                            ),
+                                         ),
+                                         // Black Bar at bottom
+                                         Container(
+                                           color: Colors.black54,
+                                           padding: const EdgeInsets.symmetric(vertical: 2, horizontal: 2),
+                                           child: Text(
+                                              pRoleId != null ? "Роль $pRoleId" : "Нет роли",
+                                              textAlign: TextAlign.center,
+                                              style: TextStyle(fontSize: 10, color: pRoleId != null ? Colors.orangeAccent : Colors.grey, fontWeight: FontWeight.bold)
+                                           ),
+                                         )
+                                      ],
+                                   ),
                                 )
                              )
                           );

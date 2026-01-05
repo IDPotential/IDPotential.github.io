@@ -139,27 +139,21 @@ async function initZoom(meetingNumber, password, userName, sdkKey, sdkSecret) {
 
                 const zoomRoot = document.getElementById('zmmtg-root') || container.firstElementChild;
                 if (zoomRoot) {
-                    zoomRoot.style.transform = "scale(" + scale + ")";
-                    zoomRoot.style.transformOrigin = 'top left';
+                    // Use absolute centering with transform
+                    zoomRoot.style.position = 'absolute';
+                    zoomRoot.style.left = '50%';
+                    zoomRoot.style.top = '50%';
+                    zoomRoot.style.transform = `translate(-50%, -50%) scale(${scale})`;
+                    zoomRoot.style.transformOrigin = 'center center';
 
-                    // Force explicit size to match target, so scale works predictably
+                    // Force explicit size to match target
                     zoomRoot.style.width = targetWidth + "px";
                     zoomRoot.style.height = targetHeight + "px";
 
-                    // Optional: Center if there is extra space
-                    if (scale === scaleY && scale < scaleX) {
-                        // Extra width available
-                        const extraX = (containerWidth - (targetWidth * scale)) / 2;
-                        zoomRoot.style.marginLeft = extraX + "px";
-                        zoomRoot.style.marginTop = "0px";
-                    } else if (scale === scaleX && scale < scaleY) {
-                        // Extra height available
-                        const extraY = (containerHeight - (targetHeight * scale)) / 2;
-                        zoomRoot.style.marginTop = extraY + "px";
-                        zoomRoot.style.marginLeft = "0px";
-                    } else {
-                        zoomRoot.style.margin = "0";
-                    }
+                    // Reset margins
+                    zoomRoot.style.margin = "0";
+                    zoomRoot.style.marginLeft = "0";
+                    zoomRoot.style.marginTop = "0";
                 }
             };
 
