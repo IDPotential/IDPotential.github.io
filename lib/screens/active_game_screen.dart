@@ -130,8 +130,8 @@ class _ActiveGameScreenState extends State<ActiveGameScreen> {
   }
 
   void _goHome() {
-      // Return to Main Screen (Restoring Bottom Bar)
-      Navigator.of(context).pushNamedAndRemoveUntil('/', (route) => false);
+     // Using pop to close the active game overlay instead of navigating to root
+     Navigator.pop(context);
   }
 
   @override
@@ -156,15 +156,6 @@ class _ActiveGameScreenState extends State<ActiveGameScreen> {
                              _isVideoActive 
                                ? _buildZoomPanel() 
                                : _buildVideoPlaceholder(),
-                             // Host Home Button in Top Left (if Host)
-                             if (widget.isHost)
-                                Positioned(
-                                  top: 10, left: 10,
-                                  child: IconButton(
-                                    icon: const Icon(Icons.home, color: Colors.white70),
-                                    onPressed: _goHome,
-                                  )
-                                )
                            ]
                          )
                        ),
@@ -187,12 +178,6 @@ class _ActiveGameScreenState extends State<ActiveGameScreen> {
   // --- HOST DASHBOARD ---
 
   Widget _buildHostDashboard() {
-     // Removed "Ведущий" label, kept only necessary controls. 
-     // Home button moved to Top Screen (in build/stack) or we can keep it here.
-     // User requirement: "Interface host home also to main screen... remove bottom line".
-     // I put Home button in Host dashboard before, but requested "Home icon to main screen... same rules".
-     // Since split is 50/50, let's put it in the dashboard header for consistency with Player.
-     
      return Column(
         children: [
            Container(
@@ -229,10 +214,11 @@ class _ActiveGameScreenState extends State<ActiveGameScreen> {
                   const SizedBox(width: 8),
                   ToggleButtons(
                     isSelected: [_gameStage == 'selection', _gameStage == 'voting'],
-                    onPressed: (index) {
+                    onPressed: (index) async {
                        final newStage = index == 0 ? 'selection' : 'voting';
-                       _firestoreService.updateGameStage(_targetGameId, newStage);
+                       // Optimistic update
                        setState(() => _gameStage = newStage);
+                       await _firestoreService.updateGameStage(_targetGameId, newStage);
                     },
                     color: Colors.white60,
                     selectedColor: Colors.white,
