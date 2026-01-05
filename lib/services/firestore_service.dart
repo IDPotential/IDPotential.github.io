@@ -438,7 +438,6 @@ class FirestoreService {
   Stream<QuerySnapshot<Map<String, dynamic>>> getGamesStream() {
     return _db.collection('games')
         .where('status', whereIn: ['scheduled', 'active'])
-        .orderBy('scheduledAt')
         .snapshots();
   }
   

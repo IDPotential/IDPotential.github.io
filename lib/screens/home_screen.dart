@@ -136,7 +136,7 @@ class HomeScreen extends StatelessWidget {
 
                   const SizedBox(height: 20),
                   const Text(
-                    'v1.33 (Game Listeners Fix)', 
+                    'v1.34 (Games List Fix)', 
                     style: TextStyle(color: Colors.grey, fontSize: 10),
                   ),
                   const SizedBox(height: 20),

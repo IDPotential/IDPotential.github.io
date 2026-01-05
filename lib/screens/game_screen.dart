@@ -1512,6 +1512,13 @@ ToggleButtons(
                   final games = snapshot.data!.docs;
                   if (games.isEmpty) return const Center(child: Text("Нет доступных игр", style: TextStyle(color: Colors.white54)));
 
+                  // Client-side sorting to avoid Firestore Index issues
+                  games.sort((a, b) {
+                     final d1 = a.data()['scheduledAt'] ?? '';
+                     final d2 = b.data()['scheduledAt'] ?? '';
+                     return d1.compareTo(d2); // Simple string sort for ISO8601 works
+                  });
+
                   return ListView.builder(
                      itemCount: games.length,
                      itemBuilder: (context, index) {
