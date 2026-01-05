@@ -1524,44 +1524,77 @@ ToggleButtons(
          appBar: AppBar(title: const Text("Выберите игру"), backgroundColor: const Color(0xFF0F172A)),
          body: Container(
             color: const Color(0xFF0F172A),
-            child: ListView.builder(
-               itemCount: _availableGames.length,
-               itemBuilder: (context, index) {
-                  final game = _availableGames[index].data();
-                  final gameId = _availableGames[index].id;
-                  final dateStr = game['scheduledAt'];
-                  DateTime date = DateTime.now();
-                  if (dateStr != null) {
-                     try { date = DateTime.parse(dateStr); } catch(_) {}
-                  }
-                  
-                  return Card(
-                     margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                     color: Colors.white10,
-                     child: ListTile(
-                        leading: const Icon(Icons.videogame_asset, color: Colors.blueAccent),
-                        title: Text(game['title'] ?? 'Игра без названия', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                        subtitle: Column(
-                           crossAxisAlignment: CrossAxisAlignment.start,
-                           children: [
-                              Text(DateFormat('dd.MM.yyyy HH:mm').format(date), style: const TextStyle(color: Colors.white70)),
-                              Text("Ведущий: ${game['hostName'] ?? 'Ведущий'}", style: const TextStyle(color: Colors.white54, fontSize: 12)),
-                           ],
-                        ),
-                        trailing: const Icon(Icons.arrow_forward_ios, color: Colors.white54, size: 16),
-                        onTap: () {
-                           setState(() {
-                              _targetGameId = gameId;
-                              _targetGameTitle = game['title'];
-                              _zoomId = game['zoomId'];
-                              _zoomPassword = game['zoomPassword'];
-                              _showGameSelection = false;
-                           });
-                           _initGameListeners();
-                        },
-                     ),
+            child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+               stream: _firestoreService.getGamesStream(),
+               builder: (context, snapshot) {
+                  if (snapshot.hasError) return Center(child: Text("Ошибка: ${snapshot.error}", style: const TextStyle(color: Colors.red)));
+                  if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
+
+                  final games = snapshot.data!.docs;
+                  if (games.isEmpty) return const Center(child: Text("Нет доступных игр", style: TextStyle(color: Colors.white54)));
+
+                  return ListView.builder(
+                     itemCount: games.length,
+                     itemBuilder: (context, index) {
+                        final gameDoc = games[index];
+                        final game = gameDoc.data();
+                        final gameId = gameDoc.id;
+                        final dateStr = game['scheduledAt'];
+                        DateTime date = DateTime.now();
+                        if (dateStr != null) {
+                           if (dateStr is Timestamp) {
+                              date = dateStr.toDate();
+                           } else {
+                              try { date = DateTime.parse(dateStr.toString()); } catch(_) {}
+                           }
+                        } else if (game['scheduledTimestamp'] != null) { 
+                           // Fallback if schema changes
+                           date = (game['scheduledTimestamp'] as Timestamp).toDate();
+                        }
+                        
+                        // Defensive check for DateFormat if it was previously string
+                         String dateDisplay;
+                         try {
+                            dateDisplay = DateFormat('dd.MM.yyyy HH:mm').format(date);
+                         } catch (e) {
+                            dateDisplay = "Дата не указана";
+                         }
+
+                        return Card(
+                           margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                           color: Colors.white10,
+                           child: ListTile(
+                              leading: const Icon(Icons.videogame_asset, color: Colors.blueAccent),
+                              title: Text(game['title'] ?? 'Игра без названия', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                              subtitle: Column(
+                                 crossAxisAlignment: CrossAxisAlignment.start,
+                                 children: [
+                                    Text(dateDisplay, style: const TextStyle(color: Colors.white70)),
+                                    Text("Ведущий: ${game['hostName'] ?? 'Ведущий'}", style: const TextStyle(color: Colors.white54, fontSize: 12)),
+                                 ],
+                              ),
+                              trailing: const Icon(Icons.arrow_forward_ios, color: Colors.white54, size: 16),
+                              onTap: () {
+                                 if (mounted) {
+                                    setState(() {
+                                       _targetGameId = gameId;
+                                       _targetGameTitle = game['title'];
+                                       _zoomId = game['zoomId'];
+                                       _zoomPassword = game['zoomPassword'];
+                                       _showGameSelection = false;
+                                       
+                                       // Update date for display in lobby
+                                       _targetGameDate = dateDisplay;
+                                       _targetHostName = game['hostName'];
+                                    });
+                                    _initGameListeners();
+                                 }
+                              },
+                           ),
+                        );
+                     },
                   );
-               },
+               }
             ),
          ),
       );
