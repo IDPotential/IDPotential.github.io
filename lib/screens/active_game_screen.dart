@@ -10,6 +10,7 @@ import '../services/firestore_service.dart';
 import '../services/knowledge_service.dart';
 import '../models/calculation.dart';
 import 'package:intl/intl.dart';
+import '../widgets/diagnostic_scheme.dart';
 
 class ActiveGameScreen extends StatefulWidget {
   final String gameId;
@@ -232,11 +233,13 @@ class _ActiveGameScreenState extends State<ActiveGameScreen> {
                ],
              ),
            ),
-           Expanded(
-             child: _gameStatus == 'finished' 
-               ? _buildFinalResults() 
-               : _buildVotingBoard(), // Host uses same Voting Board grid but with controls
-           )
+            Expanded(
+              child: _gameStatus == 'finished' 
+                ? _buildFinalResults() 
+                : _gameStage == 'voting' 
+                    ? _buildVotingBoard()
+                    : _buildHostSelectionBoard(), 
+            )
         ],
      );
   }
@@ -511,7 +514,180 @@ class _ActiveGameScreenState extends State<ActiveGameScreen> {
       );
   }
   
-    Widget _buildFinalResults() {
+    // --- HOST SPECIFIC: SELECTION/LOBBY BOARD ---
+
+   Widget _buildHostSelectionBoard() {
+      return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+         stream: _firestoreService.getGameParticipantsStream(_targetGameId),
+         builder: (context, snapshot) {
+            if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
+            final docs = snapshot.data!.docs.toList();
+            
+            // Prioritize pending requests
+            docs.sort((a, b) {
+               final sA = a.data()['status'] ?? '';
+               final sB = b.data()['status'] ?? '';
+               if (sA == 'pending' && sB != 'pending') return -1;
+               if (sA != 'pending' && sB == 'pending') return 1;
+               return 0;
+            });
+            
+            if (docs.isEmpty) return const Center(child: Text("Нет участников", style: TextStyle(color: Colors.white54)));
+
+            return GridView.builder(
+               padding: const EdgeInsets.all(8),
+               gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                 crossAxisCount: 3, 
+                 childAspectRatio: 0.75,
+                 crossAxisSpacing: 8, mainAxisSpacing: 8
+               ),
+               itemCount: docs.length,
+               itemBuilder: (context, index) {
+                  final data = docs[index].data();
+                  final name = data['name'] ?? 'Unknown';
+                  final pNum = data['playerNumber'];
+                  final roleId = data['selectedRole'];
+                  final numbers = List<int>.from(data['numbers'] ?? []);
+                  final status = data['status'];
+                  
+                  return Card(
+                     clipBehavior: Clip.antiAlias,
+                     color: status == 'pending' ? Colors.orange.withOpacity(0.15) : Colors.white12,
+                     shape: status == 'pending' 
+                        ? RoundedRectangleBorder(borderRadius: BorderRadius.circular(8), side: const BorderSide(color: Colors.orangeAccent, width: 1))
+                        : null,
+                     child: Stack(
+                        children: [
+                           if (roleId != null)
+                              Positioned.fill(
+                                 child: Opacity(
+                                    opacity: 0.15,
+                                    child: Image.asset(
+                                       'assets/images/cards/role_$roleId.png',
+                                       fit: BoxFit.cover,
+                                       errorBuilder: (c, e, s) => Container(),
+                                    )
+                                 )
+                              ),
+                           
+                           Center(
+                             child: Column(
+                               mainAxisAlignment: MainAxisAlignment.center,
+                               children: [
+                                  if (pNum != null)
+                                     CircleAvatar(radius: 12, backgroundColor: Colors.white24, child: Text("$pNum", style: const TextStyle(fontSize: 12, color: Colors.white))),
+                                  const SizedBox(height: 4),
+                                  Text(name, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold), textAlign: TextAlign.center),
+                                  const Spacer(),
+                                  if (status == 'pending') ...[
+                                      FutureBuilder<DocumentSnapshot>(
+                                         future: FirebaseFirestore.instance.collection('users').doc(data['userId'] ?? 'unknown').get(),
+                                         builder: (context, snapshot) {
+                                            if (!snapshot.hasData || snapshot.data == null) return const SizedBox.shrink();
+                                            final userData = snapshot.data!.data() as Map<String, dynamic>?;
+                                            final telegram = userData?['telegram'] as String?;
+                                            
+                                            if (telegram != null && telegram.isNotEmpty) {
+                                                return TextButton.icon(
+                                                    style: TextButton.styleFrom(padding: EdgeInsets.zero, minimumSize: const Size(0, 20)),
+                                                    icon: const Icon(Icons.alternate_email, size: 10, color: Colors.blueAccent),
+                                                    label: const Text("Написать", style: TextStyle(color: Colors.blueAccent, fontSize: 10)),
+                                                    onPressed: () {
+                                                        String tg = telegram.replaceAll('@', '');
+                                                        launchUrl(Uri.parse("https://t.me/$tg"));
+                                                    },
+                                                );
+                                            } else {
+                                                return const Text("Tg: нет", style: TextStyle(color: Colors.white30, fontSize: 10));
+                                            }
+                                         }
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Row(
+                                         mainAxisAlignment: MainAxisAlignment.center,
+                                         children: [
+                                            ElevatedButton(
+                                               style: ElevatedButton.styleFrom(
+                                                  minimumSize: const Size(0,24), 
+                                                  backgroundColor: Colors.green,
+                                                  padding: const EdgeInsets.symmetric(horizontal: 4)
+                                               ),
+                                               onPressed: () => _firestoreService.approveParticipant(_targetGameId, docs[index].id),
+                                               child: const Text("Да", style: TextStyle(fontSize: 10))
+                                            ),
+                                            const SizedBox(width: 4),
+                                            ElevatedButton(
+                                               style: ElevatedButton.styleFrom(
+                                                  minimumSize: const Size(0,24), 
+                                                  backgroundColor: Colors.redAccent,
+                                                  padding: const EdgeInsets.symmetric(horizontal: 4)
+                                               ),
+                                               onPressed: () => _firestoreService.rejectParticipant(_targetGameId, docs[index].id),
+                                               child: const Text("Нет", style: TextStyle(fontSize: 10))
+                                            ),
+                                         ],
+                                      )
+                                  ] else ...[
+                                      // Active participant logic
+                                      if (numbers.isNotEmpty)
+                                         TextButton(
+                                            onPressed: () => _showDiagnosticCard(numbers, name),
+                                            child: const Text("Карта", style: TextStyle(color: Colors.blueAccent, fontSize: 12, decoration: TextDecoration.underline))
+                                         ),
+                                      const SizedBox(height: 4),
+                                      if (roleId != null) 
+                                         Container(
+                                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                            decoration: BoxDecoration(color: Colors.orange, borderRadius: BorderRadius.circular(4)),
+                                            child: Text("#$roleId", style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 10))
+                                         )
+                                      else
+                                         const Text("Выбирает...", style: TextStyle(color: Colors.white54, fontSize: 10))
+                                  ],
+                                  const Spacer(),
+                               ],
+                             ),
+                           ),
+                        ],
+                     ),
+                  );
+               },
+            );
+         }
+      );
+   }
+
+   // --- SHOW CARD DIALOG ---
+   void _showDiagnosticCard(List<int> numbers, String initialName) {
+      showDialog(
+         context: context,
+         builder: (ctx) => Dialog(
+            backgroundColor: const Color(0xFF1E293B),
+            child: SizedBox(
+               width: 400,
+               height: 600, // Fixed height for simpler UI
+               child: Column(
+                  children: [
+                     AppBar(
+                        title: Text("Карта: $initialName"),
+                        backgroundColor: Colors.transparent, 
+                        elevation: 0,
+                        automaticallyImplyLeading: false,
+                        actions: [IconButton(icon: const Icon(Icons.close), onPressed: () => Navigator.pop(ctx))]
+                     ),
+                     Expanded(
+                        child: SingleChildScrollView(
+                           child: DiagnosticScheme(numbers: numbers), // Reusing existing widget!
+                        )
+                     )
+                  ],
+               )
+            )
+         )
+      );
+   }
+
+   Widget _buildFinalResults() {
       return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
          stream: _firestoreService.getGameParticipantsStream(_targetGameId),
          builder: (context, snapshot) {
