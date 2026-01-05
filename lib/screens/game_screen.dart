@@ -157,7 +157,7 @@ class _GameScreenState extends State<GameScreen> {
      });
   }
 
-  bool _isCheckingStatus = false;
+
 
   void _checkParticipantStatus() {
      _participantSubscription?.cancel();
