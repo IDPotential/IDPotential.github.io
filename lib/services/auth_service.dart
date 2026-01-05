@@ -33,10 +33,25 @@ class AuthService {
     }
   }
 
+  // Output: UserCredential
   // Register with Email & Password
   Future<UserCredential> createUserWithEmailAndPassword(String email, String password) async {
     try {
-      return await _auth.createUserWithEmailAndPassword(email: email, password: password);
+      final cred = await _auth.createUserWithEmailAndPassword(email: email, password: password);
+      // Create user document in Firestore
+      if (cred.user != null) {
+        final username = email.split('@')[0];
+        await FirebaseFirestore.instance.collection('users').doc(cred.user!.uid).set({
+          'email': email,
+          'username': username,
+          'first_name': username,
+          'createdAt': FieldValue.serverTimestamp(),
+          'role': 'user',
+          'credits': 5, // Welcome bonus
+          'pgmd': 1,
+        });
+      }
+      return cred;
     } catch (e) {
        debugPrint('Registration Error: $e');
        rethrow;
@@ -73,6 +88,24 @@ class AuthService {
       final userCredential = await _auth.signInWithCredential(credential);
       print("Firebase Sign In Successful: ${userCredential.user?.uid}");
       
+      // 5. Check if user doc exists, create if not
+      if (userCredential.user != null) {
+          final userDoc = await FirebaseFirestore.instance.collection('users').doc(userCredential.user!.uid).get();
+          if (!userDoc.exists) {
+             print("Creating new Firestore doc for Google user");
+             await FirebaseFirestore.instance.collection('users').doc(userCredential.user!.uid).set({
+                 'email': userCredential.user!.email,
+                 'username': googleUser.email.split('@')[0],
+                 'first_name': googleUser.displayName ?? 'User',
+                 'createdAt': FieldValue.serverTimestamp(),
+                 'role': 'user',
+                 'credits': 5,
+                 'pgmd': 1,
+                 'telegram_id': null, 
+             });
+          }
+      }
+
       return userCredential;
     } catch (e, stackTrace) {
       debugPrint('Google Auth Error: $e');
