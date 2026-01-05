@@ -1123,8 +1123,8 @@ ToggleButtons(
               _zoomId!, 
               _zoomPassword ?? "", 
               userName,
-              "EpevSkKvRxGrNoetCoYmOQ",
-              "pZKWEleW18O3poQ9MYots4vyEVU3O6tc"
+              "ZOOM_SDK_KEY",
+              "ZOOM_SDK_SECRET"
           );
       });
   }

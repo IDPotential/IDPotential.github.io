@@ -166,3 +166,6 @@ key.properties
 *.pk
 *.pem
 *.key
+
+# Telegram Bot
+telegram/
