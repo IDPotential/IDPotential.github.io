@@ -139,25 +139,29 @@ async function initZoom(meetingNumber, password, userName, sdkKey, sdkSecret) {
 
                 const zoomRoot = document.getElementById('zmmtg-root') || container.firstElementChild;
                 if (zoomRoot) {
-                    // Ensure container acts as the positioning context
+                    // FLEXBOX CENTERING APPROACH
+                    // Enable flex on the container to center the 960x540 content
+                    container.style.display = 'flex';
+                    container.style.justifyContent = 'center';
+                    container.style.alignItems = 'center';
                     container.style.position = 'relative';
                     container.style.overflow = 'hidden';
 
-                    // Robust Absolute Centering
-                    zoomRoot.style.position = 'absolute';
-                    zoomRoot.style.top = '50%';
-                    zoomRoot.style.left = '50%';
-                    zoomRoot.style.transform = `translate(-50%, -50%) scale(${scale})`;
-                    zoomRoot.style.transformOrigin = 'center center';
-
-                    // Force explicit size to match target
+                    // Prepare the content content
+                    // IMPORTANT: Reset position to relative so flexbox controls layout
+                    zoomRoot.style.position = 'relative';
                     zoomRoot.style.width = targetWidth + "px";
                     zoomRoot.style.height = targetHeight + "px";
 
-                    // Prevent any margins from interfering
+                    // Reset margins that might interfere
                     zoomRoot.style.margin = "0";
-                    zoomRoot.style.marginTop = "0";
-                    zoomRoot.style.marginLeft = "0";
+                    zoomRoot.style.left = "auto";
+                    zoomRoot.style.top = "auto";
+
+                    // APPLY SCALE
+                    // Center-center origin ensures it shrinks towards the flex-center point
+                    zoomRoot.style.transform = `scale(${scale})`;
+                    zoomRoot.style.transformOrigin = 'center center';
                 }
             };
 
