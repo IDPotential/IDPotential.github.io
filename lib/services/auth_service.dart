@@ -172,6 +172,9 @@ class AuthService {
         'telegram_id': telegramUid,
         'telegram_linked_at': FieldValue.serverTimestamp(),
       }, SetOptions(merge: true));
+
+      // 5. DATA MIGRATION: Copy data from Telegram Account to Main Account
+      await _migrateTelegramData(tempFirestore, telegramUid, mainUid);
       
       debugPrint("Link Success: $mainUid -> $telegramUid");
 
@@ -179,11 +182,106 @@ class AuthService {
       debugPrint("Link Error: $e");
       rethrow;
     } finally {
-      // 5. Cleanup
+      // 6. Cleanup
       try {
         await tempApp?.delete();
       } catch (_) {}
     }
+  }
+
+  Future<void> _migrateTelegramData(FirebaseFirestore telegramDb, String sourceUid, String targetUid) async {
+    final mainDb = FirebaseFirestore.instance;
+    debugPrint("Starting Migration: $sourceUid -> $targetUid");
+
+    // A. Profile Data (Credits, PGMD, Role)
+    final sourceDoc = await telegramDb.collection('users').doc(sourceUid).get();
+    if (!sourceDoc.exists) return; // Nothing to migrate
+
+    final sourceData = sourceDoc.data()!;
+    final int sourceCredits = sourceData['credits'] ?? 0;
+    final int sourcePgmd = sourceData['pgmd'] ?? 0;
+    final String? sourceRole = sourceData['role'];
+
+    // Read target to merge smartly
+    final targetRef = mainDb.collection('users').doc(targetUid);
+    final targetDoc = await targetRef.get();
+    final targetData = targetDoc.data() ?? {};
+    final int currentCredits = targetData['credits'] ?? 0;
+    final int currentPgmd = targetData['pgmd'] ?? 0;
+
+    // Merge Logic:
+    // Credits: Sum (Don't lose welcome bonus)
+    // PGMD: Max (Take highest level)
+    // Role: If source is admin, upgrade.
+    
+    final Map<String, dynamic> updates = {
+      'credits': currentCredits + sourceCredits,
+      'pgmd': (sourcePgmd > currentPgmd) ? sourcePgmd : currentPgmd,
+    };
+    if (sourceRole == 'admin') {
+      updates['role'] = 'admin';
+    }
+
+    await targetRef.set(updates, SetOptions(merge: true));
+    debugPrint("Profile Migrated: Credits ${currentCredits}+${sourceCredits}, PGMD $sourcePgmd");
+
+    // B. Subcollection: Calculations (Diagnostic logs)
+    final calcSnapshot = await telegramDb.collection('users').doc(sourceUid).collection('calculations').get();
+    final batchSize = 500;
+    var batch = mainDb.batch();
+    int count = 0;
+
+    for (var doc in calcSnapshot.docs) {
+      final docRef = targetRef.collection('calculations').doc(doc.id); // Keep same ID
+      batch.set(docRef, doc.data());
+      count++;
+      if (count >= batchSize) {
+        await batch.commit();
+        batch = mainDb.batch();
+        count = 0;
+      }
+    }
+    await batch.commit();
+    debugPrint("Calculations Migrated: ${calcSnapshot.docs.length}");
+
+    // C. Subcollection: Game History
+    final histSnapshot = await telegramDb.collection('users').doc(sourceUid).collection('game_history').get();
+    batch = mainDb.batch();
+    count = 0;
+    
+    for (var doc in histSnapshot.docs) {
+      final docRef = targetRef.collection('game_history').doc(doc.id);
+      batch.set(docRef, doc.data());
+       count++;
+      if (count >= batchSize) {
+        await batch.commit();
+        batch = mainDb.batch();
+        count = 0;
+      }
+    }
+    await batch.commit();
+    debugPrint("History Migrated: ${histSnapshot.docs.length}");
+  }
+
+  // Link Email & Password to existing account
+  Future<void> linkEmailAndPassword(String email, String password) async {
+      final user = _auth.currentUser;
+      if (user == null) throw Exception("No user");
+      
+      try {
+         final cred = EmailAuthProvider.credential(email: email, password: password);
+         await user.linkWithCredential(cred);
+         
+         // Update Firestore
+         await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
+            'email': email,
+            'username': email.split('@')[0], // Set default username if missing
+         }, SetOptions(merge: true));
+         
+      } catch (e) {
+         debugPrint("Link Email Error: $e");
+         rethrow;
+      }
   }
 
   // Sign out

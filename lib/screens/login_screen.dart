@@ -17,7 +17,32 @@ class _LoginScreenState extends State<LoginScreen> {
   
   bool _isLoading = false;
   bool _isRegistering = false; // Toggle between Login and Register
+  bool _isTokenLogin = false; // New Mode
   String? _errorMessage;
+
+  Future<void> _loginToken() async {
+     final token = _passwordController.text.trim(); // We reuse password field for token input
+     if (token.isEmpty) {
+        setState(() => _errorMessage = "Введите токен");
+        return;
+     }
+     
+     setState(() { _isLoading = true; _errorMessage = null; });
+     
+     try {
+        await _authService.signInWithCustomToken(token);
+        _showSuccess("Вход выполнен!");
+        if (mounted) {
+           Navigator.of(context).pushReplacement(
+              MaterialPageRoute(builder: (context) => const AppHome()),
+           );
+        }
+     } catch (e) {
+        _handleError(e);
+     } finally {
+        if (mounted) setState(() => _isLoading = false);
+     }
+  }
 
   Future<void> _submit() async {
     final email = _emailController.text.trim();
@@ -145,35 +170,99 @@ class _LoginScreenState extends State<LoginScreen> {
                        const Icon(Icons.security, size: 64, color: Colors.blueAccent),
                        const SizedBox(height: 24),
                        Text(
-                         _isRegistering ? "Регистрация" : "Вход",
+                         _isTokenLogin ? "Вход по токену" : (_isRegistering ? "Регистрация" : "Вход"),
                          style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.white),
                        ),
                        const SizedBox(height: 24),
                        
-                       TextField(
-                         controller: _emailController,
-                         style: const TextStyle(color: Colors.white),
-                         decoration: InputDecoration(
-                           labelText: "Email",
-                           labelStyle: const TextStyle(color: Colors.white70),
-                           enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: Colors.white.withOpacity(0.3))),
-                           focusedBorder: const OutlineInputBorder(borderSide: BorderSide(color: Colors.blueAccent)),
-                           prefixIcon: const Icon(Icons.email, color: Colors.white70),
-                         ),
-                       ),
-                       const SizedBox(height: 16),
-                       TextField(
-                         controller: _passwordController,
-                         style: const TextStyle(color: Colors.white),
-                         obscureText: true,
-                         decoration: InputDecoration(
-                           labelText: "Пароль",
-                           labelStyle: const TextStyle(color: Colors.white70),
-                           enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: Colors.white.withOpacity(0.3))),
-                           focusedBorder: const OutlineInputBorder(borderSide: BorderSide(color: Colors.blueAccent)),
-                           prefixIcon: const Icon(Icons.lock, color: Colors.white70),
-                         ),
-                       ),
+                       // Toggle Auth Mode (Email vs Token)
+                       if (!_isRegistering && !_isTokenLogin)
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 20.0),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                ElevatedButton(
+                                  onPressed: () {},
+                                  style: ElevatedButton.styleFrom(backgroundColor: Colors.blueAccent),
+                                  child: const Text("Email"),
+                                ),
+                                const SizedBox(width: 10),
+                                OutlinedButton(
+                                  onPressed: () => setState(() => _isTokenLogin = true),
+                                  style: OutlinedButton.styleFrom(side: const BorderSide(color: Colors.white54)),
+                                  child: const Text("Telegram токен", style: TextStyle(color: Colors.white70)),
+                                ),
+                              ],
+                            ),
+                          ),
+                          
+                       if (_isTokenLogin)
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 20.0),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                OutlinedButton(
+                                  onPressed: () => setState(() => _isTokenLogin = false),
+                                  style: OutlinedButton.styleFrom(side: const BorderSide(color: Colors.white54)),
+                                  child: const Text("Email", style: TextStyle(color: Colors.white70)),
+                                ),
+                                const SizedBox(width: 10),
+                                ElevatedButton(
+                                  onPressed: () {},
+                                  style: ElevatedButton.styleFrom(backgroundColor: Colors.blueAccent),
+                                  child: const Text("Telegram токен"),
+                                ),
+                              ],
+                            ),
+                          ),
+
+                       if (_isTokenLogin) ...[
+                          const Text(
+                            "Введите токен из Telegram бота:\n/login_app",
+                             textAlign: TextAlign.center,
+                             style: TextStyle(color: Colors.white54, fontSize: 13)
+                          ),
+                          const SizedBox(height: 10),
+                          TextField(
+                             controller: _passwordController, // Reuse controller for token
+                             style: const TextStyle(color: Colors.white),
+                             decoration: InputDecoration(
+                               labelText: "Токен (Token)",
+                               labelStyle: const TextStyle(color: Colors.white70),
+                               enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: Colors.white.withOpacity(0.3))),
+                               focusedBorder: const OutlineInputBorder(borderSide: BorderSide(color: Colors.blueAccent)),
+                               prefixIcon: const Icon(Icons.vpn_key, color: Colors.white70),
+                             ),
+                             maxLines: 3,
+                          ),
+                       ] else ...[
+                          TextField(
+                             controller: _emailController,
+                             style: const TextStyle(color: Colors.white),
+                             decoration: InputDecoration(
+                               labelText: "Email",
+                               labelStyle: const TextStyle(color: Colors.white70),
+                               enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: Colors.white.withOpacity(0.3))),
+                               focusedBorder: const OutlineInputBorder(borderSide: BorderSide(color: Colors.blueAccent)),
+                               prefixIcon: const Icon(Icons.email, color: Colors.white70),
+                             ),
+                          ),
+                          const SizedBox(height: 16),
+                          TextField(
+                             controller: _passwordController,
+                             style: const TextStyle(color: Colors.white),
+                             obscureText: true,
+                             decoration: InputDecoration(
+                               labelText: "Пароль",
+                               labelStyle: const TextStyle(color: Colors.white70),
+                               enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: Colors.white.withOpacity(0.3))),
+                               focusedBorder: const OutlineInputBorder(borderSide: BorderSide(color: Colors.blueAccent)),
+                               prefixIcon: const Icon(Icons.lock, color: Colors.white70),
+                             ),
+                          ),
+                       ],
                        
                        if (_errorMessage != null) ...[
                          const SizedBox(height: 16),
@@ -185,46 +274,31 @@ class _LoginScreenState extends State<LoginScreen> {
                          width: double.infinity,
                          height: 48,
                          child: ElevatedButton(
-                           onPressed: _isLoading ? null : _submit,
+                           onPressed: _isLoading ? null : (_isTokenLogin ? _loginToken : _submit),
                            style: ElevatedButton.styleFrom(backgroundColor: Colors.blueAccent),
-                           child: _isLoading ? const CircularProgressIndicator(color: Colors.white) : Text(_isRegistering ? "Зарегистрироваться" : "Войти", style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white)),
+                           child: _isLoading ? const CircularProgressIndicator(color: Colors.white) : Text(
+                              _isTokenLogin ? "Войти по токену" : (_isRegistering ? "Зарегистрироваться" : "Войти"), 
+                              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white)
+                           ),
                          ),
                        ),
 
-                       if (!_isRegistering) ...[
+                       if (!_isRegistering && !_isTokenLogin) ...[
                           const SizedBox(height: 20),
-                          // Row(children: [
-                          //    Expanded(child: Divider(color: Colors.white24)),
-                          //    const Padding(padding: EdgeInsets.symmetric(horizontal: 10), child: Text("ИЛИ", style: TextStyle(color: Colors.white54, fontSize: 12))),
-                          //    Expanded(child: Divider(color: Colors.white24)),
-                          // ]),
-                          // const SizedBox(height: 20),
-                          
-                          // SizedBox(
-                          //    width: double.infinity,
-                          //    height: 48,
-                          //    child: OutlinedButton.icon(
-                          //       onPressed: _isLoading ? null : _loginGoogle,
-                          //       icon: Image.asset('assets/images/google_logo.png', height: 24, errorBuilder: (c,e,s) => const Icon(Icons.login, color: Colors.white)),
-                          //       label: const Text("Войти через Google", style: TextStyle(color: Colors.white)),
-                          //       style: OutlinedButton.styleFrom(
-                          //          side: const BorderSide(color: Colors.white24),
-                          //          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30))
-                          //       ),
-                          //    ),
-                          // ),
+                          // Google Button placeholder (Hidden)
                        ],
                        
                        const SizedBox(height: 16),
-                       TextButton(
-                          onPressed: () => setState(() {
-                             _isRegistering = !_isRegistering;
-                             _errorMessage = null;
-                          }),
-                          child: Text(_isRegistering ? "Уже есть аккаунт? Войти" : "Нет аккаунта? Регистрация", style: const TextStyle(color: Colors.white70)),
-                       ),
+                       if (!_isTokenLogin)
+                          TextButton(
+                             onPressed: () => setState(() {
+                                _isRegistering = !_isRegistering;
+                                _errorMessage = null;
+                             }),
+                             child: Text(_isRegistering ? "Уже есть аккаунт? Войти" : "Нет аккаунта? Регистрация", style: const TextStyle(color: Colors.white70)),
+                          ),
                        
-                       if (!_isRegistering)
+                       if (!_isRegistering && !_isTokenLogin)
                           TextButton(
                              onPressed: _resetPassword,
                              child: const Text("Забыли пароль?", style: TextStyle(color: Colors.white38, fontSize: 12)),

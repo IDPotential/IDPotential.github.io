@@ -147,8 +147,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 const Text(
-                  "1. В боте введите команду /login_app\n"
-                  "2. Скопируйте полученный ключ\n"
+                  "1. В боте @id_potential_bot зайдите в\nМой кабинет -> Вход в приложение\n"
+                  "2. Скопируйте полученный код\n"
                   "3. Вставьте его ниже:",
                   style: TextStyle(fontSize: 13),
                 ),
@@ -202,6 +202,73 @@ class _ProfileScreenState extends State<ProfileScreen> {
         }
       ),
     );
+  }
+
+  bool _isTokenKeyOnly() {
+     final user = _auth.currentUser;
+     if (user == null) return false;
+     // Check if 'password' provider is present
+     return !user.providerData.any((p) => p.providerId == 'password');
+  }
+
+  Future<void> _showLinkEmailDialog() async {
+     final emailCtrl = TextEditingController();
+     final passCtrl = TextEditingController();
+     bool isLoading = false;
+     
+     await showDialog(
+       context: context,
+       builder: (context) => StatefulBuilder(
+          builder: (context, setStateLocal) => AlertDialog(
+             title: const Text("Привязать Email"),
+             content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                   const Text("Создайте пару Email/Пароль для входа в этот аккаунт без токена.", style: TextStyle(fontSize: 13)),
+                   const SizedBox(height: 10),
+                   TextField(
+                      controller: emailCtrl,
+                      decoration: const InputDecoration(labelText: "Email", border: OutlineInputBorder()),
+                   ),
+                   const SizedBox(height: 10),
+                   TextField(
+                      controller: passCtrl,
+                      decoration: const InputDecoration(labelText: "Пароль (мин. 6 симв.)", border: OutlineInputBorder()),
+                      obscureText: true,
+                   ),
+                   if (isLoading) const Padding(
+                      padding: EdgeInsets.only(top: 10),
+                      child: CircularProgressIndicator(),
+                   )
+                ],
+             ),
+             actions: [
+                TextButton(onPressed: isLoading ? null : () => Navigator.pop(context), child: const Text("Отмена")),
+                ElevatedButton(
+                   onPressed: isLoading ? null : () async {
+                      if (emailCtrl.text.isEmpty || passCtrl.text.length < 6) {
+                         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Введите корректные данные"), backgroundColor: Colors.orange));
+                         return;
+                      }
+                      setStateLocal(() => isLoading = true);
+                      try {
+                         await _authService.linkEmailAndPassword(emailCtrl.text.trim(), passCtrl.text.trim());
+                         if (mounted) {
+                            Navigator.pop(context);
+                            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Email успешно привязан!"), backgroundColor: Colors.green));
+                            setState(() {}); // Refresh UI to hide button
+                         }
+                      } catch (e) {
+                         setStateLocal(() => isLoading = false);
+                         if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Ошибка: $e"), backgroundColor: Colors.red));
+                      }
+                   },
+                   child: const Text("Привязать"),
+                )
+             ],
+          ),
+       )
+     );
   }
 
   // --- Admin Actions ---
@@ -358,7 +425,23 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           style: ElevatedButton.styleFrom(backgroundColor: Colors.orangeAccent),
                         ),
                       
-                      if (userData['telegram_id'] == null)
+                      // Show "Link Telegram" only if we are NOT already linked AND (optional: we are not purely a telegram user? No, always allow linking)
+                      // Actually, if we are logged in via Token, we ARE the telegram user.
+                      // Logic: If I am "Token User" (no password provider), I want to "Link Email".
+                      // If I am "Email User", I want to "Link Telegram".
+                      
+                      if (_isTokenKeyOnly())
+                         ElevatedButton.icon(
+                           onPressed: _showLinkEmailDialog,
+                           icon: const Icon(Icons.email, color: Colors.blue),
+                           label: const Text('Привязать Email (Вход по паролю)'),
+                           style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.white, 
+                              foregroundColor: Colors.blue,
+                              side: const BorderSide(color: Colors.blue)
+                           ),
+                         )
+                      else if (userData['telegram_id'] == null)
                         ElevatedButton.icon(
                           onPressed: _showLinkTelegramDialog,
                           icon: const Icon(Icons.link, color: Colors.blue),
