@@ -749,4 +749,5 @@ class _ActiveGameScreenState extends State<ActiveGameScreen> {
           )
        );
    }
+   }
 
