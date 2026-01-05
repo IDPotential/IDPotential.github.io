@@ -181,6 +181,12 @@ class _LoginScreenState extends State<LoginScreen> {
                        ],
                        
                        const SizedBox(height: 24),
+                       SizedBox(
+                         width: double.infinity,
+                         height: 48,
+                         child: ElevatedButton(
+                           onPressed: _isLoading ? null : _submit,
+                           style: ElevatedButton.styleFrom(backgroundColor: Colors.blueAccent),
                            child: _isLoading ? const CircularProgressIndicator(color: Colors.white) : Text(_isRegistering ? "Зарегистрироваться" : "Войти", style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white)),
                          ),
                        ),
