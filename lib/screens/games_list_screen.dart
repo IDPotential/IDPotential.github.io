@@ -181,6 +181,24 @@ class _GamesListScreenState extends State<GamesListScreen> {
           if (games.isEmpty) {
             return const Center(child: Text("Нет активных игр."));
           }
+          
+          // Client-side sorting because we removed Firestore orderBy to avoid index issues
+          games.sort((a, b) {
+             final dA = a.data()['scheduledAt'] ?? '';
+             final dB = b.data()['scheduledAt'] ?? '';
+             // Compare strings directly works checking ISO8601, but parsing is safer
+             DateTime? dateA, dateB;
+             try { dateA = DateTime.parse(dA); } catch (_) {}
+             try { dateB = DateTime.parse(dB); } catch (_) {}
+             
+             if (dateA == null && dateB == null) return 0;
+             if (dateA == null) return 1;
+             if (dateB == null) return -1;
+             return dateA.compareTo(dateB);
+          });
+          
+          // Filter out very old games (older than 24h) to avoid clutter
+          // games.removeWhere((g) => ...); // Optional, maybe safe to keep them visible but at top/bottom
 
           return ListView.builder(
             itemCount: games.length,

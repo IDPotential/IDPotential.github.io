@@ -551,6 +551,15 @@ ToggleButtons(
              const Text("Заявка отправлена", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
              
              // ... Same pending UI ...
+             const Padding(
+                padding: EdgeInsets.all(16.0),
+                child: Text("Ожидайте подтверждения ведущего...", style: TextStyle(color: Colors.white54), textAlign: TextAlign.center),
+             ),
+             TextButton.icon(
+                onPressed: _checkParticipantStatus,
+                icon: const Icon(Icons.refresh, color: Colors.blueAccent),
+                label: const Text("Проверить статус", style: TextStyle(color: Colors.blueAccent)),
+             )
            ],
         ),
       );

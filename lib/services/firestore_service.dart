@@ -444,9 +444,17 @@ class FirestoreService {
   Future<QueryDocumentSnapshot<Map<String, dynamic>>?> getNearestGame() async {
     final snapshot = await _db.collection('games')
         .where('status', whereIn: ['scheduled', 'active'])
-        .orderBy('scheduledAt')
-        .limit(1)
         .get();
+        
+    if (snapshot.docs.isNotEmpty) {
+      final docs = snapshot.docs;
+      docs.sort((a,b) {
+         final dA = a.data()['scheduledAt'] ?? '';
+         final dB = b.data()['scheduledAt'] ?? '';
+         return dA.compareTo(dB);
+      });
+      return docs.first;
+    }
         
     if (snapshot.docs.isNotEmpty) {
       return snapshot.docs.first;
