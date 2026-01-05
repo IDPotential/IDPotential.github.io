@@ -596,27 +596,34 @@ ToggleButtons(
                  children: [
                     const Text("Выберите свой номер игрока (1-8)", style: TextStyle(color: Colors.white, fontSize: 16)),
                     const SizedBox(height: 20),
-                    Wrap(
-                       spacing: 10, runSpacing: 10,
-                       alignment: WrapAlignment.center,
-                       children: List.generate(8, (index) {
-                          final num = index + 1;
-                          final isTaken = usedNumbers.contains(num);
-                          return ElevatedButton(
-                             style: ElevatedButton.styleFrom(
-                                backgroundColor: isTaken ? Colors.grey : Colors.blue,
-                                shape: const CircleBorder(),
-                                padding: const EdgeInsets.all(20)
-                             ),
-                             onPressed: isTaken ? null : () async {
-                                await _firestoreService.setPlayerNumber(_targetGameId!, num);
-                                setState(() {
-                                   _playerNumber = num;
-                                });
-                             },
-                             child: Text("$num"),
-                          );
-                       }),
+                    Container(
+                      width: 350, // Constraint width to ensure good look or just let Grid take space
+                      height: 180,
+                      child: GridView.builder(
+                        physics: const NeverScrollableScrollPhysics(),
+                        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 5, childAspectRatio: 1.0, crossAxisSpacing: 10, mainAxisSpacing: 10,
+                        ),
+                        itemCount: 10,
+                        itemBuilder: (context, index) {
+                           final num = index + 1;
+                           final isTaken = usedNumbers.contains(num);
+                           return ElevatedButton(
+                              style: ElevatedButton.styleFrom(
+                                 backgroundColor: isTaken ? Colors.grey : Colors.blue,
+                                 shape: const CircleBorder(),
+                                 padding: EdgeInsets.zero, // Compact
+                              ),
+                              onPressed: isTaken ? null : () async {
+                                 await _firestoreService.setPlayerNumber(_targetGameId!, num);
+                                 setState(() {
+                                    _playerNumber = num;
+                                 });
+                              },
+                              child: Text("$num", style: const TextStyle(fontWeight: FontWeight.bold)),
+                           );
+                        },
+                      ),
                     )
                  ],
               ),

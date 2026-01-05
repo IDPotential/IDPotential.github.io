@@ -285,7 +285,10 @@ class _ActiveGameScreenState extends State<ActiveGameScreen> {
                                   Text("Роль $_selectedRole", style: const TextStyle(color: Colors.orangeAccent, fontSize: 12)),
                                   const SizedBox(width: 4),
                                   GestureDetector(
-                                    onTap: () => setState(() => _selectedRole = null),
+                                    onTap: () {
+                                      setState(() => _selectedRole = null);
+                                      _firestoreService.updateParticipantRole(_targetGameId, null);
+                                    },
                                     child: const Icon(Icons.close, color: Colors.redAccent, size: 16),
                                   )
                                ]
@@ -454,7 +457,7 @@ class _ActiveGameScreenState extends State<ActiveGameScreen> {
                    Expanded(
                      child: GridView.builder(
                        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                         crossAxisCount: 3, childAspectRatio: 0.7, crossAxisSpacing: 10, mainAxisSpacing: 10,
+                         crossAxisCount: 5, childAspectRatio: 0.7, crossAxisSpacing: 10, mainAxisSpacing: 10,
                        ),
                        itemCount: participants.length,
                        itemBuilder: (context, index) {
@@ -632,17 +635,27 @@ class _ActiveGameScreenState extends State<ActiveGameScreen> {
                                       if (numbers.isNotEmpty)
                                          TextButton(
                                             onPressed: () => _showDiagnosticCard(numbers, name),
-                                            child: const Text("Карта", style: TextStyle(color: Colors.blueAccent, fontSize: 12, decoration: TextDecoration.underline))
+                                            child: const Text("Карта", style: TextStyle(color: Colors.blueAccent, fontSize: 10, decoration: TextDecoration.underline))
                                          ),
-                                      const SizedBox(height: 4),
+                                      const SizedBox(height: 2),
                                       if (roleId != null) 
-                                         Container(
-                                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                            decoration: BoxDecoration(color: Colors.orange, borderRadius: BorderRadius.circular(4)),
-                                            child: Text("#$roleId", style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 10))
+                                         Row(
+                                            mainAxisAlignment: MainAxisAlignment.center,
+                                            children: [
+                                               Container(
+                                                  padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                                                  decoration: BoxDecoration(color: Colors.orange, borderRadius: BorderRadius.circular(4)),
+                                                  child: Text("#$roleId", style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 10))
+                                               ),
+                                               const SizedBox(width: 4),
+                                               InkWell(
+                                                  onTap: () => _firestoreService.updateParticipantRole(_targetGameId, null, docs[index].id),
+                                                  child: const Icon(Icons.close, color: Colors.red, size: 14),
+                                               )
+                                            ],
                                          )
                                       else
-                                         const Text("Выбирает...", style: TextStyle(color: Colors.white54, fontSize: 10))
+                                         const Text("Выбирает...", style: TextStyle(color: Colors.white38, fontSize: 9))
                                   ],
                                   const Spacer(),
                                ],

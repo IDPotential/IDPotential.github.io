@@ -549,13 +549,21 @@ class FirestoreService {
     await _db.collection('games').doc(gameId).collection('participants').doc(userId).delete();
   }
   
-  Future<void> updateParticipantRole(String gameId, int roleId) async {
+  Future<void> updateParticipantRole(String gameId, int? roleId, [String? targetUserId]) async {
     final user = _auth.currentUser;
     if (user == null) return;
     
-    await _db.collection('games').doc(gameId).collection('participants').doc(user.uid).update({
-      'selectedRole': roleId,
-    });
+    final uid = targetUserId ?? user.uid;
+
+    if (roleId == null) {
+        await _db.collection('games').doc(gameId).collection('participants').doc(uid).update({
+          'selectedRole': FieldValue.delete(),
+        });
+    } else {
+        await _db.collection('games').doc(gameId).collection('participants').doc(uid).update({
+          'selectedRole': roleId,
+        });
+    }
   }
 
   Stream<QuerySnapshot<Map<String, dynamic>>> getGameParticipantsStream(String gameId) {
