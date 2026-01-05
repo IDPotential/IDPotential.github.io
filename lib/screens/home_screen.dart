@@ -136,7 +136,7 @@ class HomeScreen extends StatelessWidget {
 
                   const SizedBox(height: 20),
                   const Text(
-                    'v1.29 (End Call Btn Moved)', 
+                    'v1.30 (Zoom -50px Offset)', 
                     style: TextStyle(color: Colors.grey, fontSize: 10),
                   ),
                   const SizedBox(height: 20),

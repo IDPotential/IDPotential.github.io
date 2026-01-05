@@ -156,7 +156,7 @@ async function initZoom(meetingNumber, password, userName, sdkKey, sdkSecret) {
                     // Reset margins that might interfere
                     zoomRoot.style.margin = "0";
                     zoomRoot.style.left = "auto";
-                    zoomRoot.style.top = "auto";
+                    zoomRoot.style.top = "-50px"; // Manual offset upwards per user request
 
                     // APPLY SCALE
                     // Center-center origin ensures it shrinks towards the flex-center point

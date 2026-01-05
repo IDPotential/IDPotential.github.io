@@ -392,7 +392,7 @@ class _ActiveGameScreenState extends State<ActiveGameScreen> {
       children: [
         HtmlElementView(key: _zoomViewKey, viewType: 'zoom-container'),
         Positioned(
-          bottom: 10, right: 10,
+          top: 10, right: 10,
           child: FloatingActionButton(
             mini: true, backgroundColor: Colors.red,
             child: const Icon(Icons.call_end),
