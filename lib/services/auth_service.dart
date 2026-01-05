@@ -20,6 +20,31 @@ class AuthService {
     }
   }
 
+  // Sign in with Email & Password
+  Future<UserCredential> signInWithEmailAndPassword(String email, String password) async {
+    try {
+      return await _auth.signInWithEmailAndPassword(email: email, password: password);
+    } catch (e) {
+       debugPrint('Email Auth Error: $e');
+       rethrow;
+    }
+  }
+
+  // Register with Email & Password
+  Future<UserCredential> createUserWithEmailAndPassword(String email, String password) async {
+    try {
+      return await _auth.createUserWithEmailAndPassword(email: email, password: password);
+    } catch (e) {
+       debugPrint('Registration Error: $e');
+       rethrow;
+    }
+  }
+
+  // Reset Password
+  Future<void> sendPasswordResetEmail(String email) async {
+      await _auth.sendPasswordResetEmail(email: email);
+  }
+
   // Sign out
   Future<void> signOut() async {
     await _auth.signOut();
