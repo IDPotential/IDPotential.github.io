@@ -499,7 +499,23 @@ class _ActiveGameScreenState extends State<ActiveGameScreen> {
                                                if (pNum != null) CircleAvatar(radius: 12, backgroundColor: Colors.white24, child: Text("$pNum", style: const TextStyle(color: Colors.white, fontSize: 12))),
                                                const SizedBox(height: 4),
                                                Text(pName, textAlign: TextAlign.center, style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
-                                               // Add host controls here if needed (approve/reject is usually selection stage, but this is voting board)
+                                               
+                                               // Host sees votes
+                                               if (widget.isHost && pData['votedFor'] != null) ...[
+                                                  const SizedBox(height: 4),
+                                                  Builder(builder: (context) {
+                                                     final vId = pData['votedFor'];
+                                                     final target = participants.where((d) => d.id == vId).firstOrNull;
+                                                     final tName = target != null 
+                                                         ? (target.data()['playerNumber'] != null ? "${target.data()['playerNumber']}" : (target.data()['name'] ?? '?'))
+                                                         : '?';
+                                                     return Container(
+                                                       padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                                                       decoration: BoxDecoration(color: Colors.white10, borderRadius: BorderRadius.circular(4)),
+                                                       child: Text("За: $tName", style: const TextStyle(color: Colors.yellowAccent, fontSize: 9, fontWeight: FontWeight.bold))
+                                                     );
+                                                  })
+                                               ]
                                             ],
                                          ))
                                       ]
@@ -540,7 +556,7 @@ class _ActiveGameScreenState extends State<ActiveGameScreen> {
             return GridView.builder(
                padding: const EdgeInsets.all(8),
                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                 crossAxisCount: 3, 
+                 crossAxisCount: 5, 
                  childAspectRatio: 0.75,
                  crossAxisSpacing: 8, mainAxisSpacing: 8
                ),
