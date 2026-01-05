@@ -139,28 +139,25 @@ async function initZoom(meetingNumber, password, userName, sdkKey, sdkSecret) {
 
                 const zoomRoot = document.getElementById('zmmtg-root') || container.firstElementChild;
                 if (zoomRoot) {
-                    // Try simpler centering: Margin auto
-                    zoomRoot.style.position = 'relative';
+                    // Ensure container acts as the positioning context
+                    container.style.position = 'relative';
+                    container.style.overflow = 'hidden';
+
+                    // Robust Absolute Centering
+                    zoomRoot.style.position = 'absolute';
+                    zoomRoot.style.top = '50%';
+                    zoomRoot.style.left = '50%';
+                    zoomRoot.style.transform = `translate(-50%, -50%) scale(${scale})`;
+                    zoomRoot.style.transformOrigin = 'center center';
+
+                    // Force explicit size to match target
                     zoomRoot.style.width = targetWidth + "px";
                     zoomRoot.style.height = targetHeight + "px";
-                    zoomRoot.style.margin = "0 auto"; // Center horizontally
 
-                    // Center vertically manually
-                    const extraY = (containerHeight - (targetHeight * scale)) / 2;
-                    // Note: If zooming via scale, margin-top might need adjustment based on origin
-
-                    zoomRoot.style.transform = `scale(${scale})`;
-                    zoomRoot.style.transformOrigin = 'top center'; // Center horizontally, top aligned then pushed down
-
-                    if (containerHeight > targetHeight * scale) {
-                        zoomRoot.style.marginTop = `${extraY}px`;
-                    } else {
-                        zoomRoot.style.marginTop = "0";
-                    }
-
-                    // Ensure no other margins interfere
-                    zoomRoot.style.marginLeft = "auto";
-                    zoomRoot.style.marginRight = "auto";
+                    // Prevent any margins from interfering
+                    zoomRoot.style.margin = "0";
+                    zoomRoot.style.marginTop = "0";
+                    zoomRoot.style.marginLeft = "0";
                 }
             };
 
