@@ -1,11 +1,11 @@
-```javascript
+
 
 let client = null;
 
 async function initZoom(meetingNumber, password, userName, sdkKey, sdkSecret) {
     // Ensure strict cleanup before trying to initialize a new session
     await leaveZoom();
-    
+
     // Create new client instance (since we destroy it on leave)
     if (!client) {
         client = ZoomMtgEmbedded.createClient();
