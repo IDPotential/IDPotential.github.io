@@ -594,7 +594,7 @@ ToggleButtons(
               child: Column(
                  mainAxisSize: MainAxisSize.min,
                  children: [
-                    const Text("Выберите свой номер игрока (1-8)", style: TextStyle(color: Colors.white, fontSize: 16)),
+                    const Text("Выберите свой номер игрока (1-10)", style: TextStyle(color: Colors.white, fontSize: 16)),
                     const SizedBox(height: 20),
                     Container(
                       width: 350, // Constraint width to ensure good look or just let Grid take space
