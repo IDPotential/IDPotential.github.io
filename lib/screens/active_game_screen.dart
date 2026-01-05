@@ -10,7 +10,7 @@ import '../services/firestore_service.dart';
 import '../services/knowledge_service.dart';
 import '../models/calculation.dart';
 import 'package:intl/intl.dart';
-import '../widgets/diagnostic_scheme.dart';
+
 
 class ActiveGameScreen extends StatefulWidget {
   final String gameId;
@@ -658,32 +658,129 @@ class _ActiveGameScreenState extends State<ActiveGameScreen> {
    }
 
    // --- SHOW CARD DIALOG ---
-   void _showDiagnosticCard(List<int> numbers, String initialName) {
+   
+   void _showDiagnosticCard(List<int> numbers, String name) {
+      int n(int idx) => (idx < numbers.length) ? (numbers[idx] == 0 ? 22 : numbers[idx]) : 22;
+
       showDialog(
-         context: context,
-         builder: (ctx) => Dialog(
-            backgroundColor: const Color(0xFF1E293B),
-            child: SizedBox(
-               width: 400,
-               height: 600, // Fixed height for simpler UI
-               child: Column(
-                  children: [
-                     AppBar(
-                        title: Text("Карта: $initialName"),
-                        backgroundColor: Colors.transparent, 
-                        elevation: 0,
-                        automaticallyImplyLeading: false,
-                        actions: [IconButton(icon: const Icon(Icons.close), onPressed: () => Navigator.pop(ctx))]
-                     ),
-                     Expanded(
-                        child: SingleChildScrollView(
-                           child: DiagnosticScheme(numbers: numbers), // Reusing existing widget!
-                        )
-                     )
-                  ],
-               )
-            )
-         )
+        context: context,
+        builder: (context) => Dialog(
+          backgroundColor: Colors.transparent,
+          child: Container(
+            width: 380, // Mimicking mobile/sheet width
+            height: 550,
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: const Color(0xFF0F172A),
+              borderRadius: BorderRadius.circular(24),
+              border: Border.all(color: Colors.white24),
+              image: const DecorationImage(
+                 image: AssetImage('assets/images/IDPGMD092025.png'),
+                 opacity: 0.1, 
+                 fit: BoxFit.cover,
+              ),
+              boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.7), blurRadius: 30)],
+            ),
+            child: Column(
+              children: [
+                 Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                       Padding(
+                         padding: const EdgeInsets.all(8.0),
+                         child: Text(name.toUpperCase(), style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold, letterSpacing: 1.2)),
+                       ),
+                       IconButton(onPressed: () => Navigator.pop(context), icon: const Icon(Icons.close, color: Colors.white54, size: 20)),
+                    ],
+                 ),
+                 const Divider(color: Colors.white10, height: 1),
+                 Expanded(
+                    child: SingleChildScrollView(
+                       padding: const EdgeInsets.symmetric(vertical: 10),
+                       child: Column(
+                          children: [
+                              Row(
+                                 crossAxisAlignment: CrossAxisAlignment.start,
+                                 children: [
+                                    Expanded(flex: 3, child: _buildSheetSection("ФАЗЫ ЖИЗНИ", [n(0), n(1), n(2)])),
+                                    Expanded(flex: 1, child: _buildSheetSection("ТОЧКА ВХОДА", [n(3)])),
+                                 ],
+                              ),
+                              Row(
+                                 children: [
+                                    Expanded(child: _buildSheetSection("ДУАЛЬНОСТЬ ИНЬ", [n(4), n(5)])),
+                                    Expanded(child: _buildSheetSection("ДУАЛЬНОСТЬ ЯН", [n(6), n(7)])),
+                                 ],
+                              ),
+                              Row(
+                                 children: [
+                                    Expanded(child: _buildSheetSection("МОТИВ", [n(8)])),
+                                    Expanded(child: _buildSheetSection("МЕТОД", [n(9)])),
+                                    Expanded(child: _buildSheetSection("СФЕРА", [n(10)])),
+                                 ]
+                              ),
+                              Row(
+                                 children: [
+                                    Expanded(child: _buildSheetSection("СТРАХИ", [n(11)])),
+                                    Expanded(child: _buildSheetSection("БАЛАНС", [n(13)])),
+                                    Expanded(child: _buildSheetSection("ТОЧКА ВЫХОДА", [n(12)])),
+                                 ],
+                              ),
+                          ],
+                       ),
+                    )
+                 ),
+              ],
+            ),
+          ),
+        ),
+      );
+   }
+
+   Widget _buildSheetSection(String title, List<int> cardNums) {
+      return Column(
+         children: [
+            Padding(
+               padding: const EdgeInsets.symmetric(vertical: 6),
+               child: Text(title, style: const TextStyle(color: Colors.white38, fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 0.5)),
+            ),
+            Row(
+               mainAxisAlignment: MainAxisAlignment.center,
+               children: cardNums.map((num) => Container(
+                  width: 55,
+                  height: 78,
+                  margin: const EdgeInsets.symmetric(horizontal: 4),
+                  decoration: BoxDecoration(
+                     borderRadius: BorderRadius.circular(6),
+                     border: Border.all(color: Colors.white12, width: 0.5),
+                     boxShadow: [BoxShadow(color: Colors.black26, blurRadius: 4)],
+                  ),
+                  child: Stack(
+                     children: [
+                        ClipRRect(
+                           borderRadius: BorderRadius.circular(6),
+                           child: Image.asset(
+                              'assets/images/cards/role_$num.png',
+                              fit: BoxFit.cover,
+                              errorBuilder: (c, e, s) => Container(color: Colors.white.withOpacity(0.05), child: Center(child: Text("$num", style: const TextStyle(color: Colors.white54, fontSize: 10)))),
+                           ),
+                        ),
+                        Positioned(
+                           bottom: 0, right: 0, left: 0,
+                           child: Container(
+                              decoration: BoxDecoration(
+                                 color: Colors.black54,
+                                 borderRadius: const BorderRadius.only(bottomLeft: Radius.circular(6), bottomRight: Radius.circular(6)),
+                              ),
+                              padding: const EdgeInsets.symmetric(vertical: 1),
+                              child: Text("$num", textAlign: TextAlign.center, style: const TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold)),
+                           ),
+                        ),
+                     ],
+                  ),
+               )).toList(),
+            ),
+         ],
       );
    }
 

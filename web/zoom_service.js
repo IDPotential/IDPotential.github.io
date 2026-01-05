@@ -122,8 +122,12 @@ async function initZoom(meetingNumber, password, userName, sdkKey, sdkSecret) {
                 const targetWidth = 960; // Must match the viewSizes we set
                 const targetHeight = 540;
 
-                const containerWidth = container.clientWidth || window.innerWidth;
-                const containerHeight = container.clientHeight || window.innerHeight;
+                // Do not fallback to window size, as we are in a sub-container
+                const containerWidth = container.clientWidth;
+                const containerHeight = container.clientHeight;
+
+                // Avoid division by zero or invalid layout
+                if (!containerWidth || !containerHeight) return;
 
                 // Calculate ratios
                 const scaleX = containerWidth / targetWidth;
