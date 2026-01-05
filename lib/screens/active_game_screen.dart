@@ -504,7 +504,7 @@ class _ActiveGameScreenState extends State<ActiveGameScreen> {
 
                           return GestureDetector(
                              onTap: () {
-                                if (!widget.isHost && !isMe) {
+                                if (!widget.isHost) {
                                    if (isSelected) _firestoreService.clearVote(_targetGameId);
                                    else _firestoreService.voteForPlayer(_targetGameId, pUid);
                                 }
