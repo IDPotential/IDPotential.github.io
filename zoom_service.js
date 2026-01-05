@@ -139,21 +139,28 @@ async function initZoom(meetingNumber, password, userName, sdkKey, sdkSecret) {
 
                 const zoomRoot = document.getElementById('zmmtg-root') || container.firstElementChild;
                 if (zoomRoot) {
-                    // Use absolute centering with transform
-                    zoomRoot.style.position = 'absolute';
-                    zoomRoot.style.left = '50%';
-                    zoomRoot.style.top = '50%';
-                    zoomRoot.style.transform = `translate(-50%, -50%) scale(${scale})`;
-                    zoomRoot.style.transformOrigin = 'center center';
-
-                    // Force explicit size to match target
+                    // Try simpler centering: Margin auto
+                    zoomRoot.style.position = 'relative';
                     zoomRoot.style.width = targetWidth + "px";
                     zoomRoot.style.height = targetHeight + "px";
+                    zoomRoot.style.margin = "0 auto"; // Center horizontally
 
-                    // Reset margins
-                    zoomRoot.style.margin = "0";
-                    zoomRoot.style.marginLeft = "0";
-                    zoomRoot.style.marginTop = "0";
+                    // Center vertically manually
+                    const extraY = (containerHeight - (targetHeight * scale)) / 2;
+                    // Note: If zooming via scale, margin-top might need adjustment based on origin
+
+                    zoomRoot.style.transform = `scale(${scale})`;
+                    zoomRoot.style.transformOrigin = 'top center'; // Center horizontally, top aligned then pushed down
+
+                    if (containerHeight > targetHeight * scale) {
+                        zoomRoot.style.marginTop = `${extraY}px`;
+                    } else {
+                        zoomRoot.style.marginTop = "0";
+                    }
+
+                    // Ensure no other margins interfere
+                    zoomRoot.style.marginLeft = "auto";
+                    zoomRoot.style.marginRight = "auto";
                 }
             };
 
