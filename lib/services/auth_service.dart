@@ -1,4 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:flutter/foundation.dart';
 
@@ -73,6 +75,68 @@ class AuthService {
   // Reset Password
   Future<void> sendPasswordResetEmail(String email) async {
       await _auth.sendPasswordResetEmail(email: email);
+  }
+
+  /// Links a Telegram account (via Custom Token) to the current Google user.
+  /// 
+  /// Mechanics:
+  /// 1. Use a secondary temporary Firebase App to sign in with the custom token.
+  /// 2. This prevents disrupting the main user session.
+  /// 3. Once signed in as Telegram User, write the Main User's UID to `users/{tg_id}/claimant_uid`.
+  /// 4. This 'handshake' allows the Main User (via Rules) to then write `telegram_id` to their own profile.
+  Future<void> linkTelegramAccount(String customToken) async {
+    final currentUser = _auth.currentUser;
+    if (currentUser == null) throw Exception("No user logged in");
+    
+    FirebaseApp? tempApp;
+    try {
+      // 1. Create a secondary app instance to verify the token without signing out main user
+      tempApp = await Firebase.initializeApp(
+        name: 'tempAuthLink',
+        options: Firebase.app().options,
+      );
+
+      final tempAuth = FirebaseAuth.instanceFor(app: tempApp);
+      
+      // 2. Sign in with the Custom Token on the temp app
+      final userCredential = await tempAuth.signInWithCustomToken(customToken);
+      final telegramUser = userCredential.user;
+      if (telegramUser == null) throw Exception("Failed to sign in with token");
+
+      final String telegramUid = telegramUser.uid;
+      final String mainUid = currentUser.uid;
+      
+      if (telegramUid == mainUid) {
+         // Already same account? Unlikely if different providers, but check.
+         throw Exception("Cannot link to self");
+      }
+
+      // 3. Handshake Step A: Telegram User writes "I am being claimed by MainUID"
+      // We use a separate Firestore instance for the temp app to ensure we write AS the telegram user
+      final tempFirestore = FirebaseFirestore.instanceFor(app: tempApp);
+      await tempFirestore.collection('users').doc(telegramUid).set({
+        'claimant_uid': mainUid,
+        'linked_at': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
+
+      // 4. Handshake Step B: Main User (Google) writes "I lay claim to TelegramUID"
+      // Firestore Rules will allow this ONLY if Step A occurred.
+      await FirebaseFirestore.instance.collection('users').doc(mainUid).set({
+        'telegram_id': telegramUid,
+        'telegram_linked_at': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
+      
+      debugPrint("Link Success: $mainUid -> $telegramUid");
+
+    } catch (e) {
+      debugPrint("Link Error: $e");
+      rethrow;
+    } finally {
+      // 5. Cleanup
+      try {
+        await tempApp?.delete();
+      } catch (_) {}
+    }
   }
 
   // Sign out

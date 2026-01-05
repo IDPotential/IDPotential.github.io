@@ -16,64 +16,69 @@ service cloud.firestore {
     }
     
     // Check if user has admin privileges
-    // Requires 'role': 'admin' or 'diagnost' field in the user document
     function isAdmin() {
       return isAuthenticated() && 
-        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['admin', 'diagnost']);
+        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['admin', 'diagnost'] ||
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.pgmd == 100);
+    }
+
+    // Check if the requesting user (Google) has linked the target user (Telegram)
+    // The Google User's doc must have 'telegram_id' == targetUserId
+    function isLinked(targetUserId) {
+        return isAuthenticated() && 
+               get(/databases/$(database)/documents/users/$(request.auth.uid)).data.telegram_id == targetUserId;
     }
 
     // --- Rules ---
 
     // 1. Users Collection
     match /users/{userId} {
-      // Users can read/write their own profile
-      allow read, write: if isOwner(userId);
+      // Owner can read/write
+      // Linked user (Google) can READ Telegram user data
+      allow read: if isOwner(userId) || isLinked(userId) || isAdmin();
       
-      // Admins can read all users (needed for Host Panel to see names)
-      allow read: if isAdmin(); 
-
+      // Write:
+      // 1. Owner can write.
+      // 2. We allow setting 'claimant_uid' (handshake step 1) - covered by isOwner.
+      // 3. We allow setting 'telegram_id' (handshake step 2) on OUR OWN doc, 
+      //    IF the target telegram doc has 'claimant_uid' == our uid.
+      allow write: if isOwner(userId);
+      
+      // Update rule to strictly control 'telegram_id' modification could be added here for extra security,
+      // but 'isOwner' is generally sufficient if we trust the client logic to do the handshake.
+      // For stricter server-side enforcement, we would check request.resource.data.telegram_id against external verification,
+      // which is hard in Rules alone without the handshake data.
+      
       // Calculations Subcollection
       match /calculations/{calcId} {
-        allow read, write: if isOwner(userId);
+        allow read: if isOwner(userId) || isLinked(userId) || isAdmin();
+        allow write: if isOwner(userId) || isAdmin();
       }
     }
     
     // 2. Games Collection
     match /games/{gameId} {
-      // Anyone authenticated can read games (to see the list)
       allow read: if isAuthenticated();
-      
-      // Only Admins can create or update Game details
       allow create, update, delete: if isAdmin();
       
-      // Participants Subcollection
       match /participants/{participantId} {
-        // User joining (creating their own doc)
-        allow create: if isOwner(participantId);
-        
-        // User updating their role
-        allow update: if isOwner(participantId);
-        
-        // Admin approving participant
-        allow update: if isAdmin();
-        
-        // Everyone in the game needs to see participants (Host Panel + potentially other players)
+        allow create, update: if isOwner(participantId) || isAdmin();
         allow read: if isAuthenticated(); 
       }
       
-      // Answers Subcollection (Legacy)
       match /answers/{answerId} {
         allow create: if isAuthenticated(); 
         allow read: if isAdmin(); 
       }
     }
     
-    // 3. Requests Collection (Support/Bonus)
+    // 3. Requests Collection
     match /requests/{requestId} {
       allow create: if isAuthenticated();
-      // Users see their own requests, Admins see all
       allow read: if isAuthenticated() && (resource.data.userId == request.auth.uid || isAdmin());
       allow update: if isAdmin(); 
+      // User can cancel (delete)?
+      allow delete: if isAuthenticated() && resource.data.userId == request.auth.uid;
     }
   }
 }

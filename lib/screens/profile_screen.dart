@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../services/firestore_service.dart';
+import '../services/auth_service.dart';
 import 'login_screen.dart';
 import 'games_list_screen.dart';
 
@@ -15,6 +16,7 @@ class ProfileScreen extends StatefulWidget {
 
 class _ProfileScreenState extends State<ProfileScreen> {
   final FirestoreService _firestoreService = FirestoreService();
+  final AuthService _authService = AuthService(); // Use AuthService wrapper
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
   // --- User Actions ---
@@ -129,6 +131,77 @@ class _ProfileScreenState extends State<ProfileScreen> {
         );
       }
     }
+  }
+
+  Future<void> _showLinkTelegramDialog() async {
+    final TextEditingController controller = TextEditingController();
+    bool isLoading = false;
+
+    await showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) {
+          return AlertDialog(
+            title: const Text('Привязка Telegram'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text(
+                  "1. В боте введите команду /login_app\n"
+                  "2. Скопируйте полученный ключ\n"
+                  "3. Вставьте его ниже:",
+                  style: TextStyle(fontSize: 13),
+                ),
+                const SizedBox(height: 10),
+                TextField(
+                  controller: controller,
+                  decoration: const InputDecoration(
+                     labelText: "Ключ (Токен)",
+                     border: OutlineInputBorder(),
+                     hintText: "eyJhbGciOi..."
+                  ),
+                  maxLines: 3,
+                ),
+                if (isLoading) const Padding(
+                   padding: EdgeInsets.only(top: 10),
+                   child: CircularProgressIndicator(),
+                )
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: isLoading ? null : () => Navigator.pop(context),
+                child: const Text('Отмена'),
+              ),
+              ElevatedButton(
+                onPressed: isLoading ? null : () async {
+                  if (controller.text.trim().isEmpty) return;
+                  
+                  setState(() => isLoading = true);
+                  try {
+                     await _authService.linkTelegramAccount(controller.text.trim());
+                     if (mounted) {
+                        Navigator.pop(context);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                           const SnackBar(content: Text('Telegram успешно привязан! Данные скоро появятся.'), backgroundColor: Colors.green),
+                        );
+                     }
+                  } catch (e) {
+                     setState(() => isLoading = false);
+                     if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                           SnackBar(content: Text('Ошибка привязки: $e'), backgroundColor: Colors.red),
+                        );
+                     }
+                  }
+                },
+                child: const Text('Привязать'),
+              ),
+            ],
+          );
+        }
+      ),
+    );
   }
 
   // --- Admin Actions ---
@@ -277,13 +350,25 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         label: const Text('Задать вопрос'),
                       ),
                     ],
-                    if (pgmd < 2)
-                      ElevatedButton.icon(
-                        onPressed: () => _submitRequest(type: 'upgrade', text: 'Запрос на повышение'),
-                        icon: const Icon(Icons.trending_up),
-                        label: const Text('Повысить уровень'),
-                        style: ElevatedButton.styleFrom(backgroundColor: Colors.orangeAccent),
-                      ),
+                      if (pgmd < 2)
+                        ElevatedButton.icon(
+                          onPressed: () => _submitRequest(type: 'upgrade', text: 'Запрос на повышение'),
+                          icon: const Icon(Icons.trending_up),
+                          label: const Text('Повысить уровень'),
+                          style: ElevatedButton.styleFrom(backgroundColor: Colors.orangeAccent),
+                        ),
+                      
+                      if (userData['telegram_id'] == null)
+                        ElevatedButton.icon(
+                          onPressed: _showLinkTelegramDialog,
+                          icon: const Icon(Icons.link, color: Colors.blue),
+                          label: const Text('Привязать Telegram'),
+                          style: ElevatedButton.styleFrom(
+                             backgroundColor: Colors.white, 
+                             foregroundColor: Colors.blue,
+                             side: const BorderSide(color: Colors.blue)
+                          ),
+                        ),
 
                     if (isAdmin || (pgmd >= 10 && (userData['isHostMode'] ?? false)))
                       ElevatedButton.icon(
