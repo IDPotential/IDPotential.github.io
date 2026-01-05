@@ -56,6 +56,27 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
+  Future<void> _loginGoogle() async {
+     setState(() {
+        _isLoading = true;
+        _errorMessage = null;
+     });
+     
+     try {
+        await _authService.signInWithGoogle();
+        _showSuccess("Вход через Google выполнен!");
+        if (mounted) {
+           Navigator.of(context).pushReplacement(
+              MaterialPageRoute(builder: (context) => const AppHome()),
+           );
+        }
+     } catch (e) {
+        _handleError(e);
+     } finally {
+        if (mounted) setState(() => _isLoading = false);
+     }
+  }
+
   void _showSuccess(String msg) {
      if (!mounted) return;
      ScaffoldMessenger.of(context).showSnackBar(
@@ -160,15 +181,33 @@ class _LoginScreenState extends State<LoginScreen> {
                        ],
                        
                        const SizedBox(height: 24),
-                       SizedBox(
-                         width: double.infinity,
-                         height: 48,
-                         child: ElevatedButton(
-                           onPressed: _isLoading ? null : _submit,
-                           style: ElevatedButton.styleFrom(backgroundColor: Colors.blueAccent),
                            child: _isLoading ? const CircularProgressIndicator(color: Colors.white) : Text(_isRegistering ? "Зарегистрироваться" : "Войти", style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white)),
                          ),
                        ),
+
+                       if (!_isRegistering) ...[
+                          const SizedBox(height: 20),
+                          Row(children: [
+                             Expanded(child: Divider(color: Colors.white24)),
+                             const Padding(padding: EdgeInsets.symmetric(horizontal: 10), child: Text("ИЛИ", style: TextStyle(color: Colors.white54, fontSize: 12))),
+                             Expanded(child: Divider(color: Colors.white24)),
+                          ]),
+                          const SizedBox(height: 20),
+                          
+                          SizedBox(
+                             width: double.infinity,
+                             height: 48,
+                             child: OutlinedButton.icon(
+                                onPressed: _isLoading ? null : _loginGoogle,
+                                icon: Image.asset('assets/images/google_logo.png', height: 24, errorBuilder: (c,e,s) => const Icon(Icons.login, color: Colors.white)),
+                                label: const Text("Войти через Google", style: TextStyle(color: Colors.white)),
+                                style: OutlinedButton.styleFrom(
+                                   side: const BorderSide(color: Colors.white24),
+                                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30))
+                                ),
+                             ),
+                          ),
+                       ],
                        
                        const SizedBox(height: 16),
                        TextButton(

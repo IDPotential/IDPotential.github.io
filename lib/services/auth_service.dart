@@ -1,4 +1,5 @@
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import 'package:flutter/foundation.dart';
 
 class AuthService {
@@ -37,6 +38,35 @@ class AuthService {
     } catch (e) {
        debugPrint('Registration Error: $e');
        rethrow;
+    }
+  }
+
+  // Sign in with Google
+  Future<UserCredential> signInWithGoogle() async {
+    try {
+      final GoogleSignIn googleSignIn = GoogleSignIn();
+      
+      // Trigger the authentication flow
+      final GoogleSignInAccount? googleUser = await googleSignIn.signIn();
+      if (googleUser == null) {
+        // The user canceled the sign-in
+        throw FirebaseAuthException(code: 'canceled', message: 'Вход отменен пользователем.');
+      }
+
+      // Obtain the auth details from the request
+      final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+
+      // Create a new credential
+      final AuthCredential credential = GoogleAuthProvider.credential(
+        accessToken: googleAuth.accessToken,
+        idToken: googleAuth.idToken,
+      );
+
+      // Sign in to Firebase with the new credential
+      return await _auth.signInWithCredential(credential);
+    } catch (e) {
+      debugPrint('Google Auth Error: $e');
+      rethrow;
     }
   }
 

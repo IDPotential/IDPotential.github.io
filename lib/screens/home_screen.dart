@@ -136,7 +136,7 @@ class HomeScreen extends StatelessWidget {
 
                   const SizedBox(height: 20),
                   const Text(
-                    'v1.35 (Email Auth)', 
+                    'v1.36 (Google Auth)', 
                     style: TextStyle(color: Colors.grey, fontSize: 10),
                   ),
                   const SizedBox(height: 20),
