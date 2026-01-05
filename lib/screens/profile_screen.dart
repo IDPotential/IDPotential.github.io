@@ -481,7 +481,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           amountToCredit = enteredAmount;
       }
 
-      await _processRequest(requestId, userId, type, amountToCredit);
+      await _processRequest(requestId, userId, 'approve_$type', amountToCredit);
   }
 
   Future<void> _replyToQuestion(String requestId) async {

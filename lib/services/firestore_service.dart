@@ -201,7 +201,7 @@ class FirestoreService {
       final requestDoc = await transaction.get(requestRef);
       if (!requestDoc.exists) throw Exception("Request not found");
 
-      if (action == 'approve_deposit' || action == 'approve_bonus') {
+      if (action == 'approve_deposit' || action == 'approve_bonus' || action == 'approve_subscription' || action == 'approve_credits') {
          transaction.update(userRef, {'credits': FieldValue.increment(value ?? 0)});
          transaction.update(requestRef, {'status': 'completed', 'answer': 'Approved +$value credits'});
       } else if (action == 'approve_upgrade') {
