@@ -193,26 +193,26 @@ class _LoginScreenState extends State<LoginScreen> {
 
                        if (!_isRegistering) ...[
                           const SizedBox(height: 20),
-                          Row(children: [
-                             Expanded(child: Divider(color: Colors.white24)),
-                             const Padding(padding: EdgeInsets.symmetric(horizontal: 10), child: Text("ИЛИ", style: TextStyle(color: Colors.white54, fontSize: 12))),
-                             Expanded(child: Divider(color: Colors.white24)),
-                          ]),
-                          const SizedBox(height: 20),
+                          // Row(children: [
+                          //    Expanded(child: Divider(color: Colors.white24)),
+                          //    const Padding(padding: EdgeInsets.symmetric(horizontal: 10), child: Text("ИЛИ", style: TextStyle(color: Colors.white54, fontSize: 12))),
+                          //    Expanded(child: Divider(color: Colors.white24)),
+                          // ]),
+                          // const SizedBox(height: 20),
                           
-                          SizedBox(
-                             width: double.infinity,
-                             height: 48,
-                             child: OutlinedButton.icon(
-                                onPressed: _isLoading ? null : _loginGoogle,
-                                icon: Image.asset('assets/images/google_logo.png', height: 24, errorBuilder: (c,e,s) => const Icon(Icons.login, color: Colors.white)),
-                                label: const Text("Войти через Google", style: TextStyle(color: Colors.white)),
-                                style: OutlinedButton.styleFrom(
-                                   side: const BorderSide(color: Colors.white24),
-                                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30))
-                                ),
-                             ),
-                          ),
+                          // SizedBox(
+                          //    width: double.infinity,
+                          //    height: 48,
+                          //    child: OutlinedButton.icon(
+                          //       onPressed: _isLoading ? null : _loginGoogle,
+                          //       icon: Image.asset('assets/images/google_logo.png', height: 24, errorBuilder: (c,e,s) => const Icon(Icons.login, color: Colors.white)),
+                          //       label: const Text("Войти через Google", style: TextStyle(color: Colors.white)),
+                          //       style: OutlinedButton.styleFrom(
+                          //          side: const BorderSide(color: Colors.white24),
+                          //          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30))
+                          //       ),
+                          //    ),
+                          // ),
                        ],
                        
                        const SizedBox(height: 16),
