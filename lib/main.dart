@@ -4,6 +4,8 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'app.dart';
 import 'screens/login_screen.dart';
 import 'services/database_service.dart';
+import 'services/auth_service.dart';
+import 'services/config_service.dart';
 
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
@@ -12,6 +14,7 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
   try {
+    // Init Firebase
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
     );
@@ -19,6 +22,9 @@ void main() async {
     print("Firebase Init Error: $e");
   }
 
+  // Init Remote Config
+  await ConfigService().initialize();
+  
   await DatabaseService().init();
   runApp(const MyApp());
 }

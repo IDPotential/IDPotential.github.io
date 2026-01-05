@@ -8,6 +8,7 @@ import '../utils/registry.dart';
 import '../services/calculator_service.dart';
 import '../services/firestore_service.dart';
 import '../services/knowledge_service.dart';
+import '../services/config_service.dart';
 import '../models/calculation.dart';
 import 'package:intl/intl.dart';
 
@@ -124,8 +125,8 @@ class _ActiveGameScreenState extends State<ActiveGameScreen> {
               _zoomId!, 
               _zoomPassword ?? "", 
               userName,
-              "ZOOM_SDK_KEY",
-              "ZOOM_SDK_SECRET"
+              ConfigService().zoomKey,
+              ConfigService().zoomSecret
           );
       });
   }
