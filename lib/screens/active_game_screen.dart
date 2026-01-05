@@ -909,14 +909,8 @@ class _ActiveGameScreenState extends State<ActiveGameScreen> {
                               }
                            ),
                      ),
-                     if (widget.isHost)
-                        Padding(
-                           padding: const EdgeInsets.only(top: 20),
-                           child: ElevatedButton(
-                              onPressed: _goHome,
-                              child: const Text("Выход в лобби"),
-                           ),
-                        )
+                      if (widget.isHost)
+                         const SizedBox.shrink()
                   ],
                ),
             );
