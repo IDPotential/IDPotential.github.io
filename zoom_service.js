@@ -120,31 +120,41 @@ async function initZoom(meetingNumber, password, userName, sdkKey, sdkSecret) {
                 if (!container) return;
 
                 const targetWidth = 960; // Must match the viewSizes we set
+                const targetHeight = 540;
+
                 const containerWidth = container.clientWidth || window.innerWidth;
+                const containerHeight = container.clientHeight || window.innerHeight;
 
-                // If container is smaller than target, we need to shrink (unzoom)
-                if (containerWidth < targetWidth) {
-                    const scale = containerWidth / targetWidth;
+                // Calculate ratios
+                const scaleX = containerWidth / targetWidth;
+                const scaleY = containerHeight / targetHeight;
 
-                    // We apply this to the immediate children of the container (the Zoom root)
-                    // because applying to container itself might break layout.
-                    // Zoom SDK creates a root div like #zmmtg-root inside our container.
-                    // However, our container IS the zoomAppRoot passed to init.
+                // Use minimum scale to fit entire video content (contain)
+                // Or use max to cover. "Fit" is usually safer for UI.
+                const scale = Math.min(scaleX, scaleY);
 
-                    // NOTE: Zoom SDK modifies the container deeply.
-                    // Let's try applying to the container's content via style injection or direct transform
-                    // of the Zmmtg root element if accessible, otherwise the container child.
+                const zoomRoot = document.getElementById('zmmtg-root') || container.firstElementChild;
+                if (zoomRoot) {
+                    zoomRoot.style.transform = "scale(" + scale + ")";
+                    zoomRoot.style.transformOrigin = 'top left';
 
-                    // Strategy: Apply zoom/transform to the container's *content*.
-                    // The SDK often resets styles. Let's try setting it on the container but compensate size.
+                    // Force explicit size to match target, so scale works predictably
+                    zoomRoot.style.width = targetWidth + "px";
+                    zoomRoot.style.height = targetHeight + "px";
 
-                    // Better Strategy: Find #zmmtg-root specifically (it's global usually) or the root child.
-                    const zoomRoot = document.getElementById('zmmtg-root') || container.firstElementChild;
-                    if (zoomRoot) {
-                        zoomRoot.style.transform = "scale(" + scale + ")";
-                        zoomRoot.style.transformOrigin = 'top left';
-                        zoomRoot.style.width = (100 / scale) + "%";
-                        zoomRoot.style.height = (100 / scale) + "%";
+                    // Optional: Center if there is extra space
+                    if (scale === scaleY && scale < scaleX) {
+                        // Extra width available
+                        const extraX = (containerWidth - (targetWidth * scale)) / 2;
+                        zoomRoot.style.marginLeft = extraX + "px";
+                        zoomRoot.style.marginTop = "0px";
+                    } else if (scale === scaleX && scale < scaleY) {
+                        // Extra height available
+                        const extraY = (containerHeight - (targetHeight * scale)) / 2;
+                        zoomRoot.style.marginTop = extraY + "px";
+                        zoomRoot.style.marginLeft = "0px";
+                    } else {
+                        zoomRoot.style.margin = "0";
                     }
                 }
             };
