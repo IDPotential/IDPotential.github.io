@@ -477,7 +477,9 @@ class FirestoreService {
   }
 
   void _notifyAdminOfJoinRequest(String name, String? tg, String gameId) async {
-    final token = '7733163279:AAEQLGDiAP8LZlmUMjIdlTojikBm4TtN_Pg';
+    // Use ConfigService if token is sensitive, or load dynamically. 
+    // Ideally: ConfigService().telegramToken
+    final token = 'TOKEN_REMOVED_CHECK_CONFIG'; // TODO: Add to Remote Config
     final adminId = '196473271';
     
     // 1. Fetch Game Title

@@ -48,26 +48,40 @@ class AuthService {
     try {
       final GoogleSignIn googleSignIn = GoogleSignIn();
       
-      // Trigger the authentication flow
+      // 1. Trigger the authentication flow
+      print("Starting Google Sign In...");
       final GoogleSignInAccount? googleUser = await googleSignIn.signIn();
+      
       if (googleUser == null) {
         // The user canceled the sign-in
         throw FirebaseAuthException(code: 'canceled', message: 'Вход отменен пользователем.');
       }
+      print("Google User obtained: ${googleUser.email}");
 
-      // Obtain the auth details from the request
+      // 2. Obtain the auth details from the request
       final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+      print("Google Auth obtained. AccessToken: ${googleAuth.accessToken != null}, IdToken: ${googleAuth.idToken != null}");
 
-      // Create a new credential
+      // 3. Create a new credential
       final AuthCredential credential = GoogleAuthProvider.credential(
         accessToken: googleAuth.accessToken,
         idToken: googleAuth.idToken,
       );
+      print("Credential created.");
 
-      // Sign in to Firebase with the new credential
-      return await _auth.signInWithCredential(credential);
-    } catch (e) {
+      // 4. Sign in to Firebase with the new credential
+      final userCredential = await _auth.signInWithCredential(credential);
+      print("Firebase Sign In Successful: ${userCredential.user?.uid}");
+      
+      return userCredential;
+    } catch (e, stackTrace) {
       debugPrint('Google Auth Error: $e');
+      debugPrint('Stack Trace: $stackTrace');
+      
+      // Re-throw with more context if possible
+      if (e.toString().contains("Null check operator")) {
+         throw Exception("Ошибка Google Sign-In (Null check): Попробуйте заново или проверьте сервисы Google.");
+      }
       rethrow;
     }
   }
