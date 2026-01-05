@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../services/auth_service.dart';
+import '../app.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -29,6 +30,20 @@ class _LoginScreenState extends State<LoginScreen> {
     try {
       await _authService.signInWithCustomToken(token);
       // Navigation is handled by StreamBuilder in main.dart
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Вход выполнен успешно!"),
+            backgroundColor: Colors.green,
+            duration: Duration(seconds: 1),
+          ),
+        );
+
+        // Force navigation to AppHome
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (context) => const AppHome()),
+        );
+      }
     } catch (e) {
       String msg = "Ошибка входа. Проверьте токен.";
       if (e is FirebaseAuthException) {
@@ -40,7 +55,7 @@ class _LoginScreenState extends State<LoginScreen> {
       setState(() {
         _errorMessage = msg;
       });
-      
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
