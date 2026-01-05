@@ -41,6 +41,8 @@ class AuthService {
       // Create user document in Firestore
       if (cred.user != null) {
         final username = email.split('@')[0];
+        
+        // 1. Create Firestore Doc
         await FirebaseFirestore.instance.collection('users').doc(cred.user!.uid).set({
           'email': email,
           'username': username,
@@ -50,6 +52,11 @@ class AuthService {
           'credits': 5, // Welcome bonus
           'pgmd': 1,
         });
+
+        // 2. Send Verification Email
+        if (!cred.user!.emailVerified) {
+           await cred.user!.sendEmailVerification();
+        }
       }
       return cred;
     } catch (e) {
