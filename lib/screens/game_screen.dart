@@ -4,7 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'dart:async';
-import 'dart:js' as js;
+import '../utils/zoom_js.dart' as zoom_js;
 import '../utils/registry.dart'; 
 import '../services/calculator_service.dart';
 import '../services/firestore_service.dart';
@@ -79,7 +79,53 @@ class _GameScreenState extends State<GameScreen> {
       super.dispose();
   }
 
-  // ...
+  bool _showGameSelection = false;
+  List<QueryDocumentSnapshot<Map<String, dynamic>>> _availableGames = [];
+
+  Future<void> _fetchNearestGame() async {
+      final snapshot = await _firestoreService.getGamesStream().first;
+      final games = snapshot.docs;
+      
+      if (games.isEmpty) {
+         if (mounted) setState(() {});
+         return;
+      }
+      
+      // Store all games to allow switching
+      _availableGames = games;
+
+      // Client-side sorting
+      games.sort((a, b) {
+          final d1 = a.data()['scheduledAt'] ?? '';
+          final d2 = b.data()['scheduledAt'] ?? '';
+          return d1.compareTo(d2);
+      });
+
+      if (games.length == 1) {
+          // Auto-join if only one game
+          final gameDoc = games.first;
+          final data = gameDoc.data();
+          if (mounted) {
+             setState(() {
+                _targetGameId = gameDoc.id;
+                _targetGameTitle = data['title'];
+                final ts = data['scheduledAt'] as Timestamp?;
+                _targetGameDate = ts != null ? DateFormat('dd.MM.yyyy HH:mm').format(ts.toDate()) : null;
+                _targetHostName = data['hostName'];
+                _zoomId = data['zoomId'];
+                _zoomPassword = data['zoomPassword'];
+             });
+             _initGameListeners();
+          }
+      } else {
+          // Multiple games: Show selection
+          if (mounted) {
+             setState(() {
+                _showGameSelection = true;
+             });
+          }
+      }
+  }
 
   void _initGameListeners() {
       if (_targetGameId == null) return;
@@ -1073,13 +1119,13 @@ ToggleButtons(
 
       // Call JS init
       Future.delayed(const Duration(milliseconds: 500), () {
-          js.context.callMethod('initZoom', [
-              _zoomId, 
+          zoom_js.initZoom(
+              _zoomId!, 
               _zoomPassword ?? "", 
               userName,
               "EpevSkKvRxGrNoetCoYmOQ",
               "pZKWEleW18O3poQ9MYots4vyEVU3O6tc"
-          ]);
+          );
       });
   }
 
@@ -1103,7 +1149,7 @@ ToggleButtons(
             backgroundColor: Colors.red,
             child: const Icon(Icons.call_end),
             onPressed: () {
-               js.context.callMethod('leaveZoom');
+               zoom_js.leaveZoom();
                setState(() => _isVideoActive = false);
             },
           ),

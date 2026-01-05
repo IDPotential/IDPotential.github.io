@@ -3,7 +3,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
-import 'dart:js' as js;
+import '../utils/zoom_js.dart' as zoom_js;
 import '../utils/registry.dart'; 
 import '../services/calculator_service.dart';
 import '../services/firestore_service.dart';
@@ -64,7 +64,7 @@ class _ActiveGameScreenState extends State<ActiveGameScreen> {
   void dispose() {
       if (kIsWeb) {
           try {
-             js.context.callMethod('leaveZoom');
+             zoom_js.leaveZoom();
           } catch(e) {
              debugPrint("Zoom cleanup error: $e");
           }
@@ -120,13 +120,13 @@ class _ActiveGameScreenState extends State<ActiveGameScreen> {
       final userName = user?.displayName ?? widget.gameProfile?.name.split(' ')[0] ?? "Player";
 
       Future.delayed(const Duration(milliseconds: 500), () {
-          js.context.callMethod('initZoom', [
-              _zoomId, 
+          zoom_js.initZoom(
+              _zoomId!, 
               _zoomPassword ?? "", 
               userName,
               "EpevSkKvRxGrNoetCoYmOQ",
               "pZKWEleW18O3poQ9MYots4vyEVU3O6tc"
-          ]);
+          );
       });
   }
 
@@ -397,7 +397,7 @@ class _ActiveGameScreenState extends State<ActiveGameScreen> {
             mini: true, backgroundColor: Colors.red,
             child: const Icon(Icons.call_end),
             onPressed: () {
-               js.context.callMethod('leaveZoom');
+               zoom_js.leaveZoom();
                setState(() => _isVideoActive = false);
             },
           ),
