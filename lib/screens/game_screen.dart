@@ -54,6 +54,7 @@ class _GameScreenState extends State<GameScreen> {
   bool _isVideoActive = false; 
   String _roomName = '';
   int? _playerNumber; // 1-8
+  bool _isCheckingStatus = false;
 
   @override
   void initState() {
@@ -156,15 +157,20 @@ class _GameScreenState extends State<GameScreen> {
      });
   }
 
+  bool _isCheckingStatus = false;
+
   void _checkParticipantStatus() {
      _participantSubscription?.cancel();
      final user = FirebaseAuth.instance.currentUser;
      if (user == null || _targetGameId == null) return;
      
+     setState(() => _isCheckingStatus = true); // Start loading
+
      _participantSubscription = _firestoreService.getGameParticipantsStream(_targetGameId!).listen((event) {
         final me = event.docs.where((d) => d.id == user.uid).firstOrNull;
         if (mounted) {
            setState(() {
+              _isCheckingStatus = false; // Stop loading
               _participantStatus = me?.data()['status'];
               _playerNumber = me?.data()['playerNumber'];
                _selectedRole = me?.data()['selectedRole'];
@@ -176,7 +182,10 @@ class _GameScreenState extends State<GameScreen> {
         }
      }, onError: (e) {
         debugPrint("Participant Stream Error: $e");
-        if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Ошибка обновления статуса: $e")));
+        if (mounted) {
+           setState(() => _isCheckingStatus = false);
+           ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Ошибка обновления статуса: $e")));
+        }
      });
   }
 
@@ -564,13 +573,11 @@ ToggleButtons(
         ),
       );
     } else {
-      // Not registered
+      // Not registered or Checking
       return Center(
         child: Column(
            mainAxisSize: MainAxisSize.min,
            children: [
-             // ...
-             // Not registered
              Text(_targetGameTitle ?? "Игра: $_targetGameId", style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
              if (_targetGameDate != null) ...[
                  const SizedBox(height: 8),
@@ -582,20 +589,29 @@ ToggleButtons(
              ],
              const SizedBox(height: 20),
              
-             ElevatedButton(
-               style: ElevatedButton.styleFrom(
-                 backgroundColor: Colors.green,
-                 padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 12),
-               ),
-               onPressed: () async {
-                  // Pass Numbers now!
-                  await _firestoreService.joinGameRequest(_targetGameId!, _gameProfile!.name, _gameProfile!.telegram, _gameProfile!.numbers); 
-                  setState(() {
-                    _participantStatus = 'pending';
-                  });
-               },
-               child: const Text("Подать заявку", style: TextStyle(fontSize: 16)),
-             ),
+             if (_isCheckingStatus)
+                const Column(
+                   children: [
+                      CircularProgressIndicator(),
+                      SizedBox(height: 8),
+                      Text("Проверка статуса...", style: TextStyle(color: Colors.white54))
+                   ],
+                )
+             else
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.green,
+                    padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 12),
+                  ),
+                  onPressed: () async {
+                      // Pass Numbers now!
+                      await _firestoreService.joinGameRequest(_targetGameId!, _gameProfile!.name, _gameProfile!.telegram, _gameProfile!.numbers); 
+                      setState(() {
+                        _participantStatus = 'pending';
+                      });
+                  },
+                  child: const Text("Подать заявку", style: TextStyle(fontSize: 16)),
+                ),
              
              const SizedBox(height: 12),
              TextButton(
