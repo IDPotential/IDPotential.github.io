@@ -3,6 +3,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
+import 'dart:async';
 import 'dart:js' as js;
 import '../utils/registry.dart'; 
 import '../services/calculator_service.dart';
@@ -45,6 +46,8 @@ class _GameScreenState extends State<GameScreen> {
 
   // Registration State
   String? _participantStatus; // 'pending', 'approved', null
+  StreamSubscription<DocumentSnapshot>? _gameSubscription;
+  StreamSubscription<QuerySnapshot>? _participantSubscription;
   int? _selectedRole;
   
   bool _isVideoActive = false; 
@@ -68,52 +71,15 @@ class _GameScreenState extends State<GameScreen> {
   
   @override
   void dispose() {
+      _gameSubscription?.cancel();
+      _participantSubscription?.cancel();
       // Zoom cleanup handled in ActiveGameScreen
       _nameController.dispose();
       _telegramController.dispose();
       super.dispose();
   }
 
-  bool _showGameSelection = false;
-  List<QueryDocumentSnapshot<Map<String, dynamic>>> _availableGames = [];
-
-  Future<void> _fetchNearestGame() async {
-      final snapshot = await _firestoreService.getGamesStream().first;
-      final games = snapshot.docs;
-      
-      if (games.isEmpty) {
-         if (mounted) setState(() {});
-         return;
-      }
-      
-      // Store all games to allow switching
-      _availableGames = games;
-
-      if (games.length == 1) {
-          // Auto-join if only one game
-          final gameDoc = games.first;
-          final data = gameDoc.data();
-          if (mounted) {
-             setState(() {
-                _targetGameId = gameDoc.id;
-                _targetGameTitle = data['title'];
-                final ts = data['scheduledAt'] as Timestamp?;
-                _targetGameDate = ts != null ? DateFormat('dd.MM.yyyy HH:mm').format(ts.toDate()) : null;
-                _targetHostName = data['hostName'];
-                _zoomId = data['zoomId'];
-                _zoomPassword = data['zoomPassword'];
-             });
-             _initGameListeners();
-          }
-      } else {
-          // Multiple games: Show selection
-          if (mounted) {
-             setState(() {
-                _showGameSelection = true;
-             });
-          }
-      }
-  }
+  // ...
 
   void _initGameListeners() {
       if (_targetGameId == null) return;
@@ -122,8 +88,10 @@ class _GameScreenState extends State<GameScreen> {
   }
 
   void _listenToGameStage() {
+     _gameSubscription?.cancel();
      if (_targetGameId == null) return;
-     _firestoreService.getGameStream(_targetGameId!).listen((doc) {
+     
+     _gameSubscription = _firestoreService.getGameStream(_targetGameId!).listen((doc) {
         if (!doc.exists) return;
         final data = doc.data();
         if (data != null) {
@@ -135,14 +103,18 @@ class _GameScreenState extends State<GameScreen> {
              _zoomPassword = data['zoomPassword'];
            });
         }
+     }, onError: (e) {
+         debugPrint("Game Stream Error: $e");
+         if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Ошибка связи с игрой: $e")));
      });
   }
 
   void _checkParticipantStatus() {
+     _participantSubscription?.cancel();
      final user = FirebaseAuth.instance.currentUser;
      if (user == null || _targetGameId == null) return;
      
-     _firestoreService.getGameParticipantsStream(_targetGameId!).listen((event) {
+     _participantSubscription = _firestoreService.getGameParticipantsStream(_targetGameId!).listen((event) {
         final me = event.docs.where((d) => d.id == user.uid).firstOrNull;
         if (mounted) {
            setState(() {
@@ -150,7 +122,14 @@ class _GameScreenState extends State<GameScreen> {
               _playerNumber = me?.data()['playerNumber'];
                _selectedRole = me?.data()['selectedRole'];
            });
+           
+           if (_participantStatus == 'approved') {
+               // Auto-refresh UI or trigger notification if needed
+           }
         }
+     }, onError: (e) {
+        debugPrint("Participant Stream Error: $e");
+        if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Ошибка обновления статуса: $e")));
      });
   }
 
