@@ -525,7 +525,7 @@ class _ActiveGameScreenState extends State<ActiveGameScreen> {
       );
   }
   
-  Widget _buildFinalResults() {
+    Widget _buildFinalResults() {
       return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
          stream: _firestoreService.getGameParticipantsStream(_targetGameId),
          builder: (context, snapshot) {
@@ -586,6 +586,25 @@ class _ActiveGameScreenState extends State<ActiveGameScreen> {
          }
       );
    }
+
+   Widget _buildGameArchivedScreen() {
+      return Center(
+         child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+               const Icon(Icons.check_circle_outline, color: Colors.green, size: 80),
+               const SizedBox(height: 20),
+               const Text("ИГРА ЗАВЕРШЕНА", style: TextStyle(color: Colors.white, fontSize: 24)),
+               const SizedBox(height: 40),
+               ElevatedButton(
+                  onPressed: _goHome,
+                  child: const Text("Вернуться в главное меню"),
+               )
+            ],
+         ),
+      );
+   }
+
 
    void _showRoleInfo(int number) {
     final info = KnowledgeService.getRoleInfo(number);
