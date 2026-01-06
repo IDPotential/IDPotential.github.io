@@ -7,6 +7,7 @@ class DatabaseService {
   
   static const String _calculationsBox = 'calculations';
   static const String _foldersBoxName = 'folders';
+  static const String _settingsBoxName = 'settings';
   bool _isInitialized = false;
   
   DatabaseService._internal();
@@ -23,11 +24,13 @@ class DatabaseService {
     
     await Hive.openBox<Calculation>(_calculationsBox);
     await Hive.openBox<String>(_foldersBoxName);
+    await Hive.openBox(_settingsBoxName);
     _isInitialized = true;
   }
   
   Box<Calculation> get _box => Hive.box<Calculation>(_calculationsBox);
   Box<String> get _foldersBox => Hive.box<String>(_foldersBoxName);
+  Box get settingsBox => Hive.box(_settingsBoxName);
   
   // CRUD операции для расчетов
   Future<int> insertCalculation(Calculation calculation) async {

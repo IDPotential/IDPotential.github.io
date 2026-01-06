@@ -67,7 +67,9 @@ class _GameScreenState extends State<GameScreen> {
        _targetGameId = widget.gameId;
        _initGameListeners();
     } else {
-       _fetchNearestGame();
+       _initGameListeners();
+    } else {
+       _loadGameSession();
     }
   }
   
@@ -84,7 +86,13 @@ class _GameScreenState extends State<GameScreen> {
   bool _showGameSelection = false;
   List<QueryDocumentSnapshot<Map<String, dynamic>>> _availableGames = [];
 
-  Future<void> _fetchNearestGame() async {
+  Future<void> _loadGameSession() async {
+      String? lastGameId;
+      try {
+         // Attempt to restore session
+         lastGameId = DatabaseService().settingsBox.get('active_game_id');
+      } catch (_) {}
+      
       final snapshot = await _firestoreService.getGamesStream().first;
       final games = snapshot.docs;
       
@@ -93,7 +101,6 @@ class _GameScreenState extends State<GameScreen> {
          return;
       }
       
-      // Store all games to allow switching
       _availableGames = games;
 
       // Client-side sorting
@@ -103,29 +110,47 @@ class _GameScreenState extends State<GameScreen> {
           return d1.compareTo(d2);
       });
 
-      if (games.length == 1) {
-          // Auto-join if only one game
-          final gameDoc = games.first;
-          final data = gameDoc.data();
-          if (mounted) {
-             setState(() {
-                _targetGameId = gameDoc.id;
-                _targetGameTitle = data['title'];
-                final ts = data['scheduledAt'] as Timestamp?;
-                _targetGameDate = ts != null ? DateFormat('dd.MM.yyyy HH:mm').format(ts.toDate()) : null;
-                _targetHostName = data['hostName'];
-                _zoomId = data['zoomId'];
-                _zoomPassword = data['zoomPassword'];
-             });
-             _initGameListeners();
-          }
-      } else {
-          // Multiple games: Show selection
+      QueryDocumentSnapshot<Map<String, dynamic>>? targetDoc;
+      
+      // 1. Try to restore specific session
+      if (lastGameId != null && games.any((g) => g.id == lastGameId)) {
+         targetDoc = games.firstWhere((g) => g.id == lastGameId);
+      } 
+      // 2. Auto-join if only one game
+      else if (games.length == 1) {
+         targetDoc = games.first;
+      } 
+      // 3. Fallback to selection
+      else {
           if (mounted) {
              setState(() {
                 _showGameSelection = true;
+                // If restore failed (game finished/archived?), clear the pref
+                if (lastGameId != null) {
+                   DatabaseService().settingsBox.delete('active_game_id');
+                }
              });
           }
+          return;
+      }
+      
+      if (targetDoc != null) {
+         _selectGame(targetDoc.id, targetDoc.data());
+      }
+  }
+
+  void _selectGame(String gameId, Map<String, dynamic> data) {
+      if (mounted) {
+         setState(() {
+            _targetGameId = gameId;
+            _targetGameTitle = data['title'];
+            final ts = data['scheduledAt'] as Timestamp?;
+            _targetGameDate = ts != null ? DateFormat('dd.MM.yyyy HH:mm').format(ts.toDate()) : null;
+            _targetHostName = data['hostName'];
+            _zoomId = data['zoomId'];
+            _zoomPassword = data['zoomPassword'];
+         });
+         _initGameListeners();
       }
   }
 
@@ -510,7 +535,7 @@ ToggleButtons(
                   const Text("Нет ближайших игр", style: TextStyle(color: Colors.white70)),
                   const SizedBox(height: 20),
                   ElevatedButton(
-                     onPressed: _fetchNearestGame,
+                     onPressed: _loadGameSession,
                      child: const Text("Обновить"),
                   )
                 ],
@@ -539,7 +564,7 @@ ToggleButtons(
                       padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 20),
                       backgroundColor: Colors.green
                    ),
-                   onPressed: _openActiveGame,
+                   onPressed: _handleEnterGame,
                    child: const Text("ВОЙТИ В ИГРУ", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                 ),
                 const SizedBox(height: 20),
@@ -626,6 +651,25 @@ ToggleButtons(
         ),
       );
     }
+  }
+
+  void _handleEnterGame() {
+    if (_targetGameId == null) return;
+    
+    // Save session for reconnection
+    DatabaseService().settingsBox.put('active_game_id', _targetGameId);
+    
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => ActiveGameScreen(
+         gameId: _targetGameId!, 
+         isHost: _isHost, 
+         playerNumber: _playerNumber,
+         selectedRole: _selectedRole, 
+         zoomId: _zoomId,
+         zoomPassword: _zoomPassword,
+      )),
+    );
   }
 
   Widget _buildNumberSelection() {
