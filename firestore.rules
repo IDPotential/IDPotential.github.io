@@ -42,7 +42,7 @@ service cloud.firestore {
       // 2. We allow setting 'claimant_uid' (handshake step 1) - covered by isOwner.
       // 3. We allow setting 'telegram_id' (handshake step 2) on OUR OWN doc, 
       //    IF the target telegram doc has 'claimant_uid' == our uid.
-      allow write: if isOwner(userId);
+      allow write: if isOwner(userId) || isAdmin();
       
       // Update rule to strictly control 'telegram_id' modification could be added here for extra security,
       // but 'isOwner' is generally sufficient if we trust the client logic to do the handshake.
