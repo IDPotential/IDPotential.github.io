@@ -874,15 +874,24 @@ class _ActiveGameScreenState extends State<ActiveGameScreen> {
                ..sort((a, b) => (b.value as int).compareTo(a.value as int));
 
             return Container(
-               padding: const EdgeInsets.all(24),
+               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                child: Column(
                   children: [
-                     const Icon(Icons.emoji_events, color: Colors.orange, size: 60),
-                     const SizedBox(height: 10),
-                     const Text("ИГРА ЗАВЕРШЕНА", style: TextStyle(color: Colors.redAccent, fontSize: 24, fontWeight: FontWeight.bold)),
-                     const SizedBox(height: 10),
-                     const Text("Итоговая статистика (Голоса)", style: TextStyle(color: Colors.white70, fontSize: 16)),
-                     const Divider(color: Colors.white24, height: 40),
+                     Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                           const Icon(Icons.emoji_events, color: Colors.orange, size: 36),
+                           const SizedBox(width: 12),
+                           Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                 const Text("ИГРА ЗАВЕРШЕНА", style: TextStyle(color: Colors.redAccent, fontSize: 20, fontWeight: FontWeight.bold)),
+                                 Text("Итоговая статистика", style: TextStyle(color: Colors.white70.withOpacity(0.8), fontSize: 12)),
+                              ],
+                           )
+                        ],
+                     ),
+                     const Divider(color: Colors.white24, height: 16),
                      Expanded(
                         child: sorted.isEmpty 
                           ? const Center(child: Text("Нет данных о голосовании", style: TextStyle(color: Colors.white54)))
