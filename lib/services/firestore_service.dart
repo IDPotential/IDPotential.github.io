@@ -513,11 +513,18 @@ class FirestoreService {
   }
 
   Future<List<QueryDocumentSnapshot<Map<String, dynamic>>>> getSituationPacks() async {
-    final snapshot = await _db.collection('situation_packs')
-        .where('isPublic', isEqualTo: true)
-        .orderBy('createdAt', descending: true)
-        .get();
-    return snapshot.docs;
+    // Fetch all and sort in memory to avoid Index requirements
+    final snapshot = await _db.collection('situation_packs').get();
+    
+    final docs = snapshot.docs.where((d) => d.data()['isPublic'] == true).toList();
+    
+    docs.sort((a, b) {
+       final tA = (a.data()['createdAt'] as Timestamp?)?.toDate() ?? DateTime(2000);
+       final tB = (b.data()['createdAt'] as Timestamp?)?.toDate() ?? DateTime(2000);
+       return tB.compareTo(tA); // Descending
+    });
+    
+    return docs;
   }
 
   Future<DocumentSnapshot<Map<String, dynamic>>> getSituationPack(String packId) async {
