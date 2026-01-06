@@ -933,10 +933,10 @@ class _ActiveGameScreenState extends State<ActiveGameScreen> {
          child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-               const Icon(Icons.check_circle_outline, color: Colors.green, size: 80),
-               const SizedBox(height: 20),
-               const Text("ИГРА ЗАВЕРШЕНА", style: TextStyle(color: Colors.white, fontSize: 24)),
-               const SizedBox(height: 40),
+               const Icon(Icons.check_circle_outline, color: Colors.green, size: 48),
+               const SizedBox(height: 12),
+               const Text("ИГРА ЗАВЕРШЕНА", style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
+               const SizedBox(height: 24),
                ElevatedButton(
                   onPressed: _goHome,
                   child: const Text("Вернуться в главное меню"),
