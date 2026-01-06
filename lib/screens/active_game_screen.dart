@@ -534,6 +534,8 @@ class _ActiveGameScreenState extends State<ActiveGameScreen> {
         // Remove old Bottom Right Positioned block (It's now merged above)
       ],
     );
+      }
+    );
   }
 
   void _randomizeSituation() {
@@ -1196,41 +1198,44 @@ class _ActiveGameScreenState extends State<ActiveGameScreen> {
             ),
             Row(
                mainAxisAlignment: MainAxisAlignment.center,
-               children: cardNums.map((num) => GestureDetector(
-                  onTap: () => onRoleTap?.call(num),
-                  child: Container(
-                  width: 55,
-                  height: 78,
-                  margin: const EdgeInsets.symmetric(horizontal: 4),
-                  decoration: BoxDecoration(
-                     borderRadius: BorderRadius.circular(6),
-                     border: Border.all(color: Colors.white12, width: 0.5),
-                     boxShadow: [BoxShadow(color: Colors.black26, blurRadius: 4)],
-                  ),
-                  child: Stack(
-                     children: [
-                        ClipRRect(
+               children: cardNums.map<Widget>((num) {
+                  return GestureDetector(
+                     onTap: () => onRoleTap?.call(num),
+                     child: Container(
+                        width: 55,
+                        height: 78,
+                        margin: const EdgeInsets.symmetric(horizontal: 4),
+                        decoration: BoxDecoration(
                            borderRadius: BorderRadius.circular(6),
-                           child: Image.asset(
-                              'assets/images/cards/role_$num.png',
-                              fit: BoxFit.cover,
-                              errorBuilder: (c, e, s) => Container(color: Colors.white.withOpacity(0.05), child: Center(child: Text("$num", style: const TextStyle(color: Colors.white54, fontSize: 10)))),
-                           ),
+                           border: Border.all(color: Colors.white12, width: 0.5),
+                           boxShadow: [BoxShadow(color: Colors.black26, blurRadius: 4)],
                         ),
-                        Positioned(
-                           bottom: 0, right: 0, left: 0,
-                           child: Container(
-                              decoration: BoxDecoration(
-                                 color: Colors.black54,
-                                 borderRadius: const BorderRadius.only(bottomLeft: Radius.circular(6), bottomRight: Radius.circular(6)),
+                        child: Stack(
+                           children: [
+                              ClipRRect(
+                                 borderRadius: BorderRadius.circular(6),
+                                 child: Image.asset(
+                                    'assets/images/cards/role_$num.png',
+                                    fit: BoxFit.cover,
+                                    errorBuilder: (c, e, s) => Container(color: Colors.white.withValues(alpha: 0.05), child: Center(child: Text("$num", style: const TextStyle(color: Colors.white54, fontSize: 10)))),
+                                 ),
                               ),
-                              padding: const EdgeInsets.symmetric(vertical: 1),
-                              child: Text("$num", textAlign: TextAlign.center, style: const TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold)),
-                           ),
+                              Positioned(
+                                 bottom: 0, right: 0, left: 0,
+                                 child: Container(
+                                    decoration: BoxDecoration(
+                                       color: Colors.black54,
+                                       borderRadius: const BorderRadius.only(bottomLeft: Radius.circular(6), bottomRight: Radius.circular(6)),
+                                    ),
+                                    padding: const EdgeInsets.symmetric(vertical: 1),
+                                    child: Text("$num", textAlign: TextAlign.center, style: const TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold)),
+                                 ),
+                              ),
+                           ],
                         ),
-                     ],
-                  ),
-               )).toList(),
+                     ),
+                  );
+               }).toList(),
             ),
          ],
       );
