@@ -399,9 +399,19 @@ class _ActiveGameScreenState extends State<ActiveGameScreen> {
     final String? controllerId = _situation['controllerId'];
     final bool hasControl = widget.isHost || (FirebaseAuth.instance.currentUser?.uid == controllerId);
 
-    return Stack(
-      children: [
-        HtmlElementView(key: _zoomViewKey, viewType: 'zoom-container'),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        // User requested shift ONLY in wide version (where 10 cards fit -> >900px)
+        final bool isWide = constraints.maxWidth > 900;
+        final double vShift = isWide ? 20.0 : 0.0;
+
+        return Stack(
+          children: [
+            // Zoom Window moved up to reveal bottom controls
+            Positioned(
+               top: -vShift, left: 0, right: 0, bottom: vShift,
+               child: HtmlElementView(key: _zoomViewKey, viewType: 'zoom-container'),
+            ),
         
         // SITUATION OVERLAY
         if (isVisible)
@@ -409,29 +419,59 @@ class _ActiveGameScreenState extends State<ActiveGameScreen> {
               child: Container(
                  decoration: const BoxDecoration(
                     image: DecorationImage(
-                       image: AssetImage('assets/images/Territory_Situations.png'),
+                       image: AssetImage('assets/images/fon.png'),
                        fit: BoxFit.cover,
                     )
                  ),
-                 padding: const EdgeInsets.all(32),
-                 alignment: Alignment.center,
-                 child: Text(
-                    _situation['text'] ?? "",
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(
-                       fontFamily: 'DINPro', // Assuming added to pubspec, fallback to generic if not
-                       fontWeight: FontWeight.w900,
-                       fontSize: 24,
-                       color: Colors.white,
-                       shadows: [Shadow(color: Colors.black, blurRadius: 4, offset: Offset(1,1))]
-                    ),
+                 child: Stack(
+                    children: [
+                       // Logo Top Left
+                       Positioned(
+                          top: 16, left: 16,
+                          child: Image.asset('assets/images/logo.png', width: 60, fit: BoxFit.contain)
+                       ),
+                       
+                       // Center Text
+                       Center(
+                          child: Padding(
+                             padding: const EdgeInsets.symmetric(horizontal: 48),
+                             child: Text(
+                                _situation['text'] ?? "",
+                                textAlign: TextAlign.center,
+                                style: const TextStyle(
+                                   fontFamily: 'DINPro',
+                                   fontWeight: FontWeight.w900,
+                                   fontSize: 24,
+                                   color: Colors.white,
+                                   shadows: [Shadow(color: Colors.black, blurRadius: 4, offset: Offset(1,1))]
+                                ),
+                             ),
+                          )
+                       ),
+                       
+                       // Link Bottom Right
+                       Positioned(
+                          bottom: 16, right: 16,
+                          child: InkWell(
+                             onTap: () => launchUrl(Uri.parse("https://t.me/id_territory")),
+                             child: const Text(
+                                "https://t.me/id_territory",
+                                style: TextStyle(
+                                   color: Colors.white70, 
+                                   fontSize: 12, 
+                                   decoration: TextDecoration.underline
+                                ),
+                             ),
+                          )
+                       )
+                    ],
                  ),
               )
            ),
 
         // Controls (Consolidated Top Right)
         Positioned(
-          top: 10, right: 10, // Move 10px from top/right
+          top: 10, right: 10, // Reverted to 10
           child: Column(
              crossAxisAlignment: CrossAxisAlignment.end,
              mainAxisSize: MainAxisSize.min,
@@ -879,14 +919,7 @@ class _ActiveGameScreenState extends State<ActiveGameScreen> {
                       // Wait, I can't easily break inside the itemBuilder with multiReplace if I don't provide the full content.
                       // I will replace the GridView.builder block entirely.
                       
-                      return GestureDetector(
-                         onTap: () {
-                             // Host: Manage Player (Set Role)
-                             if (data['status'] == 'approved') {
-                                _showHostRoleManagement(docId, name, roleId);
-                             }
-                         },
-                         child: Card(
+                      return Card(
                            clipBehavior: Clip.antiAlias,
                            color: data['status'] == 'pending' ? Colors.orange.withOpacity(0.15) : Colors.white12,
                            shape: data['status'] == 'pending' 
@@ -966,25 +999,39 @@ class _ActiveGameScreenState extends State<ActiveGameScreen> {
                                             )
                                         ] else ...[
                                             // Active participant logic
+                                            if (List<int>.from(data['numbers'] ?? []).isNotEmpty)
+                                               TextButton(
+                                                  style: TextButton.styleFrom(minimumSize: const Size(0, 24), padding: EdgeInsets.zero),
+                                                  onPressed: () => _showDiagnosticCard(List<int>.from(data['numbers'] ?? []), name, userId: docId),
+                                                  child: const Text("Карта", style: TextStyle(color: Colors.blueAccent, fontSize: 10, decoration: TextDecoration.underline))
+                                               ),
                                             const SizedBox(height: 2),
-                                            if (roleId != null) 
-                                               Row(
-                                                  mainAxisAlignment: MainAxisAlignment.center,
-                                                  children: [
-                                                     Container(
-                                                        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
-                                                        decoration: BoxDecoration(color: Colors.orange, borderRadius: BorderRadius.circular(4)),
-                                                        child: Text("#$roleId", style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 10))
-                                                     ),
-                                                     const SizedBox(width: 4),
-                                                     InkWell(
-                                                        onTap: () => _firestoreService.updateParticipantRole(_targetGameId, null, docId),
-                                                        child: const Icon(Icons.close, color: Colors.red, size: 14),
-                                                     )
-                                                  ],
-                                               )
-                                            else
-                                               const Text("Нажмите чтобы\nвыбрать роль", textAlign: TextAlign.center, style: TextStyle(color: Colors.white38, fontSize: 9))
+                                            
+                                            // Role Management (Click here to set role)
+                                            InkWell(
+                                               onTap: () => _showHostRoleManagement(docId, name, roleId),
+                                               child: roleId != null 
+                                                  ? Row(
+                                                     mainAxisAlignment: MainAxisAlignment.center,
+                                                     children: [
+                                                        Container(
+                                                           padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                                                           decoration: BoxDecoration(color: Colors.orange, borderRadius: BorderRadius.circular(4)),
+                                                           child: Text("#$roleId", style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 10))
+                                                        ),
+                                                        const SizedBox(width: 4),
+                                                        InkWell(
+                                                           onTap: () => _firestoreService.updateParticipantRole(_targetGameId, null, docId),
+                                                           child: const Icon(Icons.close, color: Colors.red, size: 14),
+                                                        )
+                                                     ],
+                                                  )
+                                                  : Container(
+                                                      padding: const EdgeInsets.all(4),
+                                                      color: Colors.white10,
+                                                      child: const Text("Нет роли", textAlign: TextAlign.center, style: TextStyle(color: Colors.white38, fontSize: 9))
+                                                  )
+                                            )
                                         ],
                                         const Spacer(),
                                      ],
@@ -992,7 +1039,6 @@ class _ActiveGameScreenState extends State<ActiveGameScreen> {
                                  ),
                               ],
                            ),
-                         )
                       );
                    },
                  );
@@ -1040,8 +1086,31 @@ class _ActiveGameScreenState extends State<ActiveGameScreen> {
 
    // --- SHOW CARD DIALOG ---
    
-   void _showDiagnosticCard(List<int> numbers, String name) {
-      int n(int idx) => (idx < numbers.length) ? (numbers[idx] == 0 ? 22 : numbers[idx]) : 22;
+  void _showDiagnosticCard(List<int> numbers, String name, {String? userId}) {
+   int n(int idx) => (idx < numbers.length) ? (numbers[idx] == 0 ? 22 : numbers[idx]) : 22;
+
+   void onRoleTap(int roleId) {
+       if (userId != null && widget.isHost) {
+          showDialog(
+             context: context,
+             builder: (ctx) => AlertDialog(
+                title: Text("Назначить роль $roleId игроку $name?"),
+                actions: [
+                   TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("Отмена")),
+                   ElevatedButton(
+                      onPressed: () {
+                         _firestoreService.updateParticipantRole(_targetGameId, roleId, userId);
+                         Navigator.pop(ctx); // Close alert
+                         Navigator.pop(context); // Close card
+                         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Роль назначена!")));
+                      },
+                      child: const Text("Да")
+                   )
+                ],
+             )
+          );
+       }
+   }
 
       showDialog(
         context: context,
@@ -1083,28 +1152,28 @@ class _ActiveGameScreenState extends State<ActiveGameScreen> {
                               Row(
                                  crossAxisAlignment: CrossAxisAlignment.start,
                                  children: [
-                                    Expanded(flex: 3, child: _buildSheetSection("ФАЗЫ ЖИЗНИ", [n(0), n(1), n(2)])),
-                                    Expanded(flex: 1, child: _buildSheetSection("ТОЧКА ВХОДА", [n(3)])),
+                                    Expanded(flex: 3, child: _buildSheetSection("ФАЗЫ ЖИЗНИ", [n(0), n(1), n(2)], onRoleTap)),
+                                    Expanded(flex: 1, child: _buildSheetSection("ТОЧКА ВХОДА", [n(3)], onRoleTap)),
                                  ],
                               ),
                               Row(
                                  children: [
-                                    Expanded(child: _buildSheetSection("ДУАЛЬНОСТЬ ИНЬ", [n(4), n(5)])),
-                                    Expanded(child: _buildSheetSection("ДУАЛЬНОСТЬ ЯН", [n(6), n(7)])),
+                                    Expanded(child: _buildSheetSection("ДУАЛЬНОСТЬ ИНЬ", [n(4), n(5)], onRoleTap)),
+                                    Expanded(child: _buildSheetSection("ДУАЛЬНОСТЬ ЯН", [n(6), n(7)], onRoleTap)),
                                  ],
                               ),
                               Row(
                                  children: [
-                                    Expanded(child: _buildSheetSection("МОТИВ", [n(8)])),
-                                    Expanded(child: _buildSheetSection("МЕТОД", [n(9)])),
-                                    Expanded(child: _buildSheetSection("СФЕРА", [n(10)])),
+                                    Expanded(child: _buildSheetSection("МОТИВ", [n(8)], onRoleTap)),
+                                    Expanded(child: _buildSheetSection("МЕТОД", [n(9)], onRoleTap)),
+                                    Expanded(child: _buildSheetSection("СФЕРА", [n(10)], onRoleTap)),
                                  ]
                               ),
                               Row(
                                  children: [
-                                    Expanded(child: _buildSheetSection("СТРАХИ", [n(11)])),
-                                    Expanded(child: _buildSheetSection("БАЛАНС", [n(13)])),
-                                    Expanded(child: _buildSheetSection("ТОЧКА ВЫХОДА", [n(12)])),
+                                    Expanded(child: _buildSheetSection("СТРАХИ", [n(11)], onRoleTap)),
+                                    Expanded(child: _buildSheetSection("БАЛАНС", [n(13)], onRoleTap)),
+                                    Expanded(child: _buildSheetSection("ТОЧКА ВЫХОДА", [n(12)], onRoleTap)),
                                  ],
                               ),
                           ],
@@ -1118,7 +1187,7 @@ class _ActiveGameScreenState extends State<ActiveGameScreen> {
       );
    }
 
-   Widget _buildSheetSection(String title, List<int> cardNums) {
+   Widget _buildSheetSection(String title, List<int> cardNums, [Function(int)? onRoleTap]) {
       return Column(
          children: [
             Padding(
@@ -1127,7 +1196,9 @@ class _ActiveGameScreenState extends State<ActiveGameScreen> {
             ),
             Row(
                mainAxisAlignment: MainAxisAlignment.center,
-               children: cardNums.map((num) => Container(
+               children: cardNums.map((num) => GestureDetector(
+                  onTap: () => onRoleTap?.call(num),
+                  child: Container(
                   width: 55,
                   height: 78,
                   margin: const EdgeInsets.symmetric(horizontal: 4),

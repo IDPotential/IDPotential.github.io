@@ -59,7 +59,9 @@ service cloud.firestore {
     // 2. Games Collection
     match /games/{gameId} {
       allow read: if isAuthenticated();
-      allow create, update, delete: if isAdmin();
+      allow create, delete: if isAdmin();
+      allow update: if isAdmin() || 
+                    (isAuthenticated() && resource.data.situation.controllerId == request.auth.uid);
       
       match /participants/{participantId} {
         allow create, update: if isOwner(participantId) || isAdmin();
