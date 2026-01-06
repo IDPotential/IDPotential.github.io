@@ -469,64 +469,56 @@ class _ActiveGameScreenState extends State<ActiveGameScreen> {
               )
            ),
 
-        // Controls (Consolidated Top Right)
+        // Controls (Consolidated Bottom Right - Single Row)
         Positioned(
-          top: 10, right: 10, // Reverted to 10
-          child: Column(
-             crossAxisAlignment: CrossAxisAlignment.end,
+          bottom: 10, right: 10, 
+          child: Row(
              mainAxisSize: MainAxisSize.min,
              children: [
-                // 1. Top Row: Host Settings + End Call
-                Row(
-                   mainAxisSize: MainAxisSize.min,
-                   children: [
-                      if (widget.isHost)
-                         IconButton(
-                            icon: const Icon(Icons.settings_accessibility, color: Colors.blueAccent),
-                            tooltip: "Назначить управление ситуацией",
-                            onPressed: _showSituationControllerDialog,
-                         ),
-                      FloatingActionButton(
-                         mini: true, backgroundColor: Colors.red,
-                         child: const Icon(Icons.call_end),
-                         onPressed: () {
-                            zoom_js.leaveZoom();
-                            setState(() => _isVideoActive = false);
-                         },
-                      ),
-                   ],
-                ),
-                
-                // 2. Situation Controls (Below Top Row)
+                // 1. Situation Controls (Left side of the row)
                 if (hasControl) ...[
-                   const SizedBox(height: 12),
-                   Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                         // Refresh Button
-                         FloatingActionButton(
-                            mini: true,
-                            heroTag: 'refresh_sit',
-                            backgroundColor: Colors.blueGrey,
-                            child: const Icon(Icons.refresh, color: Colors.white),
-                            onPressed: _randomizeSituation,
-                         ),
-                         const SizedBox(width: 8),
-                         // Push-to-Show Button
-                         Listener(
-                            onPointerDown: (_) => _firestoreService.setSituationVisible(_targetGameId, true),
-                            onPointerUp: (_) => _firestoreService.setSituationVisible(_targetGameId, false),
-                            child: FloatingActionButton(
-                               mini: false, // Bigger button
-                               heroTag: 'show_sit',
-                               backgroundColor: isVisible ? Colors.green : Colors.orange,
-                               onPressed: () {}, // Handled by Listener
-                               child: const Icon(Icons.visibility),
-                            )
-                         )
-                      ],
-                   )
-                ]
+                   FloatingActionButton(
+                      mini: true,
+                      heroTag: 'refresh_sit',
+                      backgroundColor: Colors.blueGrey,
+                      child: const Icon(Icons.refresh, color: Colors.white),
+                      onPressed: _randomizeSituation,
+                   ),
+                   const SizedBox(width: 8),
+                   Listener(
+                      onPointerDown: (_) => _firestoreService.setSituationVisible(_targetGameId, true),
+                      onPointerUp: (_) => _firestoreService.setSituationVisible(_targetGameId, false),
+                      child: FloatingActionButton(
+                         mini: false, // Bigger button
+                         heroTag: 'show_sit',
+                         backgroundColor: isVisible ? Colors.green : Colors.orange,
+                         onPressed: () {}, // Handled by Listener
+                         child: const Icon(Icons.visibility),
+                      )
+                   ),
+                   const SizedBox(width: 16), // Space between situation and host/call controls
+                ],
+
+                // 2. Host Settings
+                if (widget.isHost) ...[
+                   IconButton(
+                      style: IconButton.styleFrom(backgroundColor: Colors.black54),
+                      icon: const Icon(Icons.settings_accessibility, color: Colors.blueAccent),
+                      tooltip: "Назначить управление ситуацией",
+                      onPressed: _showSituationControllerDialog,
+                   ),
+                   const SizedBox(width: 8),
+                ],
+
+                // 3. End Call
+                FloatingActionButton(
+                   mini: true, backgroundColor: Colors.red,
+                   child: const Icon(Icons.call_end),
+                   onPressed: () {
+                      zoom_js.leaveZoom();
+                      setState(() => _isVideoActive = false);
+                   },
+                ),
              ],
           ),
         ),
