@@ -449,9 +449,9 @@ class _ActiveGameScreenState extends State<ActiveGameScreen> {
                           )
                        ),
                        
-                       // Link Bottom Right
+                       // Link Bottom Left
                        Positioned(
-                          bottom: 16, right: 16,
+                          bottom: 16, left: 16,
                           child: InkWell(
                              onTap: () => launchUrl(Uri.parse("https://t.me/id_territory")),
                              child: const Text(
