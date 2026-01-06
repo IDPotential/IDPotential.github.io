@@ -346,13 +346,7 @@ class FirestoreService {
       final user = _auth.currentUser;
       if (user == null) return;
       
-      // 1. Add vote to target participant (to count totals)
-      final targetRef = _db.collection('games').doc(gameId).collection('participants').doc(targetUserId);
-      await targetRef.update({
-          'votes': FieldValue.arrayUnion([user.uid])
-      });
-
-      // 2. Mark who the voter voted for (to display on host dashboard)
+      // 1. Mark who the voter voted for (to display on host dashboard & count totals)
       final voterRef = _db.collection('games').doc(gameId).collection('participants').doc(user.uid);
       await voterRef.update({
           'votedFor': targetUserId
@@ -364,16 +358,7 @@ class FirestoreService {
       if (user == null) return;
       
       final voterRef = _db.collection('games').doc(gameId).collection('participants').doc(user.uid);
-      final voterDoc = await voterRef.get();
-      final targetUserId = voterDoc.data()?['votedFor'];
-
-      if (targetUserId != null) {
-          final targetRef = _db.collection('games').doc(gameId).collection('participants').doc(targetUserId);
-          await targetRef.update({
-              'votes': FieldValue.arrayRemove([user.uid])
-          });
-      }
-
+      
       await voterRef.update({
           'votedFor': FieldValue.delete()
       });
