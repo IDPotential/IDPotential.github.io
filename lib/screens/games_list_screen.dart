@@ -34,71 +34,160 @@ class _GamesListScreenState extends State<GamesListScreen> {
     }
   }
 
-  void _showGameDialog({String? docId, String? currentTitle, DateTime? currentDate, String? currentZoomId, String? currentZoomPassword}) {
+  void _showGameDialog({String? docId, String? currentTitle, DateTime? currentDate, String? currentZoomId, String? currentZoomPassword, String? currentPackId, List<String>? currentCategories}) {
     final titleController = TextEditingController(text: currentTitle);
     final zoomIdController = TextEditingController(text: currentZoomId);
     final zoomPasswordController = TextEditingController(text: currentZoomPassword);
     DateTime selectedDate = currentDate ?? DateTime.now();
+    
+    // Situation Selection State
+    String? selectedPackId = currentPackId;
+    List<String> selectedCategories = currentCategories ?? [];
+    List<QueryDocumentSnapshot<Map<String, dynamic>>> availablePacks = [];
+    List<String> availableCategories = []; // Categories for the selected pack
+    
     bool isEditing = docId != null;
 
     showDialog(
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setStateDialog) {
+          
+          // LOAD PACKS (Once)
+          if (availablePacks.isEmpty) {
+             _firestoreService.getSituationPacks().then((packs) {
+                if (context.mounted && packs.isNotEmpty) {
+                   setStateDialog(() {
+                      availablePacks = packs;
+                      // Default to first pack if none selected
+                      if (selectedPackId == null) {
+                         selectedPackId = packs.first.id;
+                      }
+                      
+                      // Find categories for selected pack
+                      final packData = packs.firstWhere((p) => p.id == selectedPackId).data();
+                      final sits = (packData['situations'] as List<dynamic>? ?? []);
+                      final cats = sits.map((s) => s['category'] as String? ?? "General").toSet().toList();
+                      cats.sort();
+                      availableCategories = cats;
+                   });
+                }
+             });
+          }
+
           return AlertDialog(
             title: Text(isEditing ? 'Редактировать игру' : 'Создать игру'),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextField(
-                  controller: titleController,
-                  decoration: const InputDecoration(labelText: 'Название игры'),
-                ),
-                const SizedBox(height: 16),
-                ListTile(
-                  contentPadding: EdgeInsets.zero,
-                  title: Text(
-                      "Дата и время: ${DateFormat('dd.MM.yyyy HH:mm').format(selectedDate)}"),
-                  trailing: const Icon(Icons.access_time),
-                  onTap: () async {
-                    final pickedDate = await showDatePicker(
-                      context: context,
-                      initialDate: selectedDate,
-                      firstDate: DateTime.now().subtract(const Duration(days: 1)),
-                      lastDate: DateTime.now().add(const Duration(days: 365)),
-                      locale: const Locale('ru', 'RU'),
-                    );
-                    
-                    if (pickedDate != null && context.mounted) {
-                       final pickedTime = await showTimePicker(
-                          context: context,
-                          initialTime: TimeOfDay.fromDateTime(selectedDate),
-                       );
-
-                       if (pickedTime != null) {
-                          setStateDialog(() {
-                            selectedDate = DateTime(
-                               pickedDate.year, 
-                               pickedDate.month, 
-                               pickedDate.day, 
-                               pickedTime.hour, 
-                               pickedTime.minute
-                            );
-                          });
-                       }
-                    }
-                  },
-                ),
-                TextField(
-                  controller: zoomIdController,
-                  decoration: const InputDecoration(labelText: 'Zoom Meeting ID'),
-                  keyboardType: TextInputType.number,
-                ),
-                TextField(
-                  controller: zoomPasswordController,
-                  decoration: const InputDecoration(labelText: 'Zoom Password'),
-                ),
-              ],
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  TextField(
+                    controller: titleController,
+                    decoration: const InputDecoration(labelText: 'Название игры'),
+                  ),
+                  const SizedBox(height: 16),
+                  ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: Text(
+                        "Дата и время: ${DateFormat('dd.MM.yyyy HH:mm').format(selectedDate)}"),
+                    trailing: const Icon(Icons.access_time),
+                    onTap: () async {
+                      final pickedDate = await showDatePicker(
+                        context: context,
+                        initialDate: selectedDate,
+                        firstDate: DateTime.now().subtract(const Duration(days: 1)),
+                        lastDate: DateTime.now().add(const Duration(days: 365)),
+                        locale: const Locale('ru', 'RU'),
+                      );
+                      
+                      if (pickedDate != null && context.mounted) {
+                         final pickedTime = await showTimePicker(
+                            context: context,
+                            initialTime: TimeOfDay.fromDateTime(selectedDate),
+                         );
+  
+                         if (pickedTime != null) {
+                            setStateDialog(() {
+                              selectedDate = DateTime(
+                                 pickedDate.year, 
+                                 pickedDate.month, 
+                                 pickedDate.day, 
+                                 pickedTime.hour, 
+                                 pickedTime.minute
+                              );
+                            });
+                         }
+                      }
+                    },
+                  ),
+                  TextField(
+                    controller: zoomIdController,
+                    decoration: const InputDecoration(labelText: 'Zoom Meeting ID'),
+                    keyboardType: TextInputType.number,
+                  ),
+                  TextField(
+                    controller: zoomPasswordController,
+                    decoration: const InputDecoration(labelText: 'Zoom Password'),
+                  ),
+                  const Divider(),
+                  const Text("Ситуации", style: TextStyle(fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 8),
+                  
+                  // PACK DROPDOWN
+                  if (availablePacks.isEmpty)
+                     const Text("Загрузка пакетов... (или нет доступных)", style: TextStyle(fontSize: 12, color: Colors.grey))
+                  else
+                     DropdownButton<String>(
+                        isExpanded: true,
+                        value: selectedPackId,
+                        hint: const Text("Выберите пакет ситуаций"),
+                        items: availablePacks.map((p) {
+                           return DropdownMenuItem(value: p.id, child: Text(p.data()['title'] ?? 'Пакет'));
+                        }).toList(),
+                        onChanged: (val) {
+                           if (val != null) {
+                              setStateDialog(() {
+                                 selectedPackId = val;
+                                 selectedCategories = []; // Reset categories on pack change
+                                 
+                                 // Update categories list
+                                 final packData = availablePacks.firstWhere((p) => p.id == val).data();
+                                 final sits = (packData['situations'] as List<dynamic>? ?? []);
+                                 final cats = sits.map((s) => s['category'] as String? ?? "General").toSet().toList();
+                                 cats.sort();
+                                 availableCategories = cats;
+                              });
+                           }
+                        },
+                     ),
+                     
+                  const SizedBox(height: 8),
+                  // CATEGORIES MULTI-SELECT
+                  if (availableCategories.isNotEmpty) ...[
+                     const Text("Фильтр категорий (пусто = все):", style: TextStyle(fontSize: 12)),
+                     Wrap(
+                        spacing: 6,
+                        children: availableCategories.map((cat) {
+                           final isSelected = selectedCategories.contains(cat);
+                           return FilterChip(
+                              label: Text(cat, style: const TextStyle(fontSize: 11)),
+                              selected: isSelected,
+                              onSelected: (val) {
+                                 setStateDialog(() {
+                                    if (val) {
+                                       selectedCategories.add(cat);
+                                    } else {
+                                       selectedCategories.remove(cat);
+                                    }
+                                 });
+                              },
+                           );
+                        }).toList(),
+                     )
+                  ]
+                ],
+              ),
             ),
             actions: [
               TextButton(
@@ -115,6 +204,8 @@ class _GamesListScreenState extends State<GamesListScreen> {
                           date: selectedDate,
                           zoomId: zoomIdController.text,
                           zoomPassword: zoomPasswordController.text,
+                          situationPackId: selectedPackId,
+                          situationCategories: selectedCategories,
                         );
                       } else {
                         await _firestoreService.createGame(
@@ -122,6 +213,8 @@ class _GamesListScreenState extends State<GamesListScreen> {
                           date: selectedDate,
                           zoomId: zoomIdController.text,
                           zoomPassword: zoomPasswordController.text,
+                          situationPackId: selectedPackId,
+                          situationCategories: selectedCategories,
                         );
                       }
                       if (context.mounted) Navigator.pop(context);
@@ -234,7 +327,9 @@ class _GamesListScreenState extends State<GamesListScreen> {
                                       currentTitle: game['title'], 
                                       currentDate: date,
                                       currentZoomId: game['zoomId'],
-                                      currentZoomPassword: game['zoomPassword']
+                                      currentZoomPassword: game['zoomPassword'],
+                                      currentPackId: game['situationPackId'],
+                                      currentCategories: (game['situationCategories'] as List<dynamic>?)?.cast<String>(),
                                    );
                                 } else if (value == 'delete') {
                                    _deleteGame(docId, game['title'] ?? '');

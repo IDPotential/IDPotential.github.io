@@ -477,6 +477,64 @@ class FirestoreService {
       });
   }
 
+  // --- SITUATION PACKS & MIGRATION ---
+
+  Future<void> createSituationPack(String title, String description, List<Map<String, dynamic>> situations) async {
+    await _db.collection('situation_packs').add({
+      'title': title,
+      'description': description,
+      'situations': situations, // [{text: "...", category: "...", id: 1}]
+      'createdAt': FieldValue.serverTimestamp(),
+      'isPublic': true,
+    });
+  }
+
+  Future<List<QueryDocumentSnapshot<Map<String, dynamic>>>> getSituationPacks() async {
+    final snapshot = await _db.collection('situation_packs')
+        .where('isPublic', isEqualTo: true)
+        .orderBy('createdAt', descending: true)
+        .get();
+    return snapshot.docs;
+  }
+
+  Future<DocumentSnapshot<Map<String, dynamic>>> getSituationPack(String packId) async {
+    return await _db.collection('situation_packs').doc(packId).get();
+  }
+  
+  // Method to parse the specific text format and upload
+  Future<void> parseAndUploadSituations2026(String rawText) async {
+    final List<String> lines = rawText.split('\n');
+    List<Map<String, dynamic>> situations = [];
+    String currentCategory = "General";
+    
+    for (String line in lines) {
+      line = line.trim();
+      if (line.isEmpty) continue;
+      
+      if (line.startsWith("Категория:")) {
+         currentCategory = line.replaceAll("Категория:", "").trim();
+      } else if (RegExp(r'^\d+\.').hasMatch(line)) {
+         // "1. Text..."
+         final parts = line.split('.'); // Split by first dot
+         if (parts.length > 1) {
+            int? id = int.tryParse(parts[0]);
+            String text = parts.sublist(1).join('.').trim(); // Rejoin rest
+            if (id != null) {
+               situations.add({
+                  'id': id,
+                  'text': text,
+                  'category': currentCategory
+               });
+            }
+         }
+      }
+    }
+    
+    if (situations.isNotEmpty) {
+       await createSituationPack("Ситуации 2026", "Базовый набор ситуаций для онлайн игр.", situations);
+    }
+  }
+
   // --- Game Participation & Roles ---
   
   Future<void> joinGameRequest(String gameId, String userName, String? telegram, List<int> numbers) async {

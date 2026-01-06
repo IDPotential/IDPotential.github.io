@@ -57,6 +57,11 @@ service cloud.firestore {
     }
     
     // 2. Games Collection
+    match /situation_packs/{packId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+    
     match /games/{gameId} {
       allow read: if isAuthenticated();
       allow create, delete: if isAdmin();

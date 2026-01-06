@@ -12,7 +12,7 @@ import '../services/config_service.dart';
 import '../models/calculation.dart';
 import 'package:intl/intl.dart';
 import 'dart:math';
-import '../utils/situations_data.dart';
+// import '../utils/situations_data.dart'; // Removed after migration
 
 
 class ActiveGameScreen extends StatefulWidget {
@@ -56,6 +56,8 @@ class _ActiveGameScreenState extends State<ActiveGameScreen> {
   
   // Situation State
   Map<String, dynamic> _situation = {};
+  List<Map<String, dynamic>> _availableSituations = [];
+  bool _situationsLoaded = false;
 
   @override
   void initState() {
@@ -93,6 +95,11 @@ class _ActiveGameScreenState extends State<ActiveGameScreen> {
               _targetGameTitle = data['title'];
               _situation = data['situation'] ?? {};
             });
+            
+            // Allow Host/Controller to fetch situations once
+            if (!_situationsLoaded && (widget.isHost || _situation['controllerId'] == FirebaseAuth.instance.currentUser?.uid)) {
+                _fetchSituations(data['situationPackId'], data['situationCategories']);
+            }
          }
       });
 
@@ -530,10 +537,43 @@ class _ActiveGameScreenState extends State<ActiveGameScreen> {
     );
   }
 
+  Future<void> _fetchSituations(String? packId, dynamic categories) async {
+      if (packId == null) return;
+      
+      _situationsLoaded = true; // Prevent multiple fetches
+      
+      try {
+         final packDoc = await _firestoreService.getSituationPack(packId);
+         if (packDoc.exists && packDoc.data() != null) {
+            final allSituations = List<Map<String, dynamic>>.from(packDoc.data()!['situations'] ?? []);
+            
+            // Filter
+            List<String> validCategories = [];
+            if (categories is List) {
+               validCategories = categories.cast<String>();
+            }
+            
+            if (validCategories.isNotEmpty) {
+               _availableSituations = allSituations.where((s) => validCategories.contains(s['category'])).toList();
+            } else {
+               _availableSituations = allSituations;
+            }
+            
+            debugPrint("Loaded ${_availableSituations.length} situations from pack $packId");
+         }
+      } catch (e) {
+         debugPrint("Error loading situations: $e");
+      }
+  }
+
   void _randomizeSituation() {
-      if (gameSituations.isNotEmpty) {
-         final text = gameSituations[Random().nextInt(gameSituations.length)];
-         _firestoreService.setSituationText(_targetGameId, text);
+      if (_availableSituations.isNotEmpty) {
+         final s = _availableSituations[Random().nextInt(_availableSituations.length)];
+         _firestoreService.setSituationText(_targetGameId, s['text'] ?? "Ошибка текста");
+      } else {
+         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Ситуации не загружены или фильтр пуст!")));
+         // Retry load if failed or empty?? Maybe user didn't select pack correctly.
+         // fallback?
       }
   }
 
