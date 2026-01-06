@@ -11,6 +11,8 @@ import '../services/knowledge_service.dart';
 import '../services/config_service.dart';
 import '../models/calculation.dart';
 import 'package:intl/intl.dart';
+import 'dart:math';
+import '../utils/situations_data.dart';
 
 
 class ActiveGameScreen extends StatefulWidget {
@@ -51,6 +53,9 @@ class _ActiveGameScreenState extends State<ActiveGameScreen> {
   bool _isVideoActive = false; 
   String _roomName = '';
   final GlobalKey _zoomViewKey = GlobalKey();
+  
+  // Situation State
+  Map<String, dynamic> _situation = {};
 
   @override
   void initState() {
@@ -86,6 +91,7 @@ class _ActiveGameScreenState extends State<ActiveGameScreen> {
               _zoomId = data['zoomId'];
               _zoomPassword = data['zoomPassword'];
               _targetGameTitle = data['title'];
+              _situation = data['situation'] ?? {};
             });
          }
       });
@@ -389,22 +395,161 @@ class _ActiveGameScreenState extends State<ActiveGameScreen> {
   }
 
   Widget _buildZoomPanel() {
+    final bool isVisible = _situation['isVisible'] == true;
+    final String? controllerId = _situation['controllerId'];
+    final bool hasControl = widget.isHost || (FirebaseAuth.instance.currentUser?.uid == controllerId);
+
     return Stack(
       children: [
         HtmlElementView(key: _zoomViewKey, viewType: 'zoom-container'),
+        
+        // SITUATION OVERLAY
+        if (isVisible)
+           Positioned.fill(
+              child: Container(
+                 decoration: const BoxDecoration(
+                    image: DecorationImage(
+                       image: AssetImage('assets/images/Territory_Situations.png'),
+                       fit: BoxFit.cover,
+                    )
+                 ),
+                 padding: const EdgeInsets.all(32),
+                 alignment: Alignment.center,
+                 child: Text(
+                    _situation['text'] ?? "",
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                       fontFamily: 'DINPro', // Assuming added to pubspec, fallback to generic if not
+                       fontWeight: FontWeight.w900,
+                       fontSize: 24,
+                       color: Colors.white,
+                       shadows: [Shadow(color: Colors.black, blurRadius: 4, offset: Offset(1,1))]
+                    ),
+                 ),
+              )
+           ),
+
+        // Controls (Consolidated Top Right)
         Positioned(
-          top: 10, right: 10,
-          child: FloatingActionButton(
-            mini: true, backgroundColor: Colors.red,
-            child: const Icon(Icons.call_end),
-            onPressed: () {
-               zoom_js.leaveZoom();
-               setState(() => _isVideoActive = false);
-            },
+          top: 10, right: 10, // Move 10px from top/right
+          child: Column(
+             crossAxisAlignment: CrossAxisAlignment.end,
+             mainAxisSize: MainAxisSize.min,
+             children: [
+                // 1. Top Row: Host Settings + End Call
+                Row(
+                   mainAxisSize: MainAxisSize.min,
+                   children: [
+                      if (widget.isHost)
+                         IconButton(
+                            icon: const Icon(Icons.settings_accessibility, color: Colors.blueAccent),
+                            tooltip: "Назначить управление ситуацией",
+                            onPressed: _showSituationControllerDialog,
+                         ),
+                      FloatingActionButton(
+                         mini: true, backgroundColor: Colors.red,
+                         child: const Icon(Icons.call_end),
+                         onPressed: () {
+                            zoom_js.leaveZoom();
+                            setState(() => _isVideoActive = false);
+                         },
+                      ),
+                   ],
+                ),
+                
+                // 2. Situation Controls (Below Top Row)
+                if (hasControl) ...[
+                   const SizedBox(height: 12),
+                   Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                         // Refresh Button
+                         FloatingActionButton(
+                            mini: true,
+                            heroTag: 'refresh_sit',
+                            backgroundColor: Colors.blueGrey,
+                            child: const Icon(Icons.refresh, color: Colors.white),
+                            onPressed: _randomizeSituation,
+                         ),
+                         const SizedBox(width: 8),
+                         // Push-to-Show Button
+                         Listener(
+                            onPointerDown: (_) => _firestoreService.setSituationVisible(_targetGameId, true),
+                            onPointerUp: (_) => _firestoreService.setSituationVisible(_targetGameId, false),
+                            child: FloatingActionButton(
+                               mini: false, // Bigger button
+                               heroTag: 'show_sit',
+                               backgroundColor: isVisible ? Colors.green : Colors.orange,
+                               onPressed: () {}, // Handled by Listener
+                               child: const Icon(Icons.visibility),
+                            )
+                         )
+                      ],
+                   )
+                ]
+             ],
           ),
         ),
+        
+        // Remove old Bottom Right Positioned block (It's now merged above)
       ],
     );
+  }
+
+  void _randomizeSituation() {
+      if (gameSituations.isNotEmpty) {
+         final text = gameSituations[Random().nextInt(gameSituations.length)];
+         _firestoreService.setSituationText(_targetGameId, text);
+      }
+  }
+
+  void _showSituationControllerDialog() {
+      // Fetch participants provided we have the stream or stored list. 
+      // We can use the stream builder pattern or just fetch once.
+      showDialog(
+         context: context,
+         builder: (ctx) => AlertDialog(
+            title: const Text("Кто выбирает ситуацию?"),
+            content: SizedBox(
+               width: 300,
+               height: 400,
+               child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+                  stream: _firestoreService.getGameParticipantsStream(_targetGameId),
+                  builder: (context, snapshot) {
+                     if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
+                     final docs = snapshot.data!.docs;
+                     
+                     return ListView(
+                        shrinkWrap: true,
+                        children: [
+                           ListTile(
+                              title: const Text("Только Ведущий"),
+                              leading: const Icon(Icons.person_outline),
+                              onTap: () {
+                                 _firestoreService.setSituationController(_targetGameId, null);
+                                 Navigator.pop(ctx);
+                              },
+                           ),
+                           const Divider(),
+                           ...docs.map((d) {
+                              final name = d.data()['name'];
+                              return ListTile(
+                                 title: Text(name),
+                                 leading: const Icon(Icons.face),
+                                 selected: _situation['controllerId'] == d.id,
+                                 onTap: () {
+                                    _firestoreService.setSituationController(_targetGameId, d.id);
+                                    Navigator.pop(ctx);
+                                 },
+                              );
+                           }).toList()
+                        ],
+                     );
+                  }
+               ),
+            ),
+         )
+      );
   }
 
   // Reuse logic directly

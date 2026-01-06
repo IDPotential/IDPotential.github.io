@@ -450,7 +450,33 @@ class FirestoreService {
     }
     return null;
   }
+
+  // --- Situation Management ---
+
+  Future<void> updateSituation(String gameId, Map<String, dynamic> data) async {
+      final updateData = data.map((key, value) => MapEntry('situation.$key', value));
+      await _db.collection('games').doc(gameId).update(updateData);
+  }
+
+  Future<void> setSituationVisible(String gameId, bool isVisible) async {
+      await _db.collection('games').doc(gameId).update({
+          'situation.isVisible': isVisible
+      });
+  }
   
+  Future<void> setSituationText(String gameId, String text) async {
+      await _db.collection('games').doc(gameId).update({
+          'situation.text': text
+      });
+  }
+
+  Future<void> setSituationController(String gameId, String? userId) async {
+      // null userId means only Host controls
+      await _db.collection('games').doc(gameId).update({
+          'situation.controllerId': userId
+      });
+  }
+
   // --- Game Participation & Roles ---
   
   Future<void> joinGameRequest(String gameId, String userName, String? telegram, List<int> numbers) async {
