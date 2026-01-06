@@ -342,22 +342,26 @@ class FirestoreService {
       });
   }
 
-  Future<void> voteForPlayer(String gameId, String targetUserId) async {
+  Future<void> voteForPlayer(String gameId, String targetUserId, [String? voterId]) async {
       final user = _auth.currentUser;
       if (user == null) return;
       
+      final uid = voterId ?? user.uid;
+      
       // 1. Mark who the voter voted for (to display on host dashboard & count totals)
-      final voterRef = _db.collection('games').doc(gameId).collection('participants').doc(user.uid);
+      final voterRef = _db.collection('games').doc(gameId).collection('participants').doc(uid);
       await voterRef.update({
           'votedFor': targetUserId
       });
   }
 
-  Future<void> clearVote(String gameId) async {
+  Future<void> clearVote(String gameId, [String? voterId]) async {
       final user = _auth.currentUser;
       if (user == null) return;
       
-      final voterRef = _db.collection('games').doc(gameId).collection('participants').doc(user.uid);
+      final uid = voterId ?? user.uid;
+      
+      final voterRef = _db.collection('games').doc(gameId).collection('participants').doc(uid);
       
       await voterRef.update({
           'votedFor': FieldValue.delete()

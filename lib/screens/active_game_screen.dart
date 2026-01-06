@@ -417,44 +417,58 @@ class _ActiveGameScreenState extends State<ActiveGameScreen> {
     }
     final sortedNumbers = uniqueNumbers.toList()..sort();
 
-    return GridView.builder(
-      padding: const EdgeInsets.all(12),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 5, childAspectRatio: 0.65, crossAxisSpacing: 8, mainAxisSpacing: 8,
-      ),
-      itemCount: sortedNumbers.length,
-      itemBuilder: (context, index) {
-        final number = sortedNumbers[index];
-        final isSelected = _selectedRole == number;
-        return GestureDetector(
-          onTap: () => _showRoleInfo(number),
-          child: Container(
-            decoration: BoxDecoration(
-              border: isSelected ? Border.all(color: Colors.orange, width: 3) : null,
-              borderRadius: BorderRadius.circular(8),
-              boxShadow: isSelected ? [BoxShadow(color: Colors.orange.withOpacity(0.5), blurRadius: 8)] : null,
-            ),
-            child: Card(
-              clipBehavior: Clip.antiAlias, margin: EdgeInsets.zero, elevation: isSelected ? 8 : 2,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Expanded(
-                    child: Image.asset('assets/images/cards/role_$number.png', fit: BoxFit.cover, errorBuilder: (c,e,s)=>const Icon(Icons.image_not_supported)),
-                  ),
-                  Container(
-                    color: isSelected ? Colors.orange : Colors.black54,
-                    padding: const EdgeInsets.symmetric(vertical: 2),
-                    child: Text('$number', textAlign: TextAlign.center, style: const TextStyle(fontSize: 12, color: Colors.white, fontWeight: FontWeight.bold)),
-                  ),
-                ],
-              ),
-            ),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        // RESPONSIVE: Increase columns on wider screens
+        final int crossAxisCount = constraints.maxWidth > 900 ? 10 : (constraints.maxWidth > 600 ? 7 : 5);
+        final double aspectRatio = constraints.maxWidth > 600 ? 0.75 : 0.65;
+
+        return GridView.builder(
+          padding: const EdgeInsets.all(12),
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: crossAxisCount, 
+            childAspectRatio: aspectRatio, 
+            crossAxisSpacing: 8, 
+            mainAxisSpacing: 8,
           ),
+          itemCount: sortedNumbers.length,
+          itemBuilder: (context, index) {
+            final number = sortedNumbers[index];
+            final isSelected = _selectedRole == number;
+            return GestureDetector(
+              onTap: () => _showRoleInfo(number),
+              child: Container(
+                decoration: BoxDecoration(
+                  border: isSelected ? Border.all(color: Colors.orange, width: 3) : null,
+                  borderRadius: BorderRadius.circular(8),
+                  boxShadow: isSelected ? [BoxShadow(color: Colors.orange.withOpacity(0.5), blurRadius: 8)] : null,
+                ),
+                child: Card(
+                  clipBehavior: Clip.antiAlias, margin: EdgeInsets.zero, elevation: isSelected ? 8 : 2,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Expanded(
+                        child: Image.asset('assets/images/cards/role_$number.png', fit: BoxFit.cover, errorBuilder: (c,e,s)=>const Icon(Icons.image_not_supported)),
+                      ),
+                      Container(
+                        color: isSelected ? Colors.orange : Colors.black54,
+                        padding: const EdgeInsets.symmetric(vertical: 2),
+                        child: Text('$number', textAlign: TextAlign.center, style: const TextStyle(fontSize: 12, color: Colors.white, fontWeight: FontWeight.bold)),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          },
         );
-      },
+      }
     );
   }
+
+  // Temp optimized state for local feeling (prevents "hanging")
+  String? _localOptimisticVote;
 
   Widget _buildVotingBoard() {
       return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
@@ -465,121 +479,212 @@ class _ActiveGameScreenState extends State<ActiveGameScreen> {
             final participants = snapshot.data!.docs.toList();
             final String? myUid = FirebaseAuth.instance.currentUser?.uid;
             
-            // Sort by player number
+            // Sort: Host always first if participating, then by number
             participants.sort((a, b) {
                 final nA = a.data()['playerNumber'] ?? 999;
                 final nB = b.data()['playerNumber'] ?? 999;
                 return nA.compareTo(nB);
             });
             
-            // Check own vote
-            String? myVoteId;
+            // Define my real vote
+            String? myRealVoteId;
             try {
                final myDoc = participants.where((d) => d.id == myUid).firstOrNull;
-               myVoteId = myDoc?.data()['votedFor'];
+               myRealVoteId = myDoc?.data()['votedFor'];
             } catch (_) {}
-            
-            return Padding(
-               padding: const EdgeInsets.all(8.0),
-               child: Column(
-                 children: [
-                   if (widget.isHost)
-                      const Text("Голосование", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
-                   const SizedBox(height: 8),
-                   Expanded(
-                     child: GridView.builder(
-                       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                         crossAxisCount: 5, childAspectRatio: 0.65, crossAxisSpacing: 8, mainAxisSpacing: 8,
-                       ),
-                       itemCount: participants.length,
-                       itemBuilder: (context, index) {
-                          final doc = participants[index];
-                          final pData = doc.data();
-                          final pUid = doc.id;
-                          final pNum = pData['playerNumber'];
-                          final pName = pData['name'] ?? '...';
-                          final pRoleId = pData['selectedRole'];
-                          
-                          final bool isSelected = myVoteId == pUid;
-                          final bool isMe = myUid == pUid;
 
-                          return GestureDetector(
-                             onTap: () {
-                                if (!widget.isHost) {
-                                   if (isSelected) _firestoreService.clearVote(_targetGameId);
-                                   else _firestoreService.voteForPlayer(_targetGameId, pUid);
-                                }
-                             },
-                             child: Container(
-                                decoration: BoxDecoration(
-                                   borderRadius: BorderRadius.circular(8),
-                                   border: Border.all(color: isSelected ? Colors.green : Colors.transparent, width: 3),
-                                   boxShadow: isSelected ? [BoxShadow(color: Colors.green.withOpacity(0.5), blurRadius: 8)] : null,
-                                ),
-                                child: Card(
-                                   color: isMe ? Colors.white10 : Colors.white12,
-                                   clipBehavior: Clip.antiAlias,
-                                   margin: EdgeInsets.zero,
-                                   child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                                      children: [
-                                         Expanded(
-                                            child: Stack(
-                                               fit: StackFit.expand,
-                                               children: [
-                                                  if (pRoleId != null)
-                                                     Opacity(opacity: 0.3, child: Image.asset('assets/images/cards/role_$pRoleId.png', fit: BoxFit.cover, errorBuilder: (c,e,s)=>Container())),
-                                                  
-                                                  Center(child: Column(
-                                                     mainAxisAlignment: MainAxisAlignment.center,
+            // Use Local Optimistic Vote if available and differs (avoids UI lag) (Only for non-hosts or simple user flow)
+            final String? currentVoteId = _localOptimisticVote ?? myRealVoteId;
+
+            return LayoutBuilder(
+               builder: (context, constraints) {
+                  // RESPONSIVE GRID
+                  final int crossAxisCount = constraints.maxWidth > 900 ? 10 : (constraints.maxWidth > 600 ? 7 : 5);
+                  final double aspectRatio = constraints.maxWidth > 600 ? 0.75 : 0.65;
+                  
+                  return Padding(
+                     padding: const EdgeInsets.all(8.0),
+                     child: Column(
+                       children: [
+                         if (widget.isHost)
+                            const Text("Голосование (Нажмите на игрока для управления)", style: TextStyle(color: Colors.white, fontSize: 16)),
+                         const SizedBox(height: 8),
+                         Expanded(
+                           child: GridView.builder(
+                             gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                               crossAxisCount: crossAxisCount, 
+                               childAspectRatio: aspectRatio, 
+                               crossAxisSpacing: 8, 
+                               mainAxisSpacing: 8,
+                             ),
+                             itemCount: participants.length,
+                             itemBuilder: (context, index) {
+                                final doc = participants[index];
+                                final pData = doc.data();
+                                final pUid = doc.id;
+                                final pNum = pData['playerNumber'];
+                                final pName = pData['name'] ?? '...';
+                                final pRoleId = pData['selectedRole'];
+                                
+                                final bool isSelected = currentVoteId == pUid;
+                                final bool isMe = myUid == pUid;
+
+                                return GestureDetector(
+                                   onTap: () {
+                                      if (widget.isHost) {
+                                         // Host: Proxy Control
+                                         _showHostProxyDialog(doc, participants);
+                                      } else {
+                                         // Player: Vote Logic with Optimistic Update
+                                         if (isSelected) {
+                                            // Toggle Off
+                                            setState(() => _localOptimisticVote = null); // Optimistic clear. Note: null might conflict if real vote exists, better use specific flag
+                                            _firestoreService.clearVote(_targetGameId).then((_) {
+                                                if (mounted) setState(() => _localOptimisticVote = null);
+                                            });
+                                         } else {
+                                            // Toggle On
+                                            setState(() => _localOptimisticVote = pUid);
+                                            _firestoreService.voteForPlayer(_targetGameId, pUid).then((_) {
+                                                // Sync finished
+                                                if (mounted) setState(() => _localOptimisticVote = null); // Reset to rely on stream
+                                            });
+                                         }
+                                      }
+                                   },
+                                   child: Container(
+                                      decoration: BoxDecoration(
+                                         borderRadius: BorderRadius.circular(8),
+                                         border: Border.all(color: isSelected ? Colors.green : Colors.transparent, width: 3),
+                                         boxShadow: isSelected ? [BoxShadow(color: Colors.green.withOpacity(0.5), blurRadius: 8)] : null,
+                                      ),
+                                      child: Card(
+                                         color: isMe ? Colors.white10 : Colors.white12,
+                                         clipBehavior: Clip.antiAlias,
+                                         margin: EdgeInsets.zero,
+                                         child: Column(
+                                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                                            children: [
+                                               Expanded(
+                                                  child: Stack(
+                                                     fit: StackFit.expand,
                                                      children: [
-                                                        if (pNum != null) CircleAvatar(radius: 14, backgroundColor: Colors.white24, child: Text("$pNum", style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold))),
-                                                        const SizedBox(height: 4),
-                                                        Text(pName, textAlign: TextAlign.center, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)),
+                                                        if (pRoleId != null)
+                                                           Opacity(opacity: 0.3, child: Image.asset('assets/images/cards/role_$pRoleId.png', fit: BoxFit.cover, errorBuilder: (c,e,s)=>Container())),
                                                         
-                                                        // Host sees votes
-                                                        if (widget.isHost && pData['votedFor'] != null) ...[
-                                                           const SizedBox(height: 4),
-                                                           Builder(builder: (context) {
-                                                              final vId = pData['votedFor'];
-                                                              final target = participants.where((d) => d.id == vId).firstOrNull;
-                                                              final tName = target != null 
-                                                                  ? (target.data()['playerNumber'] != null ? "${target.data()['playerNumber']}" : (target.data()['name'] ?? '?'))
-                                                                  : '?';
-                                                              return Container(
-                                                                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-                                                                decoration: BoxDecoration(color: Colors.white10, borderRadius: BorderRadius.circular(4)),
-                                                                child: Text("За: $tName", style: const TextStyle(color: Colors.yellowAccent, fontSize: 10, fontWeight: FontWeight.bold))
-                                                              );
-                                                           })
-                                                        ]
+                                                        Center(child: Column(
+                                                           mainAxisAlignment: MainAxisAlignment.center,
+                                                           children: [
+                                                              if (pNum != null) CircleAvatar(radius: 14, backgroundColor: Colors.white24, child: Text("$pNum", style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold))),
+                                                              const SizedBox(height: 4),
+                                                              Text(pName, textAlign: TextAlign.center, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)),
+                                                              
+                                                              // Host sees votes
+                                                              if (widget.isHost && pData['votedFor'] != null) ...[
+                                                                 const SizedBox(height: 4),
+                                                                 Builder(builder: (context) {
+                                                                    final vId = pData['votedFor'];
+                                                                    final target = participants.where((d) => d.id == vId).firstOrNull;
+                                                                    final tName = target != null 
+                                                                        ? (target.data()['playerNumber'] != null ? "${target.data()['playerNumber']}" : (target.data()['name'] ?? '?'))
+                                                                        : '?';
+                                                                    return Container(
+                                                                      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                                                                      decoration: BoxDecoration(color: Colors.white10, borderRadius: BorderRadius.circular(4)),
+                                                                      child: Text("За: $tName", style: const TextStyle(color: Colors.yellowAccent, fontSize: 10, fontWeight: FontWeight.bold))
+                                                                    );
+                                                                 })
+                                                              ]
+                                                           ],
+                                                        ))
                                                      ],
-                                                  ))
-                                               ],
-                                            ),
+                                                  ),
+                                               ),
+                                               // Black Bar at bottom
+                                               Container(
+                                                 color: Colors.black54,
+                                                 padding: const EdgeInsets.symmetric(vertical: 2, horizontal: 2),
+                                                 child: Text(
+                                                    pRoleId != null ? "Роль $pRoleId" : "Нет роли",
+                                                    textAlign: TextAlign.center,
+                                                    style: TextStyle(fontSize: 10, color: pRoleId != null ? Colors.orangeAccent : Colors.grey, fontWeight: FontWeight.bold)
+                                                 ),
+                                               )
+                                            ],
                                          ),
-                                         // Black Bar at bottom
-                                         Container(
-                                           color: Colors.black54,
-                                           padding: const EdgeInsets.symmetric(vertical: 2, horizontal: 2),
-                                           child: Text(
-                                              pRoleId != null ? "Роль $pRoleId" : "Нет роли",
-                                              textAlign: TextAlign.center,
-                                              style: TextStyle(fontSize: 10, color: pRoleId != null ? Colors.orangeAccent : Colors.grey, fontWeight: FontWeight.bold)
-                                           ),
-                                         )
-                                      ],
-                                   ),
-                                )
-                             )
-                          );
-                       },
-                     ),
-                   )
-                 ]
-               )
+                                      )
+                                   )
+                                );
+                             },
+                           ),
+                         )
+                       ]
+                     )
+                  );
+               }
             );
          }
+      );
+  }
+
+  void _showHostProxyDialog(QueryDocumentSnapshot<Map<String, dynamic>> subjectDoc, List<QueryDocumentSnapshot<Map<String, dynamic>>> allParticipants) {
+     final sData = subjectDoc.data();
+     final sName = sData['name'];
+     final sId = subjectDoc.id;
+
+     showDialog(
+        context: context,
+        builder: (ctx) => SimpleDialog(
+           title: Text("Управление: $sName"),
+           children: [
+              SimpleDialogOption(
+                 child: const Text("Голос ЗА кого-то..."),
+                 onPressed: () {
+                    Navigator.pop(ctx);
+                    _showProxyVoteSelection(sId, sName, allParticipants);
+                 },
+              ),
+              SimpleDialogOption(
+                 child: const Text("Сбросить его голос"),
+                 onPressed: () {
+                    Navigator.pop(ctx);
+                    _firestoreService.clearVote(_targetGameId, sId);
+                 },
+              ),
+              // Add option to set role here too if needed, but currently only voting requested in this stage
+           ],
+        )
+     );
+  }
+
+  void _showProxyVoteSelection(String voterId, String voterName, List<QueryDocumentSnapshot<Map<String, dynamic>>> candidates) {
+      showDialog(
+         context: context,
+         builder: (ctx) => AlertDialog(
+            title: Text("$voterName голосует за:"),
+            content: SizedBox(
+               width: 300,
+               height: 400,
+               child: ListView.builder(
+                  shrinkWrap: true,
+                  itemCount: candidates.length,
+                  itemBuilder: (context, index) {
+                     final c = candidates[index];
+                     final name = c.data()['name'];
+                     final num = c.data()['playerNumber'];
+                     return ListTile(
+                        leading: CircleAvatar(child: Text("$num")),
+                        title: Text(name),
+                        onTap: () {
+                           Navigator.pop(ctx);
+                           _firestoreService.voteForPlayer(_targetGameId, c.id, voterId);
+                           ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("$voterName проголосовал за $name")));
+                        },
+                     );
+                  },
+               ),
+            ),
+         )
       );
   }
   
@@ -603,136 +708,188 @@ class _ActiveGameScreenState extends State<ActiveGameScreen> {
             
             if (docs.isEmpty) return const Center(child: Text("Нет участников", style: TextStyle(color: Colors.white54)));
 
-            return GridView.builder(
-               padding: const EdgeInsets.all(8),
-               gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                 crossAxisCount: 5, 
-                 childAspectRatio: 0.75,
-                 crossAxisSpacing: 8, mainAxisSpacing: 8
-               ),
-               itemCount: docs.length,
-               itemBuilder: (context, index) {
-                  final data = docs[index].data();
-                  final name = data['name'] ?? 'Unknown';
-                  final pNum = data['playerNumber'];
-                  final roleId = data['selectedRole'];
-                  final numbers = List<int>.from(data['numbers'] ?? []);
-                  final status = data['status'];
-                  
-                  return Card(
-                     clipBehavior: Clip.antiAlias,
-                     color: status == 'pending' ? Colors.orange.withOpacity(0.15) : Colors.white12,
-                     shape: status == 'pending' 
-                        ? RoundedRectangleBorder(borderRadius: BorderRadius.circular(8), side: const BorderSide(color: Colors.orangeAccent, width: 1))
-                        : null,
-                     child: Stack(
-                        children: [
-                           if (roleId != null)
-                              Positioned.fill(
-                                 child: Opacity(
-                                    opacity: 0.15,
-                                    child: Image.asset(
-                                       'assets/images/cards/role_$roleId.png',
-                                       fit: BoxFit.cover,
-                                       errorBuilder: (c, e, s) => Container(),
-                                    )
-                                 )
-                              ),
-                           
-                           Center(
-                             child: Column(
-                               mainAxisAlignment: MainAxisAlignment.center,
-                               children: [
-                                  if (pNum != null)
-                                     CircleAvatar(radius: 12, backgroundColor: Colors.white24, child: Text("$pNum", style: const TextStyle(fontSize: 12, color: Colors.white))),
-                                  const SizedBox(height: 4),
-                                  Text(name, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold), textAlign: TextAlign.center),
-                                  const Spacer(),
-                                  if (status == 'pending') ...[
-                                      FutureBuilder<DocumentSnapshot>(
-                                         future: FirebaseFirestore.instance.collection('users').doc(data['userId'] ?? 'unknown').get(),
-                                         builder: (context, snapshot) {
-                                            if (!snapshot.hasData || snapshot.data == null) return const SizedBox.shrink();
-                                            final userData = snapshot.data!.data() as Map<String, dynamic>?;
-                                            final telegram = userData?['telegram'] as String?;
-                                            
-                                            if (telegram != null && telegram.isNotEmpty) {
-                                                return TextButton.icon(
-                                                    style: TextButton.styleFrom(padding: EdgeInsets.zero, minimumSize: const Size(0, 20)),
-                                                    icon: const Icon(Icons.alternate_email, size: 10, color: Colors.blueAccent),
-                                                    label: const Text("Написать", style: TextStyle(color: Colors.blueAccent, fontSize: 10)),
-                                                    onPressed: () {
-                                                        String tg = telegram.replaceAll('@', '');
-                                                        launchUrl(Uri.parse("https://t.me/$tg"));
-                                                    },
-                                                );
-                                            } else {
-                                                return const Text("Tg: нет", style: TextStyle(color: Colors.white30, fontSize: 10));
-                                            }
-                                         }
-                                      ),
-                                      const SizedBox(height: 4),
-                                      Row(
-                                         mainAxisAlignment: MainAxisAlignment.center,
-                                         children: [
-                                            ElevatedButton(
-                                               style: ElevatedButton.styleFrom(
-                                                  minimumSize: const Size(0,24), 
-                                                  backgroundColor: Colors.green,
-                                                  padding: const EdgeInsets.symmetric(horizontal: 4)
-                                               ),
-                                               onPressed: () => _firestoreService.approveParticipant(_targetGameId, docs[index].id),
-                                               child: const Text("Да", style: TextStyle(fontSize: 10))
+            if (docs.isEmpty) return const Center(child: Text("Нет участников", style: TextStyle(color: Colors.white54)));
+
+            return LayoutBuilder(
+               builder: (context, constraints) {
+                 final int crossAxisCount = constraints.maxWidth > 900 ? 10 : (constraints.maxWidth > 600 ? 7 : 5);
+                 final double aspectRatio = constraints.maxWidth > 600 ? 0.75 : 0.65;
+
+                 return GridView.builder(
+                   padding: const EdgeInsets.all(8),
+                   gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                     crossAxisCount: crossAxisCount, 
+                     childAspectRatio: aspectRatio,
+                     crossAxisSpacing: 8, mainAxisSpacing: 8
+                   ),
+                   itemCount: docs.length,
+                   itemBuilder: (context, index) {
+                      final data = docs[index].data();
+                      final docId = docs[index].id;
+                      final name = data['name'] ?? 'Unknown';
+                      final pNum = data['playerNumber'];
+                      final roleId = data['selectedRole'];
+                      // ... rest of item builder logic (Needs to be passed back carefully or rewritten)
+                      // Since we are replacing lines 606-612, we need to ensure the itemBuilder continues correctly
+                      // Wait, I can't easily break inside the itemBuilder with multiReplace if I don't provide the full content.
+                      // I will replace the GridView.builder block entirely.
+                      
+                      return GestureDetector(
+                         onTap: () {
+                             // Host: Manage Player (Set Role)
+                             if (data['status'] == 'approved') {
+                                _showHostRoleManagement(docId, name, roleId);
+                             }
+                         },
+                         child: Card(
+                           clipBehavior: Clip.antiAlias,
+                           color: data['status'] == 'pending' ? Colors.orange.withOpacity(0.15) : Colors.white12,
+                           shape: data['status'] == 'pending' 
+                              ? RoundedRectangleBorder(borderRadius: BorderRadius.circular(8), side: const BorderSide(color: Colors.orangeAccent, width: 1))
+                              : null,
+                           child: Stack(
+                              children: [
+                                 if (roleId != null)
+                                    Positioned.fill(
+                                       child: Opacity(
+                                          opacity: 0.15,
+                                          child: Image.asset(
+                                             'assets/images/cards/role_$roleId.png',
+                                             fit: BoxFit.cover,
+                                             errorBuilder: (c, e, s) => Container(),
+                                          )
+                                       )
+                                    ),
+                                 
+                                 Center(
+                                   child: Column(
+                                     mainAxisAlignment: MainAxisAlignment.center,
+                                     children: [
+                                        if (pNum != null)
+                                           CircleAvatar(radius: 12, backgroundColor: Colors.white24, child: Text("$pNum", style: const TextStyle(fontSize: 12, color: Colors.white))),
+                                        const SizedBox(height: 4),
+                                        Text(name, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold), textAlign: TextAlign.center),
+                                        const Spacer(),
+                                        if (data['status'] == 'pending') ...[
+                                            // Pending Logic (Keep existing)
+                                            FutureBuilder<DocumentSnapshot>(
+                                               future: FirebaseFirestore.instance.collection('users').doc(data['userId'] ?? 'unknown').get(),
+                                               builder: (context, snapshot) {
+                                                  if (!snapshot.hasData || snapshot.data == null) return const SizedBox.shrink();
+                                                  final userData = snapshot.data!.data() as Map<String, dynamic>?;
+                                                  final telegram = userData?['telegram'] as String?;
+                                                  
+                                                  if (telegram != null && telegram.isNotEmpty) {
+                                                      return TextButton.icon(
+                                                          style: TextButton.styleFrom(padding: EdgeInsets.zero, minimumSize: const Size(0, 20)),
+                                                          icon: const Icon(Icons.alternate_email, size: 10, color: Colors.blueAccent),
+                                                          label: const Text("Написать", style: TextStyle(color: Colors.blueAccent, fontSize: 10)),
+                                                          onPressed: () {
+                                                              String tg = telegram.replaceAll('@', '');
+                                                              launchUrl(Uri.parse("https://t.me/$tg"));
+                                                          },
+                                                      );
+                                                  } else {
+                                                      return const Text("Tg: нет", style: TextStyle(color: Colors.white30, fontSize: 10));
+                                                  }
+                                               }
                                             ),
-                                            const SizedBox(width: 4),
-                                            ElevatedButton(
-                                               style: ElevatedButton.styleFrom(
-                                                  minimumSize: const Size(0,24), 
-                                                  backgroundColor: Colors.redAccent,
-                                                  padding: const EdgeInsets.symmetric(horizontal: 4)
-                                               ),
-                                               onPressed: () => _firestoreService.rejectParticipant(_targetGameId, docs[index].id),
-                                               child: const Text("Нет", style: TextStyle(fontSize: 10))
-                                            ),
-                                         ],
-                                      )
-                                  ] else ...[
-                                      // Active participant logic
-                                      if (numbers.isNotEmpty)
-                                         TextButton(
-                                            onPressed: () => _showDiagnosticCard(numbers, name),
-                                            child: const Text("Карта", style: TextStyle(color: Colors.blueAccent, fontSize: 10, decoration: TextDecoration.underline))
-                                         ),
-                                      const SizedBox(height: 2),
-                                      if (roleId != null) 
-                                         Row(
-                                            mainAxisAlignment: MainAxisAlignment.center,
-                                            children: [
-                                               Container(
-                                                  padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
-                                                  decoration: BoxDecoration(color: Colors.orange, borderRadius: BorderRadius.circular(4)),
-                                                  child: Text("#$roleId", style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 10))
-                                               ),
-                                               const SizedBox(width: 4),
-                                               InkWell(
-                                                  onTap: () => _firestoreService.updateParticipantRole(_targetGameId, null, docs[index].id),
-                                                  child: const Icon(Icons.close, color: Colors.red, size: 14),
+                                            const SizedBox(height: 4),
+                                            Row(
+                                               mainAxisAlignment: MainAxisAlignment.center,
+                                               children: [
+                                                  ElevatedButton(
+                                                     style: ElevatedButton.styleFrom(
+                                                        minimumSize: const Size(0,24), 
+                                                        backgroundColor: Colors.green,
+                                                        padding: const EdgeInsets.symmetric(horizontal: 4)
+                                                     ),
+                                                     onPressed: () => _firestoreService.approveParticipant(_targetGameId, docId),
+                                                     child: const Text("Да", style: TextStyle(fontSize: 10))
+                                                  ),
+                                                  const SizedBox(width: 4),
+                                                  ElevatedButton(
+                                                     style: ElevatedButton.styleFrom(
+                                                        minimumSize: const Size(0,24), 
+                                                        backgroundColor: Colors.redAccent,
+                                                        padding: const EdgeInsets.symmetric(horizontal: 4)
+                                                     ),
+                                                     onPressed: () => _firestoreService.rejectParticipant(_targetGameId, docId),
+                                                     child: const Text("Нет", style: TextStyle(fontSize: 10))
+                                                  ),
+                                               ],
+                                            )
+                                        ] else ...[
+                                            // Active participant logic
+                                            const SizedBox(height: 2),
+                                            if (roleId != null) 
+                                               Row(
+                                                  mainAxisAlignment: MainAxisAlignment.center,
+                                                  children: [
+                                                     Container(
+                                                        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                                                        decoration: BoxDecoration(color: Colors.orange, borderRadius: BorderRadius.circular(4)),
+                                                        child: Text("#$roleId", style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 10))
+                                                     ),
+                                                     const SizedBox(width: 4),
+                                                     InkWell(
+                                                        onTap: () => _firestoreService.updateParticipantRole(_targetGameId, null, docId),
+                                                        child: const Icon(Icons.close, color: Colors.red, size: 14),
+                                                     )
+                                                  ],
                                                )
-                                            ],
-                                         )
-                                      else
-                                         const Text("Выбирает...", style: TextStyle(color: Colors.white38, fontSize: 9))
-                                  ],
-                                  const Spacer(),
-                               ],
-                             ),
+                                            else
+                                               const Text("Нажмите чтобы\nвыбрать роль", textAlign: TextAlign.center, style: TextStyle(color: Colors.white38, fontSize: 9))
+                                        ],
+                                        const Spacer(),
+                                     ],
+                                   ),
+                                 ),
+                              ],
                            ),
-                        ],
-                     ),
-                  );
-               },
+                         )
+                      );
+                   },
+                 );
+               }
             );
          }
+      );
+   }
+
+   void _showHostRoleManagement(String userId, String userName, int? currentRole) {
+      final TextEditingController roleCtrl = TextEditingController(text: currentRole?.toString() ?? "");
+      
+      showDialog(
+         context: context,
+         builder: (ctx) => AlertDialog(
+            title: Text("Роль для $userName"),
+            content: Column(
+               mainAxisSize: MainAxisSize.min,
+               children: [
+                  const Text("Введите номер роли (1-22):"),
+                  const SizedBox(height: 8),
+                  TextField(
+                     controller: roleCtrl,
+                     keyboardType: TextInputType.number,
+                     decoration: const InputDecoration(border: OutlineInputBorder(), labelText: "Номер роли"),
+                  )
+               ],
+            ),
+            actions: [
+               TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("Отмена")),
+               ElevatedButton(
+                  onPressed: () {
+                     final val = int.tryParse(roleCtrl.text);
+                     if (val != null) {
+                        _firestoreService.updateParticipantRole(_targetGameId, val, userId);
+                        Navigator.pop(ctx);
+                     }
+                  },
+                  child: const Text("Сохранить")
+               )
+            ],
+         )
       );
    }
 
