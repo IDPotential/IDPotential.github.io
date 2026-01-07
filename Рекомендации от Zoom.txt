@@ -1,0 +1,53 @@
+Рекомендуется: Component View
+Этот режим позволяет полностью контролировать внешний вид Zoom встраивания.
+
+Преимущества:
+
+Можно разместить видео участников в любых блоках вашего интерфейса.
+Настраивается адаптивность под размеры контейнера.
+Можно скрыть стандартные кнопки Zoom и реализовать свои.
+Пример базовой инициализации:
+
+import { ZoomMtgEmbedded } from '@zoomus/websdk/embedded';
+
+const client = ZoomMtgEmbedded.createClient();
+
+client.init({
+  zoomAppRoot: document.getElementById('zoomContainer'),
+  language: 'ru-RU',
+  customize: {
+    video: {
+      isResizable: true,
+      viewSizes: { default: { width: 100, height: 100 } }
+    },
+    toolbar: {
+      buttons: []
+    }
+  }
+});
+
+client.join({
+  sdkKey: YOUR_SDK_KEY,
+  signature: YOUR_SIGNATURE,
+  meetingNumber: MEETING_ID,
+  userName: 'User',
+  password: MEETING_PASS
+});
+
+
+
+CSS для адаптивности:
+
+#zoomContainer {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+canvas {
+  object-fit: cover;
+  width: 100%;
+  height: 100%;
+}

@@ -1,4 +1,4 @@
-void initZoom(String meetingId, String password, String name, String sdkKey, String sdkSecret) {
+void initZoom(String meetingId, String password, String name, String sdkKey, String sdkSecret, [Map<String, dynamic>? customization]) {
   // No-op on mobile
 }
 

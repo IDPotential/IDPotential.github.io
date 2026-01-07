@@ -13,6 +13,7 @@ import '../services/knowledge_service.dart';
 import '../models/calculation.dart';
 import 'package:intl/intl.dart';
 import 'active_game_screen.dart';
+import '../services/database_service.dart';
 
 class GameScreen extends StatefulWidget {
   final String? gameId;
@@ -66,7 +67,6 @@ class _GameScreenState extends State<GameScreen> {
     if (widget.gameId != null) {
        _targetGameId = widget.gameId;
        _initGameListeners();
-    } else {
        _initGameListeners();
     } else {
        _loadGameSession();
@@ -664,10 +664,7 @@ ToggleButtons(
       MaterialPageRoute(builder: (context) => ActiveGameScreen(
          gameId: _targetGameId!, 
          isHost: _isHost, 
-         playerNumber: _playerNumber,
-         selectedRole: _selectedRole, 
-         zoomId: _zoomId,
-         zoomPassword: _zoomPassword,
+         gameProfile: _gameProfile,
       )),
     );
   }

@@ -134,12 +134,23 @@ class _ActiveGameScreenState extends State<ActiveGameScreen> {
       final userName = user?.displayName ?? widget.gameProfile?.name.split(' ')[0] ?? "Player";
 
       Future.delayed(const Duration(milliseconds: 500), () {
+          // Customized View Settings based on Role
+          Map<String, dynamic> customize = {
+             'video': {
+                'isResizable': true,
+                'viewSizes': {
+                    'default': {'width': 960, 'height': 540}
+                }
+             }
+          };
+
           zoom_js.initZoom(
               _zoomId!, 
               _zoomPassword ?? "", 
               userName,
               ConfigService().zoomKey,
-              ConfigService().zoomSecret
+              ConfigService().zoomSecret,
+              customize
           );
       });
   }
