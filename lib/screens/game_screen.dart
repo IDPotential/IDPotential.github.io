@@ -13,6 +13,7 @@ import '../services/knowledge_service.dart';
 import '../models/calculation.dart';
 import 'package:intl/intl.dart';
 import 'active_game_screen.dart';
+import 'training_game_screen.dart';
 import '../services/database_service.dart';
 
 class GameScreen extends StatefulWidget {
