@@ -6,6 +6,7 @@ import '../services/firestore_service.dart';
 import '../services/auth_service.dart';
 import 'login_screen.dart';
 import 'games_list_screen.dart';
+import 'game_details_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -924,6 +925,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
                            Text("Место: $rank/$total", style: const TextStyle(fontSize: 10, color: Colors.grey)),
                         ],
                      ),
+                     onTap: () {
+                        Navigator.push(
+                           context, 
+                           MaterialPageRoute(builder: (context) => GameDetailsScreen(
+                              gameId: docs[index].id,
+                              gameTitle: title,
+                              totalScore: score,
+                              rank: rank,
+                           ))
+                        );
+                     },
                   ),
                );
             }

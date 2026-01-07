@@ -257,12 +257,19 @@ class FirestoreService {
   }
 
   Future<void> endRound(String gameId) async {
-      final participants = await _db.collection('games').doc(gameId).collection('participants').get();
       final gameRef = _db.collection('games').doc(gameId);
+      
+      // Fetch Game Doc first to get Situation and Stats
+      final gameDoc = await gameRef.get();
+      final gameData = gameDoc.data() ?? {};
+      final String situationText = (gameData['situation'] as Map?)?['text'] ?? "Контекст не сохранен";
+      final int currentRoundCount = gameData['roundCount'] ?? 0;
+      final Map<String, dynamic> currentStats = Map<String, dynamic>.from(gameData['stats'] ?? {});
+
+      final participants = await gameRef.collection('participants').get();
       final batch = _db.batch();
 
-      // 1. Calculate and record stats for this round
-      // cumulativeStats: { userId: totalVotes }
+      // 1. Calculate votes for this round
       Map<String, int> roundVotes = {};
       for (var doc in participants.docs) {
           final data = doc.data();
@@ -272,26 +279,46 @@ class FirestoreService {
           }
       }
 
-      // Update cumulative stats on game doc
-      final gameDoc = await gameRef.get();
-      Map<String, dynamic> cumulative = Map<String, dynamic>.from(gameDoc.data()?['stats'] ?? {});
+      // 2. Update cumulative stats & Save History
       roundVotes.forEach((uid, voteCount) {
-          cumulative[uid] = (cumulative[uid] ?? 0) + voteCount;
+          currentStats[uid] = (currentStats[uid] ?? 0) + voteCount;
       });
 
-      batch.update(gameRef, {
-          'stats': cumulative,
-          'stage': 'selection' // Reset to selection for next round
-      });
-
-      // 2. Reset participant choices
       for (var doc in participants.docs) {
+          final data = doc.data();
+          final uid = doc.id;
+          final receivedVotes = roundVotes[uid] ?? 0;
+          final role = data['selectedRole'];
+          final answer = data['currentAnswer'];
+
+          // Save History for User
+          if (role != null || answer != null) {
+             final historyRef = _db.collection('users').doc(uid).collection('game_history').doc(gameId).collection('rounds').doc();
+             batch.set(historyRef, {
+                 'situation': situationText,
+                 'answer': answer, // Check null in UI
+                 'role': role,
+                 'votes': receivedVotes,
+                 'timestamp': FieldValue.serverTimestamp(),
+                 'roundIndex': currentRoundCount + 1
+             });
+          }
+
+          // Reset Participant
           batch.update(doc.reference, {
               'selectedRole': FieldValue.delete(),
               'votedFor': FieldValue.delete(),
-              'votes': [], // Clear voters list
+              'votes': [], 
+              'currentAnswer': FieldValue.delete(),
           });
       }
+
+      // 3. Update Game State
+      batch.update(gameRef, {
+          'stats': currentStats,
+          'stage': 'selection',
+          'roundCount': FieldValue.increment(1) 
+      });
 
       await batch.commit();
   }
@@ -583,8 +610,34 @@ class FirestoreService {
        'votes': [],
      }, SetOptions(merge: true));
 
-     // Notify Admin via Telegram
+  // Notify Admin via Telegram
      _notifyAdminOfJoinRequest(userName, telegram, gameId);
+  }
+
+  Future<void> updateParticipantAnswer(String gameId, String answer) async {
+     final user = _auth.currentUser;
+     if (user == null) return;
+     await _db.collection('games').doc(gameId).collection('participants').doc(user.uid).update({
+        'currentAnswer': answer
+     });
+  }
+
+  Future<void> addVirtualParticipant(String gameId, String name, List<int> numbers) async {
+      // Use a timestamp-based ID to avoid collisions and allow easy identification
+      final String virtId = 'virt_${DateTime.now().millisecondsSinceEpoch}';
+
+      await _db.collection('games').doc(gameId).collection('participants').doc(virtId).set({
+        'userId': virtId,
+        'name': name,
+        'telegram': null, // Virtual players don't have telegram
+        'numbers': numbers,
+        'status': 'approved', // Virtual players are auto-approved
+        'playerNumber': null,
+        'selectedRole': null,
+        'updatedAt': FieldValue.serverTimestamp(),
+        'votes': [],
+        'isVirtual': true, // Flag to identify virtual players
+      });
   }
 
   void _notifyAdminOfJoinRequest(String name, String? tg, String gameId) async {

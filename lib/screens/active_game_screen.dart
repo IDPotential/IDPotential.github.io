@@ -12,6 +12,7 @@ import '../services/config_service.dart';
 import '../models/calculation.dart';
 import 'package:intl/intl.dart';
 import 'dart:math';
+import 'dart:async';
 // import '../utils/situations_data.dart'; // Removed after migration
 
 
@@ -58,6 +59,10 @@ class _ActiveGameScreenState extends State<ActiveGameScreen> {
   Map<String, dynamic> _situation = {};
   List<Map<String, dynamic>> _availableSituations = [];
   bool _situationsLoaded = false;
+
+  // Answer Input
+  final TextEditingController _answerController = TextEditingController();
+  Timer? _answerDebouncer;
 
   @override
   void initState() {
@@ -346,10 +351,31 @@ class _ActiveGameScreenState extends State<ActiveGameScreen> {
                           // Spacer to balance the row if no role selected, or empty width
                           const SizedBox(width: 48), // Approx width of Home button
                    ],
-                ),
-              ),
-              Expanded(child: _buildRolesGrid()),
-           ]
+                  ),
+               ),
+               // Answer Input
+               Padding(
+                 padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                 child: TextField(
+                    controller: _answerController,
+                    onChanged: _onAnswerChanged,
+                    style: const TextStyle(color: Colors.white),
+                    decoration: InputDecoration(
+                       labelText: "Ваш ответ на ситуацию",
+                       labelStyle: const TextStyle(color: Colors.white70),
+                       hintText: "Введите ваш ответ здесь...",
+                       hintStyle: const TextStyle(color: Colors.white30),
+                       filled: true,
+                       fillColor: Colors.white10,
+                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    ),
+                    maxLines: 2,
+                    minLines: 1,
+                 ),
+               ),
+               Expanded(child: _buildRolesGrid()),
+            ]
         ],
       ),
     );
@@ -419,15 +445,12 @@ class _ActiveGameScreenState extends State<ActiveGameScreen> {
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        // User requested shift ONLY in wide version (where 10 cards fit -> >900px)
-        final bool isWide = constraints.maxWidth > 900;
-        final double vShift = isWide ? 20.0 : 0.0;
-
+        // User reports Zoom stretches well now, no need for shift
+        
         return Stack(
           children: [
-            // Zoom Window moved up to reveal bottom controls
-            Positioned(
-               top: -vShift, left: 0, right: 0, bottom: vShift,
+            // Zoom Window (Full width/height of container)
+            Positioned.fill(
                child: HtmlElementView(key: _zoomViewKey, viewType: 'zoom-container'),
             ),
         
@@ -503,20 +526,16 @@ class _ActiveGameScreenState extends State<ActiveGameScreen> {
                       onPressed: _randomizeSituation,
                    ),
                    const SizedBox(width: 8),
-                   Listener(
-                      onPointerDown: (_) => _firestoreService.setSituationVisible(_targetGameId, true),
-                      onPointerUp: (_) => _firestoreService.setSituationVisible(_targetGameId, false),
-                      child: FloatingActionButton(
-                         mini: false, // Bigger button
-                         heroTag: 'show_sit',
-                         backgroundColor: isVisible ? Colors.green : Colors.orange,
-                         onPressed: () {}, // Handled by Listener
-                         child: const Icon(Icons.visibility),
-                      )
+                   FloatingActionButton(
+                      mini: false, // Bigger button
+                      heroTag: 'show_sit',
+                      backgroundColor: isVisible ? Colors.green : Colors.orange,
+                      onPressed: () => _firestoreService.setSituationVisible(_targetGameId, !isVisible),
+                      tooltip: isVisible ? "Скрыть ситуацию" : "Показать ситуацию",
+                      child: Icon(isVisible ? Icons.visibility_off : Icons.visibility),
                    ),
                    const SizedBox(width: 16), // Space between situation and host/call controls
                 ],
-
                 // 2. Host Settings
                 if (widget.isHost) ...[
                    IconButton(
@@ -921,8 +940,21 @@ class _ActiveGameScreenState extends State<ActiveGameScreen> {
     // --- HOST SPECIFIC: SELECTION/LOBBY BOARD ---
 
    Widget _buildHostSelectionBoard() {
-      return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-         stream: _firestoreService.getGameParticipantsStream(_targetGameId),
+      return Column(
+        children: [
+           Padding(
+             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+             child: ElevatedButton.icon(
+                icon: const Icon(Icons.person_add),
+                label: const Text("Добавить игрока (Виртуальный)"),
+                style: ElevatedButton.styleFrom(backgroundColor: Colors.blueGrey),
+                onPressed: _showAddVirtualPlayerDialog,
+             )
+           ),
+           Expanded(
+              child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+                 stream: _firestoreService.getGameParticipantsStream(_targetGameId),
+
          builder: (context, snapshot) {
             if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
             final docs = snapshot.data!.docs.toList();
@@ -1091,7 +1123,12 @@ class _ActiveGameScreenState extends State<ActiveGameScreen> {
             );
          }
       );
-   }
+            }
+         );
+    }
+  ) // StreamBuilder
+  ); // Expanded
+ }
 
    void _showHostRoleManagement(String userId, String userName, int? currentRole) {
       final TextEditingController roleCtrl = TextEditingController(text: currentRole?.toString() ?? "");
@@ -1510,6 +1547,89 @@ class _ActiveGameScreenState extends State<ActiveGameScreen> {
              ],
           )
        );
+   }
+
+   void _showAddVirtualPlayerDialog() {
+       final nameCtrl = TextEditingController();
+       
+       showDialog(
+           context: context,
+           builder: (context) => DefaultTabController(
+               length: 2,
+               child: AlertDialog(
+                   backgroundColor: const Color(0xFF1E293B),
+                   title: const Text("Добавить Виртуального Игрока", style: TextStyle(color: Colors.white)),
+                   content: SizedBox(
+                       width: 400,
+                       height: 500,
+                       child: Column(
+                           children: [
+                               const TabBar(
+                                   tabs: [
+                                       Tab(text: "Вручную"),
+                                       Tab(text: "Из Истории"),
+                                   ]
+                               ),
+                               Expanded(
+                                   child: TabBarView(
+                                       children: [
+                                           // Tab 1: Manual
+                                           Column(
+                                               mainAxisAlignment: MainAxisAlignment.center,
+                                               children: [
+                                                   TextField(
+                                                       controller: nameCtrl,
+                                                       style: const TextStyle(color: Colors.white),
+                                                       decoration: const InputDecoration(labelText: "Имя игрока", labelStyle: TextStyle(color: Colors.white70)),
+                                                   ),
+                                                   const SizedBox(height: 20),
+                                                   ElevatedButton(
+                                                       onPressed: () {
+                                                           if (nameCtrl.text.isNotEmpty) {
+                                                               Navigator.pop(context, {'name': nameCtrl.text, 'numbers': <int>[]});
+                                                           }
+                                                       },
+                                                       child: const Text("Создать")
+                                                   )
+                                               ]
+                                           ),
+                                           
+                                           // Tab 2: History
+                                           FutureBuilder<List<Calculation>>(
+                                               future: DatabaseService().getCalculations(), 
+                                               builder: (context, snapshot) {
+                                                   if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
+                                                   final list = snapshot.data!;
+                                                   if (list.isEmpty) return const Center(child: Text("История пуста", style: TextStyle(color: Colors.white54)));
+                                                   
+                                                   return ListView.builder(
+                                                       itemCount: list.length,
+                                                       itemBuilder: (context, index) {
+                                                           final c = list[index];
+                                                           return ListTile(
+                                                               title: Text(c.name, style: const TextStyle(color: Colors.white)),
+                                                               subtitle: Text(DateFormat('dd.MM.yy').format(c.createdAt), style: const TextStyle(color: Colors.white54)),
+                                                               onTap: () {
+                                                                   Navigator.pop(context, {'name': c.name, 'numbers': c.numbers});
+                                                               }
+                                                           );
+                                                       }
+                                                   );
+                                               }
+                                           )
+                                       ]
+                                   )
+                               )
+                           ]
+                       )
+                   )
+               )
+           ) 
+       ).then((result) {
+            if (result != null && result is Map) {
+                _firestoreService.addVirtualParticipant(_targetGameId, result['name'], result['numbers'] ?? []);
+            }
+       });
    }
    }
 

@@ -77,6 +77,7 @@ class _GameScreenState extends State<GameScreen> {
   void dispose() {
       _gameSubscription?.cancel();
       _participantSubscription?.cancel();
+      _gamesListSubscription?.cancel();
       // Zoom cleanup handled in ActiveGameScreen
       _nameController.dispose();
       _telegramController.dispose();
@@ -86,21 +87,31 @@ class _GameScreenState extends State<GameScreen> {
   bool _showGameSelection = false;
   List<QueryDocumentSnapshot<Map<String, dynamic>>> _availableGames = [];
 
-  Future<void> _loadGameSession() async {
+  List<QueryDocumentSnapshot<Map<String, dynamic>>> _latestGamesDocs = [];
+
+  void _loadGameSession() {
+      // Clean up previous sub
+      _gamesListSubscription?.cancel();
+
       String? lastGameId;
       try {
-         // Attempt to restore session
          lastGameId = DatabaseService().settingsBox.get('active_game_id');
       } catch (_) {}
       
-      final snapshot = await _firestoreService.getGamesStream().first;
-      final games = snapshot.docs;
-      
+      _gamesListSubscription = _firestoreService.getGamesStream().listen((snapshot) {
+          _latestGamesDocs = snapshot.docs;
+          _processGamesList(_latestGamesDocs, lastGameId);
+      }, onError: (e) {
+         debugPrint("Games List Stream Error: $e");
+      });
+  }
+
+  void _processGamesList(List<QueryDocumentSnapshot<Map<String, dynamic>>> games, [String? lastGameId]) {
       if (games.isEmpty) {
-         if (mounted) setState(() {});
-         return;
+          if (mounted) setState(() { _availableGames = []; });
+          return;
       }
-      
+
       _availableGames = games;
 
       // Client-side sorting
@@ -109,38 +120,55 @@ class _GameScreenState extends State<GameScreen> {
           final d2 = b.data()['scheduledAt'] ?? '';
           return d1.compareTo(d2);
       });
+      
+      if (_targetGameId != null) {
+          // Check if current game still exists and is valid
+          final exists = games.any((g) => g.id == _targetGameId);
+          if (!exists) {
+              // Game was removed or archived/status changed out of filter
+              // Automatically reset to trigger selection of new game
+              if (mounted) {
+                 setState(() {
+                    _targetGameId = null;
+                 });
+                 // Re-process recursively (without _targetGameId this time)
+                 _processGamesList(games, lastGameId);
+              }
+          }
+          return;
+      }
 
       QueryDocumentSnapshot<Map<String, dynamic>>? targetDoc;
       
       // 1. Try to restore specific session
       if (lastGameId != null && games.any((g) => g.id == lastGameId)) {
-         targetDoc = games.firstWhere((g) => g.id == lastGameId);
+        targetDoc = games.firstWhere((g) => g.id == lastGameId);
       } 
       // 2. Auto-join if only one game
       else if (games.length == 1) {
-         targetDoc = games.first;
+        targetDoc = games.first;
       } 
-      // 3. Fallback to selection
       else {
-          if (mounted) {
-             setState(() {
-                _showGameSelection = true;
-                // If restore failed (game finished/archived?), clear the pref
-                if (lastGameId != null) {
-                   DatabaseService().settingsBox.delete('active_game_id');
-                }
-             });
-          }
+          // Multiple games - let user choose, but update list if already showing selection
+          if (mounted) setState(() {
+              _showGameSelection = true;
+               if (lastGameId != null) {
+                  DatabaseService().settingsBox.delete('active_game_id');
+               }
+          });
           return;
       }
       
       if (targetDoc != null) {
-         _selectGame(targetDoc.id, targetDoc.data());
+          _selectGame(targetDoc.id, targetDoc.data());
       }
   }
 
   void _selectGame(String gameId, Map<String, dynamic> data) {
       if (mounted) {
+         // If we are auto-selecting, close selection screen
+         _showGameSelection = false;
+         
          setState(() {
             _targetGameId = gameId;
             _targetGameTitle = data['title'];
@@ -165,9 +193,26 @@ class _GameScreenState extends State<GameScreen> {
      if (_targetGameId == null) return;
      
      _gameSubscription = _firestoreService.getGameStream(_targetGameId!).listen((doc) {
-        if (!doc.exists) return;
+        if (!doc.exists) {
+           // Game deleted
+           if (mounted) {
+              setState(() { _targetGameId = null; });
+              _processGamesList(_latestGamesDocs);
+           }
+           return;
+        }
+        
         final data = doc.data();
         if (data != null) {
+           if (data['status'] == 'archived') {
+              // Game archived - kick logic handled here
+               if (mounted) {
+                  setState(() { _targetGameId = null; });
+                  _processGamesList(_latestGamesDocs);
+               }
+               return;
+           }
+
            if (mounted) setState(() {
              _gameStage = data['stage'] ?? 'selection';
              _gameStatus = data['status'] ?? 'active';
@@ -178,7 +223,6 @@ class _GameScreenState extends State<GameScreen> {
         }
      }, onError: (e) {
          debugPrint("Game Stream Error: $e");
-         if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Ошибка связи с игрой: $e")));
      });
   }
 
