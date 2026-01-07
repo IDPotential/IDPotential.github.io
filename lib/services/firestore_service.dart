@@ -773,7 +773,9 @@ class FirestoreService {
     return _db.collection('users').doc(user.uid).collection('game_history')
         .orderBy('timestamp', descending: true)
         .snapshots();
-    // --- Training Game Mode ---
+  }
+
+  // --- Training Game Mode ---
 
   Future<int> getDailyTrainingCount() async {
       final user = _auth.currentUser;
