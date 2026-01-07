@@ -1679,24 +1679,58 @@ ToggleButtons(
                      return d1.compareTo(d2); // Simple string sort for ISO8601 works
                   });
 
-                  return ListView.builder(
-                     itemCount: games.length,
-                     itemBuilder: (context, index) {
-                        final gameDoc = games[index];
-                        final game = gameDoc.data();
-                        final gameId = gameDoc.id;
-                        final dateStr = game['scheduledAt'];
-                        DateTime date = DateTime.now();
-                        if (dateStr != null) {
-                           if (dateStr is Timestamp) {
-                              date = dateStr.toDate();
-                           } else {
-                              try { date = DateTime.parse(dateStr.toString()); } catch(_) {}
+                  return ListView(
+                     children: [
+                        // Training Game Card (Always First)
+                        Card(
+                           margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                           color: Colors.blueGrey.withOpacity(0.3),
+                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: const BorderSide(color: Colors.blueAccent)),
+                           child: ListTile(
+                              contentPadding: const EdgeInsets.all(16),
+                              leading: Container(
+                                 width: 50, height: 50,
+                                 decoration: BoxDecoration(color: Colors.blueAccent.withOpacity(0.2), borderRadius: BorderRadius.circular(8)),
+                                 child: const Icon(Icons.fitness_center, color: Colors.blueAccent, size: 30),
+                              ),
+                              title: const Text("Тренировочная игра", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18)),
+                              subtitle: const Column(
+                                 crossAxisAlignment: CrossAxisAlignment.start,
+                                 children: [
+                                    SizedBox(height: 4),
+                                    Text("Одиночный режим • Без видео", style: TextStyle(color: Colors.white70)),
+                                    Text("Лимит: 2 ситуации в день", style: TextStyle(color: Colors.amber, fontSize: 12)),
+                                 ],
+                              ),
+                              trailing: const Icon(Icons.chevron_right, color: Colors.white54),
+                              onTap: () {
+                                 Navigator.push(context, MaterialPageRoute(builder: (_) => const TrainingGameScreen()));
+                              },
+                           ),
+                        ),
+                        
+                        // Active Games Header
+                        if (games.isNotEmpty)
+                           const Padding(
+                              padding: EdgeInsets.fromLTRB(16, 16, 16, 8),
+                              child: Text("Игры с ведущим:", style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold)),
+                           ),
+
+                        // List of Games
+                        ...games.map((gameDoc) {
+                           final game = gameDoc.data();
+                           final gameId = gameDoc.id;
+                           final dateStr = game['scheduledAt'];
+                           DateTime date = DateTime.now();
+                           if (dateStr != null) {
+                              if (dateStr is Timestamp) {
+                                  date = dateStr.toDate();
+                              } else {
+                                  try { date = DateTime.parse(dateStr.toString()); } catch(_) {}
+                              }
+                           } else if (game['scheduledTimestamp'] != null) { 
+                              date = (game['scheduledTimestamp'] as Timestamp).toDate();
                            }
-                        } else if (game['scheduledTimestamp'] != null) { 
-                           // Fallback if schema changes
-                           date = (game['scheduledTimestamp'] as Timestamp).toDate();
-                        }
                         
                         // Defensive check for DateFormat if it was previously string
                          String dateDisplay;

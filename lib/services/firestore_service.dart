@@ -773,5 +773,58 @@ class FirestoreService {
     return _db.collection('users').doc(user.uid).collection('game_history')
         .orderBy('timestamp', descending: true)
         .snapshots();
+    // --- Training Game Mode ---
+
+  Future<int> getDailyTrainingCount() async {
+      final user = _auth.currentUser;
+      if (user == null) return 2; // Fail safe
+
+      final now = DateTime.now();
+      final dateKey = "${now.year}-${now.month}-${now.day}";
+
+      final doc = await _db.collection('users').doc(user.uid).collection('training_stats').doc(dateKey).get();
+      if (!doc.exists) return 0;
+      return doc.data()?['count'] ?? 0;
   }
+
+  Future<void> saveTrainingResult(String situationText, int role, String packId, String situationId) async {
+      final user = _auth.currentUser;
+      if (user == null) return;
+
+      final now = DateTime.now();
+      final dateKey = "${now.year}-${now.month}-${now.day}"; // YYYY-M-D
+
+      // Transaction to ensure atomicity of count increment
+      await _db.runTransaction((transaction) async {
+          final statsRef = _db.collection('users').doc(user.uid).collection('training_stats').doc(dateKey);
+          final histRef = _db.collection('users').doc(user.uid).collection('game_history').doc(); // Auto-ID
+
+          final statsDoc = await transaction.get(statsRef);
+          int currentCount = 0;
+          if (statsDoc.exists) {
+              currentCount = statsDoc.data()?['count'] ?? 0;
+          }
+
+          if (currentCount >= 2) {
+             throw Exception("Daily limit reached");
+          }
+
+          // 1. Increment Count
+          transaction.set(statsRef, {'count': currentCount + 1, 'updatedAt': FieldValue.serverTimestamp()}, SetOptions(merge: true));
+
+          // 2. Save History Entry
+          transaction.set(histRef, {
+             'gameId': 'training_$dateKey',
+             'gameTitle': 'Тренировочная игра ($dateKey)',
+             'date': FieldValue.serverTimestamp(),
+             'hostName': 'Тренер (Бот)',
+             'role': role, // 1-21
+             'situation': situationText,
+             'situationId': situationId,
+             'isTraining': true,
+             'votes': 0, // No votes in single player
+          });
+      });
+  }
+}
 }
