@@ -101,7 +101,7 @@ class GameDetailsScreen extends StatelessWidget {
                                                 const SizedBox(width: 12),
                                                 InkWell(
                                                    onTap: () {
-                                                      Navigator.push(context, MaterialPageRoute(builder: (_) => RoleDetailScreen(roleNumber: role)));
+                                                      Navigator.push(context, MaterialPageRoute(builder: (_) => RoleDetailScreen(number: role, isAspect: false)));
                                                    },
                                                    child: Text(
                                                       "Выбрана Роль $role ${KnowledgeService.getRoleInfo(role)['role_name'] ?? ''}", 
