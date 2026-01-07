@@ -23,9 +23,19 @@ void main() async {
   }
 
   // Init Remote Config
-  await ConfigService().initialize();
+  try {
+     await ConfigService().initialize();
+  } catch(e) {
+     print("Remote Config Init Error: $e");
+  }
   
-  await DatabaseService().init();
+  try {
+    await DatabaseService().init();
+  } catch (e) {
+    print("Database Init Error: $e");
+    // Fallback? If DB fails, app runs but history might be empty.
+  }
+
   runApp(const MyApp());
 }
 
