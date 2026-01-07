@@ -220,15 +220,51 @@ async function initZoom(meetingNumber, password, userName, sdkKey, sdkSecret, cu
                             top: 50% !important;
                             transform: translate(-50%, -50%) !important;
                          }
+
+                        /* --- LARGER ZOOM BUTTONS --- */
+                        /* Footer Toolbar Container */
+                        .footer {
+                            height: 80px !important; /* Increase bar height */
+                            padding-bottom: 10px !important;
+                        }
+                        
+                        .footer__toolbar {
+                            margin-bottom: 0px !important;
+                            height: 100% !important;
+                        }
+
+                        /* Button Container */
+                        .footer-button__button {
+                            width: 90px !important; /* Wider touch area */
+                            height: 70px !important; /* Taller touch area */
+                            margin: 0 5px !important;
+                            transform: scale(1.2); /* Slight visual scale up */
+                        }
+
+                        /* Icons */
+                        .footer-button__button-icon {
+                            font-size: 28px !important; /* Larger icon */
+                            width: 28px !important;
+                            height: 28px !important;
+                        }
+
+                        /* Labels */
+                        .footer-button__button-label {
+                            font-size: 14px !important; /* Larger text */
+                            margin-top: 4px !important;
+                        }
+                        
+                        /* "End" Button - Make it very prominent */
+                        .footer__leave-btn {
+                             transform: scale(1.3) !important;
+                             margin-left: 20px !important;
+                        }
                     `;
                     document.head.appendChild(style);
                 }
             };
 
             injectCustomCss();
-
-            // Run once and on resize
-            scaleZoomContent();
 
             // Run once and on resize
             scaleZoomContent();
