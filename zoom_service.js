@@ -171,25 +171,64 @@ async function initZoom(meetingNumber, password, userName, sdkKey, sdkSecret, cu
                     container.style.justifyContent = 'center';
                     container.style.alignItems = 'center';
                     container.style.position = 'relative';
-                    container.style.overflow = 'hidden';
+                    container.style.overflow = 'hidden'; // Keep hidden to clip content that scales out? Or visible? 
+                    // Usually hidden is safer for iframe boundaries, but might clip popups.
+                    // However, we are centering popups now with CSS.
 
                     // Prepare the content content
                     // IMPORTANT: Reset position to relative so flexbox controls layout
-                    zoomRoot.style.position = 'relative';
+                    zoomRoot.style.position = 'absolute'; // Changed to absolute for reliable transform origin centering
                     zoomRoot.style.width = targetWidth + "px";
                     zoomRoot.style.height = targetHeight + "px";
 
-                    // Reset margins that might interfere
+                    // Reset positioning
                     zoomRoot.style.margin = "0";
-                    zoomRoot.style.left = "auto";
-                    zoomRoot.style.top = "-50px"; // Manual offset upwards per user request
+                    zoomRoot.style.left = "50%";
+                    zoomRoot.style.top = "50%";
 
-                    // APPLY SCALE
-                    // Center-center origin ensures it shrinks towards the flex-center point
-                    zoomRoot.style.transform = `scale(${scale})`;
+                    // APPLY SCALE & CENTERING
+                    // We use translate(-50%, -50%) to center the element itself, then scale it.
+                    // Order of transform matters.
+                    zoomRoot.style.transform = `translate(-50%, -50%) scale(${scale})`;
                     zoomRoot.style.transformOrigin = 'center center';
                 }
             };
+
+            // Inject Custom CSS to force popups to center
+            const injectCustomCss = () => {
+                const styleId = 'zoom-custom-style-overrides';
+                if (!document.getElementById(styleId)) {
+                    const style = document.createElement('style');
+                    style.id = styleId;
+                    style.innerHTML = `
+                        /* Force Center Zoom Popups (Settings, Chat, Participants) */
+                        .zm-modal, .ant-modal, .suspension-window, .dialog-window-wrap, .img-layer {
+                            left: 50% !important;
+                            top: 50% !important;
+                            transform: translate(-50%, -50%) !important;
+                            position: fixed !important; /* Fixed relative to viewport/iframe */
+                        }
+                        
+                        /* Fix overlap issues by ensuring the bottom toolbar has clearance if needed */
+                        .footer__toolbar {
+                            margin-bottom: 0px !important; 
+                        }
+                        
+                        /* Ensure Chat Window is centered */
+                         #chat-app, .chat-window-wrap, .chat-panel {
+                            left: 50% !important;
+                            top: 50% !important;
+                            transform: translate(-50%, -50%) !important;
+                         }
+                    `;
+                    document.head.appendChild(style);
+                }
+            };
+
+            injectCustomCss();
+
+            // Run once and on resize
+            scaleZoomContent();
 
             // Run once and on resize
             scaleZoomContent();
