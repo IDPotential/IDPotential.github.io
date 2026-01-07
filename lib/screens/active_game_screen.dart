@@ -1126,8 +1126,10 @@ class _ActiveGameScreenState extends State<ActiveGameScreen> {
             }
          );
     }
-  ) // StreamBuilder
-  ); // Expanded
+  )
+  );
+        ],
+      );
  }
 
    void _showHostRoleManagement(String userId, String userName, int? currentRole) {
