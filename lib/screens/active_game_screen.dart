@@ -1621,8 +1621,10 @@ class _ActiveGameScreenState extends State<ActiveGameScreen> {
                 // Update Game Situation
                 _firestoreService.updateSituation(
                    _targetGameId,
-                   sit['text'],
-                   sit['id']?.toString()
+                   {
+                      'text': sit['text'],
+                      'id': sit['id']?.toString()
+                   }
                 );
                 // Also show it visible immediately
                 _firestoreService.setSituationVisible(_targetGameId, true);
