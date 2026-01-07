@@ -88,25 +88,10 @@ class GameDetailsScreen extends StatelessWidget {
                                        Text(situation, style: const TextStyle(fontSize: 15)),
                                        const SizedBox(height: 16),
                                        
-                                       const Text("Ваш ответ:", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.blueAccent)),
-                                       const SizedBox(height: 4),
-                                       Container(
-                                          padding: const EdgeInsets.all(12),
-                                          decoration: BoxDecoration(
-                                             color: Colors.black12,
-                                             borderRadius: BorderRadius.circular(8),
-                                             border: Border.all(color: Colors.white10)
-                                          ),
-                                          child: Text(
-                                             answer ?? "Нет ответа", 
-                                             style: TextStyle(
-                                                fontStyle: answer == null ? FontStyle.italic : FontStyle.normal,
-                                                color: answer == null ? Colors.grey : Colors.white
-                                             )
-                                          ),
-                                       ),
-                                       
-                                       const SizedBox(height: 16),
+                                       // Removed 'Your Answer' section by request
+                                       // const Text("Ваш ответ:", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.blueAccent)),
+                                       // const SizedBox(height: 4),
+                                       // ...
                                        Row(
                                           children: [
                                              if (role != null) ...[

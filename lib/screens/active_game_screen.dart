@@ -364,27 +364,27 @@ class _ActiveGameScreenState extends State<ActiveGameScreen> {
                    ],
                   ),
                ),
-               // Answer Input
-               Padding(
-                 padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-                 child: TextField(
-                    controller: _answerController,
-                    onChanged: _onAnswerChanged,
-                    style: const TextStyle(color: Colors.white),
-                    decoration: InputDecoration(
-                       labelText: "Ваш ответ на ситуацию",
-                       labelStyle: const TextStyle(color: Colors.white70),
-                       hintText: "Введите ваш ответ здесь...",
-                       hintStyle: const TextStyle(color: Colors.white30),
-                       filled: true,
-                       fillColor: Colors.white10,
-                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-                       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                    ),
-                    maxLines: 2,
-                    minLines: 1,
-                 ),
-               ),
+               // Answer Input removed by request
+               // Padding(
+               //   padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+               //   child: TextField(
+               //      controller: _answerController,
+               //      onChanged: _onAnswerChanged,
+               //      style: const TextStyle(color: Colors.white),
+               //      decoration: InputDecoration(
+               //         labelText: "Ваш ответ на ситуацию",
+               //         labelStyle: const TextStyle(color: Colors.white70),
+               //         hintText: "Введите ваш ответ здесь...",
+               //         hintStyle: const TextStyle(color: Colors.white30),
+               //         filled: true,
+               //         fillColor: Colors.white10,
+               //         border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+               //         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+               //      ),
+               //      maxLines: 2,
+               //      minLines: 1,
+               //   ),
+               // ),
                Expanded(child: _buildRolesGrid()),
             ]
         ],
@@ -1567,7 +1567,13 @@ class _ActiveGameScreenState extends State<ActiveGameScreen> {
                    style: ElevatedButton.styleFrom(backgroundColor: Colors.orange),
                    onPressed: () async {
                       Navigator.pop(ctx);
-                      await _firestoreService.endRound(_targetGameId);
+                      try {
+                         await _firestoreService.endRound(_targetGameId);
+                      } catch (e) {
+                         if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Ошибка: $e"), backgroundColor: Colors.red));
+                         }
+                      }
                    },
                    child: const Text("Завершить", style: TextStyle(color: Colors.black))
                 )

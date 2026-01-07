@@ -141,16 +141,18 @@ class _GameScreenState extends State<GameScreen> {
 
       QueryDocumentSnapshot<Map<String, dynamic>>? targetDoc;
       
-      // 1. Try to restore specific session
+      // 1. Try to restore specific session (DISABLED BY REQUEST)
+      /* 
       if (lastGameId != null && games.any((g) => g.id == lastGameId)) {
         targetDoc = games.firstWhere((g) => g.id == lastGameId);
       } 
-      // 2. Auto-join if only one game
+      // 2. Auto-join if only one game (DISABLED BY REQUEST)
       else if (games.length == 1) {
         targetDoc = games.first;
       } 
       else {
-          // Multiple games - let user choose, but update list if already showing selection
+      */
+          // Always show selection list
           if (mounted) setState(() {
               _showGameSelection = true;
                if (lastGameId != null) {
@@ -158,7 +160,7 @@ class _GameScreenState extends State<GameScreen> {
                }
           });
           return;
-      }
+      // }
       
       if (targetDoc != null) {
           _selectGame(targetDoc.id, targetDoc.data());

@@ -140,8 +140,10 @@ class _GamesListScreenState extends State<GamesListScreen> {
                   else
                      DropdownButton<String>(
                         isExpanded: true,
+                        dropdownColor: const Color(0xFF1E293B), // Dark background
+                        style: const TextStyle(color: Colors.white), // White text
                         value: selectedPackId,
-                        hint: const Text("Выберите пакет ситуаций"),
+                        hint: const Text("Выберите пакет ситуаций", style: TextStyle(color: Colors.white70)),
                         items: availablePacks.map((p) {
                            return DropdownMenuItem(value: p.id, child: Text(p.data()['title'] ?? 'Пакет'));
                         }).toList(),
