@@ -187,9 +187,8 @@ async function initZoom(meetingNumber, password, userName, sdkKey, sdkSecret, cu
                     zoomRoot.style.top = "50%";
 
                     // APPLY SCALE & CENTERING
-                    // We use translate(-50%, -50%) to center the element itself, then scale it.
-                    // Order of transform matters.
-                    zoomRoot.style.transform = `translate(-50%, -50%) scale(${scale})`;
+                    // Shift up by 50px (calc(-50% - 50px))
+                    zoomRoot.style.transform = `translate(-50%, calc(-50% - 50px)) scale(${scale})`;
                     zoomRoot.style.transformOrigin = 'center center';
                 }
             };
@@ -205,7 +204,7 @@ async function initZoom(meetingNumber, password, userName, sdkKey, sdkSecret, cu
                         .zm-modal, .ant-modal, .suspension-window, .dialog-window-wrap, .img-layer {
                             left: 50% !important;
                             top: 50% !important;
-                            transform: translate(-50%, -50%) !important;
+                            transform: translate(-50%, calc(-50% - 50px)) !important; /* Shift UP 50px */
                             position: fixed !important; /* Fixed relative to viewport/iframe */
                         }
                         
@@ -218,7 +217,7 @@ async function initZoom(meetingNumber, password, userName, sdkKey, sdkSecret, cu
                          #chat-app, .chat-window-wrap, .chat-panel {
                             left: 50% !important;
                             top: 50% !important;
-                            transform: translate(-50%, -50%) !important;
+                            transform: translate(-50%, calc(-50% - 50px)) !important;
                          }
 
                         /* --- LARGER ZOOM BUTTONS --- */
@@ -238,7 +237,7 @@ async function initZoom(meetingNumber, password, userName, sdkKey, sdkSecret, cu
                             width: 90px !important; /* Wider touch area */
                             height: 70px !important; /* Taller touch area */
                             margin: 0 5px !important;
-                            transform: scale(1.2); /* Slight visual scale up */
+                            transform: scale(1.5) !important; /* Larger visual scale */
                         }
 
                         /* Icons */
