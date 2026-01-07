@@ -56,9 +56,17 @@ service cloud.firestore {
       }
 
       // Game History Subcollection
-      match /game_history/{historyId} {
-        allow read: if isOwner(userId) || isAdmin();
-        allow write: if isAdmin();
+      // Path: users/{uid}/game_history/{gameId}/rounds/{roundId}
+      match /game_history/{gameId} {
+         allow read: if isOwner(userId) || isAdmin();
+         allow write: if isAdmin() || 
+                      (isAuthenticated() && get(/databases/$(database)/documents/games/$(gameId)).data.hostId == request.auth.uid);
+         
+         match /rounds/{roundId} {
+            allow read: if isOwner(userId) || isAdmin();
+            allow write: if isAdmin() || 
+                         (isAuthenticated() && get(/databases/$(database)/documents/games/$(gameId)).data.hostId == request.auth.uid);
+         }
       }
     }
     
@@ -71,11 +79,15 @@ service cloud.firestore {
     match /games/{gameId} {
       allow read: if isAuthenticated();
       allow create, delete: if isAdmin();
+      // Allow Host to update (e.g. stage, stats)
       allow update: if isAdmin() || 
-                    (isAuthenticated() && resource.data.situation.controllerId == request.auth.uid);
+                    (isAuthenticated() && resource.data.situation.controllerId == request.auth.uid) ||
+                    (isAuthenticated() && resource.data.hostId == request.auth.uid);
       
       match /participants/{participantId} {
-        allow create, update: if isOwner(participantId) || isAdmin();
+        allow create, update: if isOwner(participantId) || isAdmin() ||
+                              // Allow Host/Controller to update participants (e.g. kick, vote)
+                              (isAuthenticated() && get(/databases/$(database)/documents/games/$(gameId)).data.hostId == request.auth.uid);
         allow read: if isAuthenticated(); 
       }
       
