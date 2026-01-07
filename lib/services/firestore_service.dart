@@ -543,7 +543,9 @@ class FirestoreService {
     // Fetch all and sort in memory to avoid Index requirements
     final snapshot = await _db.collection('situation_packs').get();
     
-    final docs = snapshot.docs.where((d) => d.data()['isPublic'] == true).toList();
+    // Fetch all for admin/host visibility
+    // final docs = snapshot.docs.where((d) => d.data()['isPublic'] == true).toList();
+    final docs = snapshot.docs;
     
     docs.sort((a, b) {
        final tA = (a.data()['createdAt'] as Timestamp?)?.toDate() ?? DateTime(2000);

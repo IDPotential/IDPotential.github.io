@@ -237,20 +237,24 @@ async function initZoom(meetingNumber, password, userName, sdkKey, sdkSecret, cu
                             height: 100% !important;
                         }
 
-                        /* Button Container */
-                        .footer-button__button {
-                            width: 100px !important; /* Wider touch area */
-                            height: 80px !important; /* Taller touch area */
+                        /* Button Container - Aggressive Selectors */
+                        .footer-button__button, 
+                        .footer-button-base__button,
+                        #zmmtg-root .footer button,
+                        [class*="footer-button"],
+                        [class*="ax-outline"] {
+                            width: 120px !important; 
+                            height: 90px !important; 
                             margin: 0 10px !important;
-                            transform: scale(2.0) !important; /* LARGE visual scale (Requested 2x) */
+                            transform: scale(2.0) !important;
                             transform-origin: center bottom !important; 
                         }
 
                         /* Icons */
-                        .footer-button__button-icon {
-                            font-size: 28px !important; /* Larger icon */
-                            width: 28px !important;
-                            height: 28px !important;
+                        .footer-button__button-icon, 
+                        .footer-button-base__img-layer,
+                        svg {
+                            transform: scale(1.5) !important; /* Scale icons inside buttons */
                         }
 
                         /* Labels */

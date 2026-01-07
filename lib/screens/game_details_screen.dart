@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import '../services/knowledge_service.dart';
+import 'role_detail_screen.dart';
 
 class GameDetailsScreen extends StatelessWidget {
   final String gameId;
@@ -97,7 +99,15 @@ class GameDetailsScreen extends StatelessWidget {
                                              if (role != null) ...[
                                                 Image.asset('assets/images/cards/role_$role.png', width: 40, height: 56, fit: BoxFit.cover, errorBuilder: (c,e,s)=>const Icon(Icons.style)),
                                                 const SizedBox(width: 12),
-                                                Text("Выбрана Роль $role", style: const TextStyle(fontWeight: FontWeight.bold))
+                                                InkWell(
+                                                   onTap: () {
+                                                      Navigator.push(context, MaterialPageRoute(builder: (_) => RoleDetailScreen(roleNumber: role)));
+                                                   },
+                                                   child: Text(
+                                                      "Выбрана Роль $role ${KnowledgeService.getRoleInfo(role)['role_name'] ?? ''}", 
+                                                      style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.blueAccent, decoration: TextDecoration.underline)
+                                                   ),
+                                                )
                                              ],
                                              const Spacer(),
                                              Icon(Icons.thumb_up, color: votes > 0 ? Colors.green : Colors.grey, size: 20),
