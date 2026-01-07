@@ -2,7 +2,7 @@
 
 let client = null;
 
-async function initZoom(meetingNumber, password, userName, sdkKey, sdkSecret) {
+async function initZoom(meetingNumber, password, userName, sdkKey, sdkSecret, customization = {}) {
     // Ensure strict cleanup before trying to initialize a new session
     await leaveZoom();
 
@@ -76,25 +76,51 @@ async function initZoom(meetingNumber, password, userName, sdkKey, sdkSecret) {
 
     const jwtSignature = base64UrlHeader + "." + base64UrlPayload + "." + base64UrlSignature;
 
+    // Merge default settings with passed customization
+    // Defaults: 960x540, no POI
+    const defaultCustomize = {
+        video: {
+            isResizable: true,
+            poi: { isShow: false },
+            disableVideo: false,
+            viewSizes: {
+                default: {
+                    width: 960,
+                    height: 540
+                }
+            }
+        },
+        toolbar: {
+            // Default buttons to show/hide if not specified can go here
+            // buttons: [] 
+        }
+    };
+
+    // Deep merge or simple assign? Simple assign for top levels is usually enough for this SDK
+    // But we want to preserve nested objects like viewSizes if not overridden.
+
+    // Simplistic merge for 2 levels:
+    const finalCustomize = {
+        ...defaultCustomize,
+        ...customization,
+        video: { ...defaultCustomize.video, ...(customization.video || {}) },
+        toolbar: { ...defaultCustomize.toolbar, ...(customization.toolbar || {}) },
+    };
+
+    // Ensure viewSizes isn't lost if only some video props were passed
+    if (customization.video && customization.video.viewSizes) {
+        finalCustomize.video.viewSizes = customization.video.viewSizes;
+    } else {
+        finalCustomize.video.viewSizes = defaultCustomize.video.viewSizes;
+    }
+
+
     try {
-        console.log('Initializing Zoom client...');
+        console.log('Initializing Zoom client with customization:', finalCustomize);
         await client.init({
             zoomAppRoot: meetingElement,
             language: 'ru-RU',
-            // patchJsMedia: true, // Removed as it might conflict without SharedArrayBuffer
-            customize: {
-                video: {
-                    isResizable: true,
-                    poi: { isShow: false },
-                    disableVideo: false,
-                    viewSizes: {
-                        default: {
-                            width: 960,
-                            height: 540
-                        }
-                    }
-                }
-            }
+            customize: finalCustomize
         });
 
         console.log('Joining Zoom meeting...');
