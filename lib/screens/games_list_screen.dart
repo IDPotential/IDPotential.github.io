@@ -138,14 +138,28 @@ class _GamesListScreenState extends State<GamesListScreen> {
                   if (availablePacks.isEmpty)
                      const Text("Загрузка пакетов... (или нет доступных)", style: TextStyle(fontSize: 12, color: Colors.grey))
                   else
-                     DropdownButton<String>(
+                     DropdownButtonFormField<String>(
                         isExpanded: true,
+                        decoration: InputDecoration(
+                           labelText: 'Пакет ситуаций (${availablePacks.length})',
+                           labelStyle: const TextStyle(color: Colors.white70),
+                           filled: true,
+                           fillColor: Colors.white10, // Slight contrast against dialog
+                           border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                        ),
                         dropdownColor: const Color(0xFF1E293B), // Dark background
                         style: const TextStyle(color: Colors.white), // White text
                         value: selectedPackId,
-                        hint: const Text("Выберите пакет ситуаций", style: TextStyle(color: Colors.white70)),
+                        // hint: const Text("Выберите пакет ситуаций", style: TextStyle(color: Colors.white70)),
                         items: availablePacks.map((p) {
-                           return DropdownMenuItem(value: p.id, child: Text(p.data()['title'] ?? 'Пакет'));
+                           return DropdownMenuItem<String>(
+                              value: p.id,
+                              child: Text(
+                                 p.data()['title'] ?? 'Без названия',
+                                 style: const TextStyle(color: Colors.white),
+                                 overflow: TextOverflow.ellipsis,
+                              ),
+                           );
                         }).toList(),
                         onChanged: (val) {
                            if (val != null) {
