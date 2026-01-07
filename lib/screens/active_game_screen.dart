@@ -1553,86 +1553,251 @@ class _ActiveGameScreenState extends State<ActiveGameScreen> {
    }
 
    void _showAddVirtualPlayerDialog() {
-       final nameCtrl = TextEditingController();
-       
        showDialog(
            context: context,
-           builder: (context) => DefaultTabController(
-               length: 2,
-               child: AlertDialog(
-                   backgroundColor: const Color(0xFF1E293B),
-                   title: const Text("Добавить Виртуального Игрока", style: TextStyle(color: Colors.white)),
-                   content: SizedBox(
-                       width: 400,
-                       height: 500,
-                       child: Column(
-                           children: [
-                               const TabBar(
-                                   tabs: [
-                                       Tab(text: "Вручную"),
-                                       Tab(text: "Из Истории"),
-                                   ]
-                               ),
-                               Expanded(
-                                   child: TabBarView(
-                                       children: [
-                                           // Tab 1: Manual
-                                           Column(
-                                               mainAxisAlignment: MainAxisAlignment.center,
-                                               children: [
-                                                   TextField(
-                                                       controller: nameCtrl,
-                                                       style: const TextStyle(color: Colors.white),
-                                                       decoration: const InputDecoration(labelText: "Имя игрока", labelStyle: TextStyle(color: Colors.white70)),
-                                                   ),
-                                                   const SizedBox(height: 20),
-                                                   ElevatedButton(
-                                                       onPressed: () {
-                                                           if (nameCtrl.text.isNotEmpty) {
-                                                               Navigator.pop(context, {'name': nameCtrl.text, 'numbers': <int>[]});
-                                                           }
-                                                       },
-                                                       child: const Text("Создать")
-                                                   )
-                                               ]
-                                           ),
-                                           
-                                           // Tab 2: History
-                                           FutureBuilder<List<Calculation>>(
-                                               future: DatabaseService().getCalculations(), 
-                                               builder: (context, snapshot) {
-                                                   if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
-                                                   final list = snapshot.data!;
-                                                   if (list.isEmpty) return const Center(child: Text("История пуста", style: TextStyle(color: Colors.white54)));
-                                                   
-                                                   return ListView.builder(
-                                                       itemCount: list.length,
-                                                       itemBuilder: (context, index) {
-                                                           final c = list[index];
-                                                           return ListTile(
-                                                               title: Text(c.name, style: const TextStyle(color: Colors.white)),
-                                                               subtitle: Text(DateFormat('dd.MM.yy').format(c.createdAt), style: const TextStyle(color: Colors.white54)),
-                                                               onTap: () {
-                                                                   Navigator.pop(context, {'name': c.name, 'numbers': c.numbers});
-                                                               }
-                                                           );
-                                                       }
-                                                   );
-                                               }
-                                           )
-                                       ]
-                                   )
-                               )
-                           ]
-                       )
-                   )
-               )
-           ) 
+           builder: (context) => const _VirtualPlayerDialog()
        ).then((result) {
             if (result != null && result is Map) {
                 _firestoreService.addVirtualParticipant(_targetGameId, result['name'], result['numbers'] ?? []);
             }
        });
    }
-   }
+}
+
+class _VirtualPlayerDialog extends StatefulWidget {
+  const _VirtualPlayerDialog();
+
+  @override
+  State<_VirtualPlayerDialog> createState() => _VirtualPlayerDialogState();
+}
+
+class _VirtualPlayerDialogState extends State<_VirtualPlayerDialog> {
+  // Manual Tab
+  final _nameCtrl = TextEditingController();
+  final _dateCtrl = TextEditingController();
+  String _gender = 'М';
+
+  // History Tab
+  String? _currentFolder;
+
+  @override
+  Widget build(BuildContext context) {
+    return DefaultTabController(
+       length: 2,
+       child: AlertDialog(
+           backgroundColor: const Color(0xFF1E293B),
+           title: const Text("Добавить Виртуального Игрока", style: TextStyle(color: Colors.white)),
+           content: SizedBox(
+               width: 400,
+               height: 500,
+               child: Column(
+                   children: [
+                       const TabBar(
+                           tabs: [
+                               Tab(text: "Вручную"),
+                               Tab(text: "Из Истории"),
+                           ]
+                       ),
+                       Expanded(
+                           child: TabBarView(
+                               children: [
+                                   _buildManualTab(),
+                                   _buildHistoryTab(),
+                               ]
+                           )
+                       )
+                   ]
+               )
+           )
+       ),
+    );
+  }
+
+  Widget _buildManualTab() {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+           TextField(
+               controller: _nameCtrl,
+               style: const TextStyle(color: Colors.white),
+               decoration: const InputDecoration(
+                  labelText: "Имя игрока", 
+                  labelStyle: TextStyle(color: Colors.white70),
+                  prefixIcon: Icon(Icons.person, color: Colors.white54)
+               ),
+           ),
+           const SizedBox(height: 16),
+           TextField(
+               controller: _dateCtrl,
+               style: const TextStyle(color: Colors.white),
+               decoration: const InputDecoration(
+                  labelText: "Дата рождения (ДД.ММ.ГГГГ)", 
+                  labelStyle: TextStyle(color: Colors.white70),
+                  hintText: "15.04.1990",
+                  hintStyle: TextStyle(color: Colors.white30),
+                  prefixIcon: Icon(Icons.calendar_today, color: Colors.white54)
+               ),
+               keyboardType: TextInputType.datetime,
+           ),
+           const SizedBox(height: 16),
+           Row(
+             children: [
+               const Text("Пол: ", style: TextStyle(color: Colors.white70)),
+               const SizedBox(width: 16),
+               ChoiceChip(
+                 label: const Text("Мужской"),
+                 selected: _gender == 'М',
+                 onSelected: (s) => setState(() => _gender = 'М'),
+               ),
+               const SizedBox(width: 8),
+               ChoiceChip(
+                 label: const Text("Женский"),
+                 selected: _gender == 'Ж',
+                 onSelected: (s) => setState(() => _gender = 'Ж'),
+               ),
+             ],
+           ),
+           const SizedBox(height: 24),
+           ElevatedButton(
+               style: ElevatedButton.styleFrom(
+                 backgroundColor: Colors.blueAccent,
+                 minimumSize: const Size(double.infinity, 44)
+               ),
+               onPressed: () async {
+                   if (_nameCtrl.text.isEmpty) {
+                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Введите имя")));
+                      return;
+                   }
+                   
+                   // Logic: If date is present -> Calculate & Save & Return
+                   // If date is empty -> just Return (Simple mode)
+                   
+                   List<int> numbers = [];
+                   if (_dateCtrl.text.isNotEmpty) {
+                      // Validate Date
+                      final regex = RegExp(r'^\d{2}\.\d{2}\.\d{4}$');
+                      if (!regex.hasMatch(_dateCtrl.text)) {
+                         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Формат даты: ДД.ММ.ГГГГ")));
+                         return;
+                      }
+                      
+                      try {
+                        numbers = CalculatorService.calculateDiagnostic(_dateCtrl.text, _nameCtrl.text, _gender);
+                        final calc = Calculation(
+                           name: _nameCtrl.text,
+                           birthDate: _dateCtrl.text,
+                           gender: _gender,
+                           numbers: numbers,
+                           createdAt: DateTime.now(),
+                           group: null // or "Virtual Players"?
+                        );
+                        
+                        await DatabaseService().insertCalculation(calc);
+                      } catch (e) {
+                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Ошибка расчета: $e")));
+                        return;
+                      }
+                   }
+                   
+                   if (mounted) {
+                      Navigator.pop(context, {'name': _nameCtrl.text, 'numbers': numbers});
+                   }
+               },
+               child: const Text("Создать и Добавить")
+           )
+        ],
+      ),
+    );
+  }
+
+  Widget _buildHistoryTab() {
+     // If folder selected -> Show Items
+     // If no folder -> Show Folders
+     
+     if (_currentFolder != null) {
+       return Column(
+          children: [
+             Padding(
+               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+               child: Row(
+                  children: [
+                     IconButton(
+                        icon: const Icon(Icons.arrow_back, color: Colors.white),
+                        onPressed: () => setState(() => _currentFolder = null),
+                     ),
+                     const SizedBox(width: 8),
+                     Icon(Icons.folder_open, color: Colors.orange[300]),
+                     const SizedBox(width: 8),
+                     Expanded(child: Text(_currentFolder!, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16))),
+                  ],
+               ),
+             ),
+             const Divider(height: 1, color: Colors.white24),
+             Expanded(
+                child: FutureBuilder<List<Calculation>>(
+                   future: DatabaseService().getCalculations(group: _currentFolder),
+                   builder: (context, snapshot) {
+                      if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
+                      final list = snapshot.data!;
+                      if (list.isEmpty) return const Center(child: Text("Папка пуста", style: TextStyle(color: Colors.white54)));
+                      
+                      return ListView.builder(
+                         itemCount: list.length,
+                         itemBuilder: (context, index) {
+                            final c = list[index];
+                            return ListTile(
+                               leading: const Icon(Icons.person, color: Colors.white70),
+                               title: Text(c.name, style: const TextStyle(color: Colors.white)),
+                               subtitle: Text(c.birthDate, style: const TextStyle(color: Colors.white38)),
+                               trailing: const Icon(Icons.add_circle_outline, color: Colors.greenAccent),
+                               onTap: () {
+                                  Navigator.pop(context, {'name': c.name, 'numbers': c.numbers});
+                               },
+                            );
+                         }
+                      );
+                   }
+                )
+             )
+          ],
+       );
+     }
+     
+     // Root Level: Folders + "All Items" (Implicit root)
+     return FutureBuilder<List<String>>(
+        future: DatabaseService().getFolders(),
+        builder: (context, snapshot) {
+           if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
+           
+           final folders = snapshot.data!;
+           
+           return ListView(
+              children: [
+                 // 1. "Unsorted" / "All" option if desired (Here we stick to folders + unsorted?)
+                 // Let's just list actual folders + an "Unsorted" pseudo-folder?
+                 // Or just follow logical structure.
+                 
+                 // Option to access items WITHOUT group
+                 ListTile(
+                    leading: const Icon(Icons.folder_shared, color: Colors.grey),
+                    title: const Text("Без папки", style: TextStyle(color: Colors.white)),
+                    trailing: const Icon(Icons.chevron_right, color: Colors.white54),
+                    onTap: () => setState(() => _currentFolder = ''), // Special empty string contract in DB Service?
+                 ),
+                 const Divider(color: Colors.white10),
+                 
+                 ...folders.map((f) => ListTile(
+                    leading: const Icon(Icons.folder, color: Colors.orange),
+                    title: Text(f, style: const TextStyle(color: Colors.white)),
+                    trailing: const Icon(Icons.chevron_right, color: Colors.white54),
+                    onTap: () => setState(() => _currentFolder = f),
+                 ))
+              ],
+           );
+        }
+     );
+  }
+
 
