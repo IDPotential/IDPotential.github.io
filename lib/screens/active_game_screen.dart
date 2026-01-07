@@ -1553,19 +1553,36 @@ class _ActiveGameScreenState extends State<ActiveGameScreen> {
    }
 
    void _showAddVirtualPlayerDialog() {
-       showDialog(
-           context: context,
-           builder: (context) => const _VirtualPlayerDialog()
-       ).then((result) {
-            if (result != null && result is Map) {
-                _firestoreService.addVirtualParticipant(_targetGameId, result['name'], result['numbers'] ?? []);
-            }
+       // Fetch current participants to determine occupied numbers
+       _firestoreService.getGameParticipantsStream(_targetGameId).first.then((snapshot) {
+           final occupied = snapshot.docs
+               .map((d) => d.data()['playerNumber'] as int?)
+               .where((n) => n != null)
+               .cast<int>()
+               .toList();
+
+           if (!mounted) return;
+
+           showDialog(
+               context: context,
+               builder: (context) => _VirtualPlayerDialog(occupiedNumbers: occupied)
+           ).then((result) {
+                if (result != null && result is Map) {
+                    _firestoreService.addVirtualParticipant(
+                        _targetGameId, 
+                        result['name'], 
+                        result['numbers'] ?? [],
+                        result['playerNumber'] // Pass selected number
+                    );
+                }
+           });
        });
    }
 }
 
 class _VirtualPlayerDialog extends StatefulWidget {
-  const _VirtualPlayerDialog();
+  final List<int> occupiedNumbers;
+  const _VirtualPlayerDialog({super.key, required this.occupiedNumbers});
 
   @override
   State<_VirtualPlayerDialog> createState() => _VirtualPlayerDialogState();
@@ -1576,9 +1593,24 @@ class _VirtualPlayerDialogState extends State<_VirtualPlayerDialog> {
   final _nameCtrl = TextEditingController();
   final _dateCtrl = TextEditingController();
   String _gender = 'М';
+  
+  // Shared
+  int? _selectedNumber; // 1-10
 
   // History Tab
   String? _currentFolder;
+
+  @override
+  void initState() {
+    super.initState();
+    // Auto-select first available number
+    for (int i = 1; i <= 10; i++) {
+      if (!widget.occupiedNumbers.contains(i)) {
+        _selectedNumber = i;
+        break;
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -1589,7 +1621,7 @@ class _VirtualPlayerDialogState extends State<_VirtualPlayerDialog> {
            title: const Text("Добавить Виртуального Игрока", style: TextStyle(color: Colors.white)),
            content: SizedBox(
                width: 400,
-               height: 500,
+               height: 600, // Increased height for number picker
                child: Column(
                    children: [
                        const TabBar(
@@ -1605,6 +1637,39 @@ class _VirtualPlayerDialogState extends State<_VirtualPlayerDialog> {
                                    _buildHistoryTab(),
                                ]
                            )
+                       ),
+                       const Divider(color: Colors.white24),
+                       // Number Picker Section (Always visible)
+                       const Padding(
+                         padding: EdgeInsets.only(top: 8, bottom: 4),
+                         child: Text("Выберите номер игрока:", style: TextStyle(color: Colors.white70)),
+                       ),
+                       SingleChildScrollView(
+                         scrollDirection: Axis.horizontal,
+                         child: Row(
+                           children: List.generate(10, (index) {
+                             final num = index + 1;
+                             final isTaken = widget.occupiedNumbers.contains(num);
+                             final isSelected = _selectedNumber == num;
+                             
+                             return Padding(
+                               padding: const EdgeInsets.symmetric(horizontal: 4),
+                               child: ChoiceChip(
+                                 label: Text(num.toString()),
+                                 selected: isSelected,
+                                 onSelected: isTaken ? null : (selected) {
+                                   if (selected) setState(() => _selectedNumber = num);
+                                 },
+                                 selectedColor: Colors.blueAccent,
+                                 disabledColor: Colors.grey[800],
+                                 backgroundColor: Colors.grey[700],
+                                 labelStyle: TextStyle(
+                                   color: isSelected ? Colors.white : (isTaken ? Colors.white30 : Colors.white70)
+                                 ),
+                               ),
+                             );
+                           }),
+                         ),
                        )
                    ]
                )
@@ -1670,9 +1735,10 @@ class _VirtualPlayerDialogState extends State<_VirtualPlayerDialog> {
                       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Введите имя")));
                       return;
                    }
-                   
-                   // Logic: If date is present -> Calculate & Save & Return
-                   // If date is empty -> just Return (Simple mode)
+                   if (_selectedNumber == null) {
+                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Выберите номер игрока")));
+                      return;
+                   }
                    
                    List<int> numbers = [];
                    if (_dateCtrl.text.isNotEmpty) {
@@ -1691,7 +1757,7 @@ class _VirtualPlayerDialogState extends State<_VirtualPlayerDialog> {
                            gender: _gender,
                            numbers: numbers,
                            createdAt: DateTime.now(),
-                           group: null // or "Virtual Players"?
+                           group: null
                         );
                         
                         await DatabaseService().insertCalculation(calc);
@@ -1702,7 +1768,11 @@ class _VirtualPlayerDialogState extends State<_VirtualPlayerDialog> {
                    }
                    
                    if (mounted) {
-                      Navigator.pop(context, {'name': _nameCtrl.text, 'numbers': numbers});
+                      Navigator.pop(context, {
+                        'name': _nameCtrl.text, 
+                        'numbers': numbers,
+                        'playerNumber': _selectedNumber
+                      });
                    }
                },
                child: const Text("Создать и Добавить")
@@ -1753,7 +1823,15 @@ class _VirtualPlayerDialogState extends State<_VirtualPlayerDialog> {
                                subtitle: Text(c.birthDate, style: const TextStyle(color: Colors.white38)),
                                trailing: const Icon(Icons.add_circle_outline, color: Colors.greenAccent),
                                onTap: () {
-                                  Navigator.pop(context, {'name': c.name, 'numbers': c.numbers});
+                                  if (_selectedNumber == null) {
+                                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Выберите номер игрока!")));
+                                    return;
+                                  }
+                                  Navigator.pop(context, {
+                                    'name': c.name, 
+                                    'numbers': c.numbers,
+                                    'playerNumber': _selectedNumber
+                                  });
                                },
                             );
                          }
@@ -1775,16 +1853,11 @@ class _VirtualPlayerDialogState extends State<_VirtualPlayerDialog> {
            
            return ListView(
               children: [
-                 // 1. "Unsorted" / "All" option if desired (Here we stick to folders + unsorted?)
-                 // Let's just list actual folders + an "Unsorted" pseudo-folder?
-                 // Or just follow logical structure.
-                 
-                 // Option to access items WITHOUT group
                  ListTile(
                     leading: const Icon(Icons.folder_shared, color: Colors.grey),
                     title: const Text("Без папки", style: TextStyle(color: Colors.white)),
                     trailing: const Icon(Icons.chevron_right, color: Colors.white54),
-                    onTap: () => setState(() => _currentFolder = ''), // Special empty string contract in DB Service?
+                    onTap: () => setState(() => _currentFolder = ''), 
                  ),
                  const Divider(color: Colors.white10),
                  
@@ -1799,5 +1872,5 @@ class _VirtualPlayerDialogState extends State<_VirtualPlayerDialog> {
         }
      );
   }
-
+}
 

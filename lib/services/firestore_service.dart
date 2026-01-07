@@ -622,7 +622,7 @@ class FirestoreService {
      });
   }
 
-  Future<void> addVirtualParticipant(String gameId, String name, List<int> numbers) async {
+  Future<void> addVirtualParticipant(String gameId, String name, List<int> numbers, int? playerNumber) async {
       // Use a timestamp-based ID to avoid collisions and allow easy identification
       final String virtId = 'virt_${DateTime.now().millisecondsSinceEpoch}';
 
@@ -632,7 +632,7 @@ class FirestoreService {
         'telegram': null, // Virtual players don't have telegram
         'numbers': numbers,
         'status': 'approved', // Virtual players are auto-approved
-        'playerNumber': null,
+        'playerNumber': playerNumber,
         'selectedRole': null,
         'updatedAt': FieldValue.serverTimestamp(),
         'votes': [],
