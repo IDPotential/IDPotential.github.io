@@ -50,6 +50,7 @@ class _GameScreenState extends State<GameScreen> {
   String? _participantStatus; // 'pending', 'approved', null
   StreamSubscription<DocumentSnapshot>? _gameSubscription;
   StreamSubscription<QuerySnapshot>? _participantSubscription;
+  StreamSubscription<QuerySnapshot>? _gamesListSubscription;
   int? _selectedRole;
   
   bool _isVideoActive = false; 

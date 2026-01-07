@@ -13,6 +13,7 @@ import '../models/calculation.dart';
 import 'package:intl/intl.dart';
 import 'dart:math';
 import 'dart:async';
+import '../services/database_service.dart';
 // import '../utils/situations_data.dart'; // Removed after migration
 
 
@@ -379,6 +380,10 @@ class _ActiveGameScreenState extends State<ActiveGameScreen> {
         ],
       ),
     );
+  }
+
+  void _onAnswerChanged(String value) {
+    // Answer tracking logic
   }
 
   // --- COMMON WIDGETS (Video, Grid, Voting) ---
@@ -1121,13 +1126,9 @@ class _ActiveGameScreenState extends State<ActiveGameScreen> {
                  );
                }
             );
-         }
-      );
             }
-         );
-    }
-  )
-  );
+         )
+      )
         ],
       );
  }
