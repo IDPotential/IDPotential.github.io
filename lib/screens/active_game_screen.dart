@@ -254,6 +254,14 @@ class _ActiveGameScreenState extends State<ActiveGameScreen> {
                      ),
                   ],
                   const SizedBox(width: 8),
+                  // New Search Button for Host to find specific situation
+                  ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(backgroundColor: Colors.blueGrey, minimumSize: const Size(0, 30)),
+                      icon: const Icon(Icons.search, size: 14),
+                      label: const Text("Поиск", style: TextStyle(fontSize: 10)),
+                      onPressed: _showSituationSearchDialog,
+                  ),
+                  const SizedBox(width: 8),
                   ToggleButtons(
                     isSelected: [_gameStage == 'selection', _gameStage == 'voting'],
                     onPressed: (index) async {
@@ -1604,6 +1612,25 @@ class _ActiveGameScreenState extends State<ActiveGameScreen> {
        );
    }
 
+   void _showSituationSearchDialog() {
+       showDialog(
+          context: context,
+          builder: (context) => _SituationSearchDialog(
+             situations: _availableSituations,
+             onSelect: (sit) {
+                // Update Game Situation
+                _firestoreService.updateSituation(
+                   _targetGameId,
+                   sit['text'],
+                   sit['id']?.toString()
+                );
+                // Also show it visible immediately
+                _firestoreService.setSituationVisible(_targetGameId, true);
+             }
+          )
+       );
+   }
+
    void _showAddVirtualPlayerDialog() {
        // Fetch current participants to determine occupied numbers
        _firestoreService.getGameParticipantsStream(_targetGameId).first.then((snapshot) {
@@ -1951,6 +1978,96 @@ class _VirtualPlayerDialogState extends State<_VirtualPlayerDialog> {
            );
         }
      );
+  }
+}
+
+class _SituationSearchDialog extends StatefulWidget {
+  final List<Map<String, dynamic>> situations;
+  final Function(Map<String, dynamic>) onSelect;
+
+  const _SituationSearchDialog({super.key, required this.situations, required this.onSelect});
+
+  @override
+  State<_SituationSearchDialog> createState() => _SituationSearchDialogState();
+}
+
+class _SituationSearchDialogState extends State<_SituationSearchDialog> {
+  final TextEditingController _searchCtrl = TextEditingController();
+  List<Map<String, dynamic>> _filtered = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _filtered = widget.situations;
+  }
+
+  void _filter(String query) {
+    setState(() {
+      if (query.isEmpty) {
+        _filtered = widget.situations;
+      } else {
+        final q = query.toLowerCase();
+        _filtered = widget.situations.where((s) {
+           final text = (s['text'] as String? ?? '').toLowerCase();
+           final id = (s['id'] as int?)?.toString() ?? '';
+           return text.contains(q) || id.contains(q);
+        }).toList();
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      backgroundColor: const Color(0xFF1E293B),
+      title: const Text("Поиск ситуации", style: TextStyle(color: Colors.white)),
+      content: SizedBox(
+        width: 400,
+        height: 500,
+        child: Column(
+          children: [
+             TextField(
+               controller: _searchCtrl,
+               onChanged: _filter,
+               style: const TextStyle(color: Colors.white),
+               decoration: InputDecoration(
+                 hintText: "Введите текст или номер...",
+                 hintStyle: const TextStyle(color: Colors.white54),
+                 filled: true,
+                 fillColor: Colors.white10,
+                 prefixIcon: const Icon(Icons.search, color: Colors.white54),
+                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+               ),
+             ),
+             const SizedBox(height: 12),
+             Expanded(
+               child: ListView.separated(
+                 itemCount: _filtered.length,
+                 separatorBuilder: (c, i) => const Divider(color: Colors.white12),
+                 itemBuilder: (context, index) {
+                    final item = _filtered[index];
+                    return ListTile(
+                       title: Text(item['text'] ?? '---', style: const TextStyle(color: Colors.white, fontSize: 13), maxLines: 3, overflow: TextOverflow.ellipsis),
+                       leading: CircleAvatar(
+                          backgroundColor: Colors.blueAccent,
+                          radius: 12,
+                          child: Text("${item['id'] ?? '?'}", style: const TextStyle(fontSize: 10, color: Colors.white)),
+                       ),
+                       onTap: () {
+                          widget.onSelect(item);
+                          Navigator.pop(context);
+                       },
+                    );
+                 },
+               ),
+             )
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(onPressed: () => Navigator.pop(context), child: const Text("Отмена"))
+      ],
+    );
   }
 }
 
