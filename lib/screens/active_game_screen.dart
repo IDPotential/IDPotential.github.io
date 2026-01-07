@@ -1644,32 +1644,60 @@ class _VirtualPlayerDialogState extends State<_VirtualPlayerDialog> {
                          padding: EdgeInsets.only(top: 8, bottom: 4),
                          child: Text("Выберите номер игрока:", style: TextStyle(color: Colors.white70)),
                        ),
-                       SingleChildScrollView(
-                         scrollDirection: Axis.horizontal,
-                         child: Row(
-                           children: List.generate(10, (index) {
-                             final num = index + 1;
-                             final isTaken = widget.occupiedNumbers.contains(num);
-                             final isSelected = _selectedNumber == num;
-                             
-                             return Padding(
-                               padding: const EdgeInsets.symmetric(horizontal: 4),
-                               child: ChoiceChip(
-                                 label: Text(num.toString()),
-                                 selected: isSelected,
-                                 onSelected: isTaken ? null : (selected) {
-                                   if (selected) setState(() => _selectedNumber = num);
-                                 },
-                                 selectedColor: Colors.blueAccent,
-                                 disabledColor: Colors.grey[800],
-                                 backgroundColor: Colors.grey[700],
-                                 labelStyle: TextStyle(
-                                   color: isSelected ? Colors.white : (isTaken ? Colors.white30 : Colors.white70)
+                       Column(
+                         children: [
+                           // Row 1: 1-5
+                           Row(
+                             mainAxisAlignment: MainAxisAlignment.center,
+                             children: List.generate(5, (index) {
+                               final num = index + 1;
+                               final isTaken = widget.occupiedNumbers.contains(num);
+                               final isSelected = _selectedNumber == num;
+                               return Padding(
+                                 padding: const EdgeInsets.symmetric(horizontal: 4),
+                                 child: ChoiceChip(
+                                   label: Text(num.toString()),
+                                   selected: isSelected,
+                                   onSelected: isTaken ? null : (selected) {
+                                     if (selected) setState(() => _selectedNumber = num);
+                                   },
+                                   selectedColor: Colors.blueAccent,
+                                   disabledColor: Colors.grey[800],
+                                   backgroundColor: Colors.grey[700],
+                                   labelStyle: TextStyle(
+                                     color: isSelected ? Colors.white : (isTaken ? Colors.white30 : Colors.white70)
+                                   ),
                                  ),
-                               ),
-                             );
-                           }),
-                         ),
+                               );
+                             }),
+                           ),
+                           const SizedBox(height: 8),
+                           // Row 2: 6-10
+                           Row(
+                             mainAxisAlignment: MainAxisAlignment.center,
+                             children: List.generate(5, (index) {
+                               final num = index + 6;
+                               final isTaken = widget.occupiedNumbers.contains(num);
+                               final isSelected = _selectedNumber == num;
+                               return Padding(
+                                 padding: const EdgeInsets.symmetric(horizontal: 4),
+                                 child: ChoiceChip(
+                                   label: Text(num.toString()),
+                                   selected: isSelected,
+                                   onSelected: isTaken ? null : (selected) {
+                                     if (selected) setState(() => _selectedNumber = num);
+                                   },
+                                   selectedColor: Colors.blueAccent,
+                                   disabledColor: Colors.grey[800],
+                                   backgroundColor: Colors.grey[700],
+                                   labelStyle: TextStyle(
+                                     color: isSelected ? Colors.white : (isTaken ? Colors.white30 : Colors.white70)
+                                   ),
+                                 ),
+                               );
+                             }),
+                           ),
+                         ],
                        )
                    ]
                )
