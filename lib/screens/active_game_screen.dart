@@ -114,6 +114,16 @@ class _ActiveGameScreenState extends State<ActiveGameScreen> {
       if (user != null) {
          _firestoreService.getGameParticipantsStream(_targetGameId).listen((event) {
             final me = event.docs.where((d) => d.id == user.uid).firstOrNull;
+            
+            // Check if I was kicked (existed before, now gone, and game is not archived)
+            if (me == null && _participantStatus != null && _gameStatus != 'archived') {
+               if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Вы были удалены из игры", style: TextStyle(color: Colors.red))));
+                  Navigator.of(context).pop(); // Go back to home
+               }
+               return;
+            }
+
             if (mounted) {
                setState(() {
                   _participantStatus = me?.data()['status'];
@@ -1026,7 +1036,18 @@ class _ActiveGameScreenState extends State<ActiveGameScreen> {
                                      mainAxisAlignment: MainAxisAlignment.center,
                                      children: [
                                         if (pNum != null)
-                                           CircleAvatar(radius: 12, backgroundColor: Colors.white24, child: Text("$pNum", style: const TextStyle(fontSize: 12, color: Colors.white))),
+                                           InkWell(
+                                              onTap: () {
+                                                 if (widget.isHost) {
+                                                    _showRemovePlayerDialog(docId, name);
+                                                 }
+                                              },
+                                              child: CircleAvatar(
+                                                 radius: 12, 
+                                                 backgroundColor: Colors.white24, 
+                                                 child: Text("$pNum", style: const TextStyle(fontSize: 12, color: Colors.white))
+                                              ),
+                                           ),
                                         const SizedBox(height: 4),
                                         Text(name, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold), textAlign: TextAlign.center),
                                         const Spacer(),
@@ -1132,6 +1153,31 @@ class _ActiveGameScreenState extends State<ActiveGameScreen> {
         ],
       );
  }
+
+   void _showRemovePlayerDialog(String userId, String userName) {
+      showDialog(
+         context: context,
+         builder: (ctx) => AlertDialog(
+            backgroundColor: const Color(0xFF1E293B),
+            title: Text("Удалить игрока?", style: const TextStyle(color: Colors.white)),
+            content: Text("Вы действительно хотите удалить игрока $userName из игры?", style: const TextStyle(color: Colors.white70)),
+            actions: [
+               TextButton(
+                  onPressed: () => Navigator.pop(ctx),
+                  child: const Text("Отмена")
+               ),
+               ElevatedButton(
+                  style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+                  onPressed: () {
+                     _firestoreService.removeParticipant(_targetGameId, userId);
+                     Navigator.pop(ctx);
+                  },
+                  child: const Text("Удалить")
+               )
+            ],
+         )
+      );
+   }
 
    void _showHostRoleManagement(String userId, String userName, int? currentRole) {
       final TextEditingController roleCtrl = TextEditingController(text: currentRole?.toString() ?? "");

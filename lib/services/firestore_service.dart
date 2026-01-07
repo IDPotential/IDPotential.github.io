@@ -713,6 +713,11 @@ class FirestoreService {
   Future<void> rejectParticipant(String gameId, String userId) async {
     await _db.collection('games').doc(gameId).collection('participants').doc(userId).delete();
   }
+
+  // Alias for clarity when removing an already active player
+  Future<void> removeParticipant(String gameId, String userId) async {
+     return rejectParticipant(gameId, userId);
+  }
   
   Future<void> updateParticipantRole(String gameId, int? roleId, [String? targetUserId]) async {
     final user = _auth.currentUser;
