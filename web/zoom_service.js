@@ -201,30 +201,35 @@ async function initZoom(meetingNumber, password, userName, sdkKey, sdkSecret, cu
                     style.id = styleId;
                     style.innerHTML = `
                         /* Force Center Zoom Popups (Settings, Chat, Participants) */
-                        .zm-modal, .ant-modal, .suspension-window, .dialog-window-wrap, .img-layer {
+                        .zm-modal, .ant-modal, .suspension-window, .dialog-window-wrap, .img-layer, .chat-window, .chat-panel-wrap {
                             left: 50% !important;
                             top: 50% !important;
                             transform: translate(-50%, calc(-50% - 50px)) !important; /* Shift UP 50px */
                             position: fixed !important; /* Fixed relative to viewport/iframe */
+                            z-index: 9999 !important; /* Ensure ON TOP */
+                            max-height: 80vh !important;
+                            max-width: 90vw !important;
                         }
                         
-                        /* Fix overlap issues by ensuring the bottom toolbar has clearance if needed */
-                        .footer__toolbar {
-                            margin-bottom: 0px !important; 
-                        }
-                        
-                        /* Ensure Chat Window is centered */
+                        /* Specific Chat fixes */
                          #chat-app, .chat-window-wrap, .chat-panel {
                             left: 50% !important;
                             top: 50% !important;
                             transform: translate(-50%, calc(-50% - 50px)) !important;
+                            z-index: 10000 !important;
+                            position: fixed !important;
                          }
+
+                        /* Fix overlap issues by ensuring the bottom toolbar has clearance if needed */
+                        .footer__toolbar {
+                            margin-bottom: 0px !important; 
+                        }
 
                         /* --- LARGER ZOOM BUTTONS --- */
                         /* Footer Toolbar Container */
                         .footer {
-                            height: 80px !important; /* Increase bar height */
-                            padding-bottom: 10px !important;
+                            height: 100px !important; /* Increase bar height */
+                            padding-bottom: 15px !important;
                         }
                         
                         .footer__toolbar {
@@ -234,10 +239,11 @@ async function initZoom(meetingNumber, password, userName, sdkKey, sdkSecret, cu
 
                         /* Button Container */
                         .footer-button__button {
-                            width: 90px !important; /* Wider touch area */
-                            height: 70px !important; /* Taller touch area */
-                            margin: 0 5px !important;
-                            transform: scale(1.5) !important; /* Larger visual scale */
+                            width: 100px !important; /* Wider touch area */
+                            height: 80px !important; /* Taller touch area */
+                            margin: 0 10px !important;
+                            transform: scale(2.0) !important; /* LARGE visual scale (Requested 2x) */
+                            transform-origin: center bottom !important; 
                         }
 
                         /* Icons */
