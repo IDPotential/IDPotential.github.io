@@ -1755,7 +1755,7 @@ child: Text("Игры с ведущим:", style: TextStyle(color: Colors.white5
                                     title: Text(game['title'] ?? 'Без названия', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
                                     subtitle: Text("Ведущий: ${game['hostName'] ?? 'Неизвестно'} \n${_formatDate(game['scheduledAt'])}", style: const TextStyle(color: Colors.white70)),
                                     trailing: const Icon(Icons.arrow_forward_ios, color: Colors.white24, size: 16),
-                                    onTap: () => _showGameDetails(doc.id, game),
+                                    onTap: () => _selectGame(doc.id, game),
                                  ),
                               );
                            }).toList(),
@@ -1771,18 +1771,6 @@ child: Text("Игры с ведущим:", style: TextStyle(color: Colors.white5
                      ],
                   );
                }
-            ),
-         ),
-      );
-   }
-
-   void _showGameDetails(String gameId, Map<String, dynamic> gameData) {
-      Navigator.push(
-         context,
-         MaterialPageRoute(
-            builder: (context) => GameDetailsScreen(
-               gameId: gameId,
-               gameData: gameData,
             ),
          ),
       );
