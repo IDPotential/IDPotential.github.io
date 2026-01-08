@@ -49,10 +49,15 @@ service cloud.firestore {
       // For stricter server-side enforcement, we would check request.resource.data.telegram_id against external verification,
       // which is hard in Rules alone without the handshake data.
       
-      // Calculations Subcollection
+      // Calculation Subcollection
       match /calculations/{calcId} {
         allow read: if isOwner(userId) || isLinked(userId) || isAdmin();
         allow write: if isOwner(userId) || isAdmin();
+      }
+
+      // Training Stats (New)
+      match /training_stats/{dateId} {
+         allow read, write: if isOwner(userId) || isAdmin();
       }
 
       // Game History Subcollection
