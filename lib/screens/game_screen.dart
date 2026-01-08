@@ -14,6 +14,7 @@ import '../models/calculation.dart';
 import 'package:intl/intl.dart';
 import 'active_game_screen.dart';
 import 'training_game_screen.dart';
+import 'game_details_screen.dart';
 import '../services/database_service.dart';
 
 class GameScreen extends StatefulWidget {
@@ -1724,7 +1725,7 @@ ToggleButtons(
                         // 3. Host Games Header
                         const Padding(
                            padding: EdgeInsets.fromLTRB(20, 16, 20, 10),
-                           child: Text("Игры с ведущим:", style: TextStyle(color: Colors.white54, uppercase: true, fontWeight: FontWeight.bold, fontSize: 14)),
+child: Text("Игры с ведущим:", style: TextStyle(color: Colors.white54, fontWeight: FontWeight.bold, fontSize: 14)),
                         ),
 
                         // 4. Games List or Empty State
@@ -1770,6 +1771,18 @@ ToggleButtons(
                      ],
                   );
                }
+            ),
+         ),
+      );
+   }
+
+   void _showGameDetails(String gameId, Map<String, dynamic> gameData) {
+      Navigator.push(
+         context,
+         MaterialPageRoute(
+            builder: (context) => GameDetailsScreen(
+               gameId: gameId,
+               gameData: gameData,
             ),
          ),
       );
