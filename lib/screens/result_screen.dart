@@ -14,6 +14,7 @@ import '../widgets/diagnostic_scheme.dart';
 import '../utils/file_saver.dart';
 import '../services/firestore_service.dart'; // import
 import '../widgets/role_info_dialog.dart'; // Import Custom Dialog
+import 'role_detail_screen.dart';
 
 class ResultScreen extends StatefulWidget {
   final Calculation calculation;
