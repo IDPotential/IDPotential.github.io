@@ -489,7 +489,7 @@ ToggleButtons(
                                                         if (!snapshot.hasData || snapshot.data == null) return const SizedBox.shrink();
                                                         final userData = snapshot.data!.data() as Map<String, dynamic>?;
                                                         final telegram = userData?['telegram'] as String?;
-                                                        
+
                                                         if (telegram != null && telegram.isNotEmpty) {
                                                             return TextButton.icon(
                                                                 icon: const Icon(Icons.alternate_email, size: 14, color: Colors.blueAccent),
@@ -509,7 +509,7 @@ ToggleButtons(
                                                  children: [
                                                     ElevatedButton(
                                                        style: ElevatedButton.styleFrom(
-                                                          minimumSize: const Size(0,30), 
+                                                          minimumSize: const Size(0,30),
                                                           backgroundColor: Colors.green,
                                                           padding: const EdgeInsets.symmetric(horizontal: 8)
                                                        ),
