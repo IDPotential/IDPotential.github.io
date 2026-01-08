@@ -58,7 +58,6 @@ class _TrainingGameScreenState extends State<TrainingGameScreen> {
           if (calcData['numbers'] != null) {
               _userMatrix = List<int>.from(calcData['numbers']);
           } else if (calcData['matrix'] != null) {
-              // Fallback for legacy data if any
               _userMatrix = List<int>.from(calcData['matrix']);
           }
       }
