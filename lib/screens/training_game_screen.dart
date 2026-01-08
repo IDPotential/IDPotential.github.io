@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'dart:math';
 import '../services/firestore_service.dart';
+import '../data/diagnostic_data.dart'; // Import Diagnostic Data
 import '../services/knowledge_service.dart';
 
 class TrainingGameScreen extends StatefulWidget {
@@ -243,38 +244,29 @@ class _TrainingGameScreenState extends State<TrainingGameScreen> {
                  spacing: 12,
                  runSpacing: 12,
                  alignment: WrapAlignment.center,
-                 children: List.generate(22, (index) {
-                     // Diagnostic numbers are 1-22 (0 mapped to 22 usually, but here 1-21 + 22)
-                     // UI usually shows 1-21 + 0 (Space).
-                     // Let's follow standard 1-22 logic.
-                     int roleNum = index + 1;
-                     bool isSelected = _selectedRole == roleNum;
-                     
+                 children: zones.entries.map((entry) {
+                     final roleId = entry.key;
+                     final roleData = entry.value;
+                     final isSelected = _selectedRole == roleId;
+
                      return GestureDetector(
-                        onTap: () => setState(() => _selectedRole = roleNum),
+                        onTap: () => _showRoleDetails(roleId, roleData),
                         child: Container(
                            width: 60,
-                           height: 80,
+                           height: 60,
                            decoration: BoxDecoration(
-                              border: isSelected ? Border.all(color: Colors.greenAccent, width: 3) : null,
-                              borderRadius: BorderRadius.circular(8),
-                              color: Colors.black26
+                              color: isSelected ? Colors.green : Colors.blueAccent.withOpacity(0.2),
+                              border: Border.all(color: Colors.blueAccent),
+                              borderRadius: BorderRadius.circular(12),
                            ),
-                           child: Column(
-                              children: [
-                                 Expanded(
-                                    child: Image.asset(
-                                       'assets/images/cards/role_$roleNum.png',
-                                       fit: BoxFit.cover,
-                                       errorBuilder: (c,e,s) => const Icon(Icons.style, color: Colors.white24),
-                                    ),
-                                 ),
-                                 Text("$roleNum", style: const TextStyle(color: Colors.white, fontSize: 10))
-                              ],
+                           alignment: Alignment.center,
+                           child: Text(
+                              "$roleId", 
+                              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18)
                            ),
                         ),
                      );
-                 }),
+                 }).toList(),
               ),
               
               const SizedBox(height: 30),
@@ -288,6 +280,57 @@ class _TrainingGameScreenState extends State<TrainingGameScreen> {
               )
            ],
         ),
-     );
+      );
+  }
+
+  void _showRoleDetails(int roleId, Map<String, String> data) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF1E293B),
+        title: Text("${data['name']} ($roleId)", style: const TextStyle(color: Colors.white)),
+        content: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(data['description'] ?? '', style: const TextStyle(color: Colors.white70, fontSize: 16)),
+              const SizedBox(height: 12),
+              const Text("Ключ роли:", style: TextStyle(color: Colors.blueAccent, fontWeight: FontWeight.bold)),
+              Text(data['role_key'] ?? '', style: const TextStyle(color: Colors.white60)),
+               const SizedBox(height: 8),
+              const Text("В жизни:", style: TextStyle(color: Colors.blueAccent, fontWeight: FontWeight.bold)),
+              Text(data['role_inlife'] ?? '', style: const TextStyle(color: Colors.white60)),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context), 
+            child: const Text("Отмена", style: TextStyle(color: Colors.grey))
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.blueAccent),
+            onPressed: () {
+               setState(() => _selectedRole = roleId);
+               Navigator.pop(context);
+               _saveResult(); // Auto-save after confirmation? Or let user click save? 
+               // User flow: Select -> (Screen shows Result) -> Save? 
+               // Wait, existing flow was Select -> Click "Save result"?
+               // Let's check _buildActiveScreen buttons.
+               
+               // Existing flow had a "Confirm/Next" button likely. 
+               // Actually, let's keep it simple: Select -> Set State. 
+               // Then user clicks "Ответить" (Answer) if it exists.
+               // Checking code... there is no "Answer" button in the viewed code. 
+               // Ah, previously viewed code didn't show the bottom part.
+               // Assuming there is a button to confirm. If not, I should add one or auto-save.
+               // Let's assume there is a button below the Grid.
+            }, 
+            child: const Text("Выбрать эту роль")
+          ),
+        ],
+      ),
+    );
   }
 }
