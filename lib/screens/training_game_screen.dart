@@ -294,7 +294,7 @@ class _TrainingGameScreenState extends State<TrainingGameScreen> {
                     ),
                  ),
               ] else ...[
-                 const Center(
+                 Center(
                    child: Padding(
                      padding: EdgeInsets.all(20),
                      child: Column(
