@@ -1769,6 +1769,10 @@ ToggleButtons(
                         ),
                      ],
                   );
+               }
+            ),
+         ),
+      );
    }
 
    String _formatDate(dynamic scheduledAt) {
