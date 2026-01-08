@@ -1671,22 +1671,21 @@ ToggleButtons(
                   if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
 
                   final games = snapshot.data!.docs;
-                  if (games.isEmpty) return const Center(child: Text("Нет доступных игр", style: TextStyle(color: Colors.white54)));
-
-                  // Client-side sorting to avoid Firestore Index issues
+                  
+                  // Client-side sorting
                   games.sort((a, b) {
                      final d1 = a.data()['scheduledAt'] ?? '';
                      final d2 = b.data()['scheduledAt'] ?? '';
-                     return d1.compareTo(d2); // Simple string sort for ISO8601 works
+                     return d1.compareTo(d2); 
                   });
 
                   return ListView(
                      children: [
-                        // Training Game Card (Always First)
+                        // 1. Training Game Card (Always Visible)
                         Card(
-                           margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                           color: Colors.blueGrey.withOpacity(0.3),
-                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: const BorderSide(color: Colors.blueAccent)),
+                           margin: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                           color: const Color(0xFF1E293B), // Matches app theme better
+                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: BorderSide(color: Colors.blueAccent.withOpacity(0.5))),
                            child: ListTile(
                               contentPadding: const EdgeInsets.all(16),
                               leading: Container(
@@ -1698,6 +1697,61 @@ ToggleButtons(
                               subtitle: const Column(
                                  crossAxisAlignment: CrossAxisAlignment.start,
                                  children: [
+                                    SizedBox(height: 4),
+                                    Text("Режим соло без ведущего", style: TextStyle(color: Colors.white70)),
+                                    Text("Лимит: 2 раза в день", style: TextStyle(color: Colors.white38, fontSize: 12))
+                                 ],
+                              ),
+                              trailing: const Icon(Icons.arrow_forward_ios, color: Colors.blueAccent, size: 16),
+                              onTap: () {
+                                 Navigator.push(context, MaterialPageRoute(builder: (context) => const TrainingGameScreen()));
+                              },
+                           ),
+                        ),
+
+                        // 2. Host Games Header
+                        const Padding(
+                           padding: EdgeInsets.fromLTRB(20, 20, 20, 10),
+                           child: Text("Игры с ведущим", style: TextStyle(color: Colors.white54, uppercase: true, fontWeight: FontWeight.bold, fontSize: 12)),
+                        ),
+
+                        // 3. Games List or Empty State
+                        if (games.isEmpty)
+                           Center(
+                             child: Column(
+                                children: [
+                                  const SizedBox(height: 20),
+                                  const Icon(Icons.search_off, color: Colors.white24, size: 48),
+                                  const SizedBox(height: 12),
+                                  const Text("Нет активных игр", style: TextStyle(color: Colors.white54)),
+                                  const SizedBox(height: 16),
+                                  ElevatedButton.icon(
+                                     style: ElevatedButton.styleFrom(backgroundColor: Colors.white10),
+                                     onPressed: () => setState(() {}), // Trigger rebuild
+                                     icon: const Icon(Icons.refresh, size: 16),
+                                     label: const Text("Обновить")
+                                  )
+                                ],
+                             )
+                           )
+                        else
+                           ...games.map((doc) {
+                              final game = doc.data();
+                              return Card(
+                                 margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                                 color: Colors.white10,
+                                 child: ListTile(
+                                    title: Text(game['title'] ?? 'Без названия', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                                    subtitle: Text("Ведущий: ${game['hostName'] ?? 'Неизвестно'} \n${_formatDate(game['scheduledAt'])}", style: const TextStyle(color: Colors.white70)),
+                                    trailing: const Icon(Icons.arrow_forward_ios, color: Colors.white24, size: 16),
+                                    onTap: () => _showGameDetails(doc.id, game),
+                                 ),
+                              );
+                           }).toList(),
+                              
+                        const SizedBox(height: 40),
+                     ],
+                  );
                                     SizedBox(height: 4),
                                     Text("Одиночный режим • Без видео", style: TextStyle(color: Colors.white70)),
                                     Text("Лимит: 2 ситуации в день", style: TextStyle(color: Colors.amber, fontSize: 12)),
