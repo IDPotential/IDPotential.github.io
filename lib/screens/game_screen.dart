@@ -1681,10 +1681,16 @@ ToggleButtons(
 
                   return ListView(
                      children: [
-                        // 1. Training Game Card (Always Visible)
+                        // 1. Game Title/Category "Территория Себя"
+                        const Padding(
+                           padding: EdgeInsets.fromLTRB(20, 20, 20, 4),
+                           child: Text("ТЕРРИТОРИЯ СЕБЯ", style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold, letterSpacing: 1.2)),
+                        ),
+
+                        // 2. Training Game Card
                         Card(
-                           margin: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-                           color: const Color(0xFF1E293B), // Matches app theme better
+                           margin: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+                           color: const Color(0xFF1E293B), 
                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: BorderSide(color: Colors.blueAccent.withOpacity(0.5))),
                            child: ListTile(
                               contentPadding: const EdgeInsets.all(16),
@@ -1709,25 +1715,23 @@ ToggleButtons(
                            ),
                         ),
 
-                        // 2. Host Games Header
+                        // 3. Host Games Header
                         const Padding(
-                           padding: EdgeInsets.fromLTRB(20, 20, 20, 10),
-                           child: Text("Игры с ведущим", style: TextStyle(color: Colors.white54, uppercase: true, fontWeight: FontWeight.bold, fontSize: 12)),
+                           padding: EdgeInsets.fromLTRB(20, 16, 20, 10),
+                           child: Text("Игры с ведущим:", style: TextStyle(color: Colors.white54, uppercase: true, fontWeight: FontWeight.bold, fontSize: 14)),
                         ),
 
-                        // 3. Games List or Empty State
+                        // 4. Games List or Empty State
                         if (games.isEmpty)
                            Center(
                              child: Column(
                                 children: [
-                                  const SizedBox(height: 20),
-                                  const Icon(Icons.search_off, color: Colors.white24, size: 48),
-                                  const SizedBox(height: 12),
+                                  const SizedBox(height: 10),
                                   const Text("Нет активных игр", style: TextStyle(color: Colors.white54)),
-                                  const SizedBox(height: 16),
+                                  const SizedBox(height: 8),
                                   ElevatedButton.icon(
                                      style: ElevatedButton.styleFrom(backgroundColor: Colors.white10),
-                                     onPressed: () => setState(() {}), // Trigger rebuild
+                                     onPressed: () => setState(() {}), 
                                      icon: const Icon(Icons.refresh, size: 16),
                                      label: const Text("Обновить")
                                   )
@@ -1749,7 +1753,14 @@ ToggleButtons(
                               );
                            }).toList(),
                               
-                        const SizedBox(height: 40),
+                        const SizedBox(height: 20),
+                        
+                        // 5. Divider for future games
+                        const Divider(color: Colors.white24, thickness: 1, indent: 20, endIndent: 20),
+                        const Padding(
+                           padding: EdgeInsets.symmetric(vertical: 20),
+                           child: Center(child: Text("Скоро: Новые типы игр...", style: TextStyle(color: Colors.white24, fontStyle: FontStyle.italic))),
+                        ),
                      ],
                   );
                                     SizedBox(height: 4),
