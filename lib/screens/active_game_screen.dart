@@ -241,10 +241,10 @@ class _ActiveGameScreenState extends State<ActiveGameScreen> {
                      )
                   else ...[
                      if (_gameStage == 'voting')
-                        ElevatedButton(
-                           style: ElevatedButton.styleFrom(backgroundColor: Colors.orange, minimumSize: const Size(0, 30)),
+                        IconButton(
+                           icon: const Icon(Icons.close, color: Colors.orange),
+                           tooltip: 'Завершить кон',
                            onPressed: () => _showEndRoundDialog(),
-                           child: const Text("Завершить кон", style: TextStyle(fontSize: 10, color: Colors.black, fontWeight: FontWeight.bold))
                         ),
                      const SizedBox(width: 8),
                      ElevatedButton(
@@ -255,10 +255,10 @@ class _ActiveGameScreenState extends State<ActiveGameScreen> {
                   ],
                   const SizedBox(width: 8),
                   // New Search Button for Host to find specific situation
-                  ElevatedButton.icon(
-                      style: ElevatedButton.styleFrom(backgroundColor: Colors.blueGrey, minimumSize: const Size(0, 30)),
-                      icon: const Icon(Icons.search, size: 14),
-                      label: const Text("Поиск", style: TextStyle(fontSize: 10)),
+                  // New Search Button
+                  IconButton(
+                      icon: const Icon(Icons.search, color: Colors.white70),
+                      tooltip: 'Поиск ситуации',
                       onPressed: _showSituationSearchDialog,
                   ),
                   const SizedBox(width: 8),
@@ -2011,7 +2011,7 @@ class _SituationSearchDialogState extends State<_SituationSearchDialog> {
         final q = query.toLowerCase();
         _filtered = widget.situations.where((s) {
            final text = (s['text'] as String? ?? '').toLowerCase();
-           final id = (s['id'] as int?)?.toString() ?? '';
+           final id = (s['id'].toString()).toLowerCase(); // Ensure ID is string
            return text.contains(q) || id.contains(q);
         }).toList();
       }
