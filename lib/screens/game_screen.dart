@@ -1876,7 +1876,7 @@ ToggleButtons(
       
       // Temporary solution: Simple text or query if possible
       return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-         stream: _firestoreService.getGamesHistoryStream(), // Need to ensure this exists or create it
+         stream: _firestoreService.getGameHistoryStream(), // Need to ensure this exists or create it
          builder: (ctx, snapshot) {
              if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
              final docs = snapshot.data!.docs;
