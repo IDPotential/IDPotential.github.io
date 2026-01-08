@@ -37,6 +37,8 @@ class _TrainingGameScreenState extends State<TrainingGameScreen> {
 
       // 2. Load Situations (lazy load logic)
       final packs = await _firestoreService.getSituationPacks();
+      debugPrint("DEBUG: Found ${packs.length} packs: ${packs.map((e) => e.data()['title']).toList()}");
+
       // Try to find "Ситуации Соло", else fallback to any
       var targetPack = packs.where((d) => d.data()['title'].toString().contains('Соло')).firstOrNull;
       targetPack ??= packs.firstOrNull;
