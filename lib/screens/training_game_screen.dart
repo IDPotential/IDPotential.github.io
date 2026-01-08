@@ -14,6 +14,7 @@ class TrainingGameScreen extends StatefulWidget {
 class _TrainingGameScreenState extends State<TrainingGameScreen> {
   final FirestoreService _firestoreService = FirestoreService();
   int _dailyCount = 0;
+  List<int> _userMatrix = [];
   bool _isLoading = true;
   String? _currentSituation;
   String? _currentSituationId;
@@ -47,9 +48,14 @@ class _TrainingGameScreenState extends State<TrainingGameScreen> {
       if (targetPack != null) {
           final situations = List<Map<String, dynamic>>.from(targetPack.data()['situations'] ?? []);
           _allSituations = situations;
-          debugPrint("Loaded ${_allSituations.length} situations from pack ${targetPack.id}");
       } else {
           debugPrint("Training Pack 'Соло' not found!");
+      }
+
+      // 3. Load User Calculation
+      final calcData = await _firestoreService.getLatestCalculation();
+      if (calcData != null && calcData['matrix'] != null) {
+         _userMatrix = List<int>.from(calcData['matrix']); 
       }
     } catch (e) {
       debugPrint("Error loading training data: $e");
@@ -239,8 +245,50 @@ class _TrainingGameScreenState extends State<TrainingGameScreen> {
               const Text("Какая роль подсознания сейчас активна?", style: TextStyle(color: Colors.blueAccent, fontSize: 16), textAlign: TextAlign.center),
               const SizedBox(height: 20),
               
-              // Roles Grid
-              Wrap(
+              // Roles Dashboard (My Matrix)
+              if (_userMatrix.isNotEmpty) ...[
+                 Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                       color: Colors.white10,
+                       borderRadius: BorderRadius.circular(16)
+                    ),
+                    child: Column(
+                       children: [
+                          Row(
+                             children: [
+                                Expanded(child: _buildSheetSection("ДУАЛЬНОСТЬ ИНЬ", [_n(4), _n(5)])),
+                                Expanded(child: _buildSheetSection("ДУАЛЬНОСТЬ ЯН", [_n(6), _n(7)])),
+                             ],
+                          ),
+                          const SizedBox(height: 8),
+                          Row(
+                             children: [
+                                Expanded(child: _buildSheetSection("МОТИВ", [_n(8)])),
+                                Expanded(child: _buildSheetSection("МЕТОД", [_n(9)])),
+                                Expanded(child: _buildSheetSection("СФЕРА", [_n(10)])),
+                             ]
+                          ),
+                          const SizedBox(height: 8),
+                          Row(
+                             children: [
+                                Expanded(child: _buildSheetSection("СТРАХИ", [_n(11)])),
+                                Expanded(child: _buildSheetSection("БАЛАНС", [_n(13)])),
+                                Expanded(child: _buildSheetSection(" ТОЧКА ВЫХОДА", [_n(12)])),
+                             ],
+                          ),
+                       ],
+                    ),
+                 ),
+              ] else ...[
+                 const Text("У вас нет сохраненного расчета (карты).", style: TextStyle(color: Colors.grey)),
+                 const SizedBox(height: 8),
+                 // Fallback to all roles if no calculation? Or deny?
+                 // User said "roles corresponding to player map". 
+                 // If no map, maybe show nothing or generic?
+                 // Let's keep generic grid as fallback or just message.
+                 // Ideally user HAS a calculation.
+                 Wrap(
                  spacing: 12,
                  runSpacing: 12,
                  alignment: WrapAlignment.center,
@@ -268,6 +316,7 @@ class _TrainingGameScreenState extends State<TrainingGameScreen> {
                      );
                  }).toList(),
               ),
+              ],
               
               const SizedBox(height: 30),
               ElevatedButton(
@@ -281,7 +330,71 @@ class _TrainingGameScreenState extends State<TrainingGameScreen> {
            ],
         ),
       );
+      );
   }
+
+  // Helper to safely get role number from user matrix
+  int _n(int idx) => (idx < _userMatrix.length) ? (_userMatrix[idx] == 0 ? 22 : _userMatrix[idx]) : 22;
+
+  Widget _buildSheetSection(String title, List<int> cardNums) {
+      return Column(
+         children: [
+            Padding(
+               padding: const EdgeInsets.symmetric(vertical: 6),
+               child: Text(title, style: const TextStyle(color: Colors.white38, fontSize: 8, fontWeight: FontWeight.bold, letterSpacing: 0.5), textAlign: TextAlign.center, overflow: TextOverflow.ellipsis),
+            ),
+            Row(
+               mainAxisAlignment: MainAxisAlignment.center,
+               children: cardNums.map<Widget>((num) {
+                  final isSelected = _selectedRole == num;
+                  return GestureDetector(
+                     onTap: () => _showRoleDetails(num, zones[num] ?? {}),
+                     child: Container(
+                        width: 50,
+                        height: 70,
+                        margin: const EdgeInsets.symmetric(horizontal: 2),
+                        decoration: BoxDecoration(
+                           borderRadius: BorderRadius.circular(6),
+                           border: Border.all(color: isSelected ? Colors.greenAccent : Colors.white12, width: isSelected ? 2 : 0.5),
+                           boxShadow: [BoxShadow(color: Colors.black26, blurRadius: 4)],
+                        ),
+                        child: Stack(
+                           children: [
+                              ClipRRect(
+                                 borderRadius: BorderRadius.circular(6),
+                                 child: Image.asset(
+                                    'assets/images/cards/role_$num.png',
+                                    fit: BoxFit.cover,
+                                    width: double.infinity,
+                                    height: double.infinity,
+                                    errorBuilder: (c, e, s) => Container(color: Colors.white10, child: Center(child: Text("$num", style: const TextStyle(color: Colors.white54, fontSize: 10)))),
+                                 ),
+                              ),
+                              Positioned(
+                                 bottom: 0, right: 0, left: 0,
+                                 child: Container(
+                                    decoration: const BoxDecoration(
+                                       color: Colors.black54,
+                                       borderRadius: BorderRadius.only(bottomLeft: Radius.circular(6), bottomRight: Radius.circular(6)),
+                                    ),
+                                    padding: const EdgeInsets.symmetric(vertical: 1),
+                                    child: Text("$num", textAlign: TextAlign.center, style: const TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold)),
+                                 ),
+                              ),
+                              if (isSelected) 
+                                 Positioned(
+                                    top: 2, right: 2,
+                                    child: const Icon(Icons.check_circle, color: Colors.greenAccent, size: 14) 
+                                 )
+                           ],
+                        ),
+                     ),
+                  );
+               }).toList(),
+            ),
+         ],
+      );
+   }
 
   void _showRoleDetails(int roleId, Map<String, String> data) {
     showDialog(

@@ -120,6 +120,22 @@ class FirestoreService {
     }).toList();
   }
 
+  Future<Map<String, dynamic>?> getLatestCalculation() async {
+    final user = _auth.currentUser;
+    if (user == null) return null;
+    
+    final query = await _db
+        .collection('users')
+        .doc(user.uid)
+        .collection('calculations')
+        .orderBy('createdAt', descending: true)
+        .limit(1)
+        .get();
+        
+    if (query.docs.isEmpty) return null;
+    return query.docs.first.data();
+  }
+
   Future<void> updateGroup(String calculationId, String? groupName) async {
       final user = _auth.currentUser;
       if (user == null) return;
