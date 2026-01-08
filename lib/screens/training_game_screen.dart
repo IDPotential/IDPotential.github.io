@@ -381,68 +381,73 @@ class _TrainingGameScreenState extends State<TrainingGameScreen> {
    int _n(int idx) => (idx < _userMatrix.length) ? (_userMatrix[idx] == 0 ? 22 : _userMatrix[idx]) : 22;
 
    Widget _buildNumberSelection() {
-      // Filter roles: only from user matrix, unique, sorted, non-zero
-      List<int> availableRoles = [];
-      if (_userMatrix.isNotEmpty) {
-         availableRoles = _userMatrix.where((n) => n > 0 && n <= 22).toSet().toList()..sort();
+      // Logic: Unique, sorted, 0->22
+      final Set<int> uniqueNumbers = {};
+      for (var n in _userMatrix) {
+         if (n > 0 && n <= 22) uniqueNumbers.add(n);
+         if (n == 0) uniqueNumbers.add(22);
+      }
+      // If empty (shouldn't happen), fill 1-22
+      if (uniqueNumbers.isEmpty) {
+         uniqueNumbers.addAll(List.generate(22, (i) => i + 1));
       }
       
-      // Fallback if no matrix (shouldn't happen due to logic check)
-      if (availableRoles.isEmpty) {
-         availableRoles = List.generate(22, (i) => i + 1);
-      }
+      final sortedNumbers = uniqueNumbers.toList()..sort();
 
-      return Wrap(
-         spacing: 12,
-         runSpacing: 12,
-         alignment: WrapAlignment.center,
-         children: availableRoles.map((num) {
-             final isSelected = _selectedRole == num;
-             return GestureDetector(
-                onTap: () => setState(() => _selectedRole = num),
-                onLongPress: () => _showRoleDetails(num), // Allow viewing details
+      return LayoutBuilder(
+        builder: (context, constraints) {
+          // RESPONSIVE: Increase columns on wider screens
+          final int crossAxisCount = constraints.maxWidth > 900 ? 10 : (constraints.maxWidth > 600 ? 7 : 5);
+          final double aspectRatio = constraints.maxWidth > 600 ? 0.75 : 0.65;
+
+          return GridView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(), // Scroll handled by parent
+            padding: const EdgeInsets.all(12),
+            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: crossAxisCount, 
+              childAspectRatio: aspectRatio, 
+              crossAxisSpacing: 8, 
+              mainAxisSpacing: 8,
+            ),
+            itemCount: sortedNumbers.length,
+            itemBuilder: (context, index) {
+              final number = sortedNumbers[index];
+              final isSelected = _selectedRole == number;
+              return GestureDetector(
+                onTap: () => setState(() => _selectedRole = number),
+                onLongPress: () => _showRoleDetails(number),
                 child: Container(
-                   width: 60,
-                   height: 85,
-                   decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: isSelected ? Colors.greenAccent : Colors.white12, width: isSelected ? 2 : 1),
-                      boxShadow: [BoxShadow(color: Colors.black38, blurRadius: 4, offset: const Offset(0, 2))],
-                   ),
-                   child: Stack(
+                  decoration: BoxDecoration(
+                    border: isSelected ? Border.all(color: Colors.orange, width: 3) : null,
+                    borderRadius: BorderRadius.circular(8),
+                    boxShadow: isSelected ? [BoxShadow(color: Colors.orange.withOpacity(0.5), blurRadius: 8)] : null,
+                  ),
+                  child: Card(
+                    clipBehavior: Clip.antiAlias, margin: EdgeInsets.zero, elevation: isSelected ? 8 : 2,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                         ClipRRect(
-                            borderRadius: BorderRadius.circular(7),
-                            child: Image.asset(
-                               'assets/images/cards/role_$num.png',
-                               fit: BoxFit.cover,
-                               width: double.infinity,
-                               height: double.infinity,
-                               errorBuilder: (c, e, s) => Container(color: Colors.white10, child: Center(child: Text("$num", style: const TextStyle(color: Colors.white54, fontSize: 12)))),
-                            ),
-                         ),
-                         // Number badge
-                         Positioned(
-                            bottom: 0, right: 0, left: 0,
-                            child: Container(
-                               decoration: const BoxDecoration(
-                                  color: Colors.black87,
-                                  borderRadius: BorderRadius.only(bottomLeft: Radius.circular(7), bottomRight: Radius.circular(7)),
-                               ),
-                               padding: const EdgeInsets.symmetric(vertical: 2),
-                               child: Text("$num", textAlign: TextAlign.center, style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
-                            ),
-                         ),
-                         if (isSelected) 
-                            const Positioned(
-                               top: 4, right: 4,
-                               child: Icon(Icons.check_circle, color: Colors.greenAccent, size: 18) 
-                            )
+                        Expanded(
+                          child: Image.asset(
+                              'assets/images/cards/role_$number.png', 
+                              fit: BoxFit.cover, 
+                              errorBuilder: (c,e,s)=>const Icon(Icons.image_not_supported)
+                          ),
+                        ),
+                        Container(
+                          color: isSelected ? Colors.orange : Colors.black54,
+                          padding: const EdgeInsets.symmetric(vertical: 2),
+                          child: Text('$number', textAlign: TextAlign.center, style: const TextStyle(fontSize: 12, color: Colors.white, fontWeight: FontWeight.bold)),
+                        ),
                       ],
-                   ),
+                    ),
+                  ),
                 ),
-             );
-         }).toList(),
+              );
+            },
+          );
+        }
       );
    }
 
