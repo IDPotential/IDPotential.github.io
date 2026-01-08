@@ -1763,27 +1763,18 @@ ToggleButtons(
                         ),
                      ],
                   );
-                                    SizedBox(height: 4),
-                                    Text("Одиночный режим • Без видео", style: TextStyle(color: Colors.white70)),
-                                    Text("Лимит: 2 ситуации в день", style: TextStyle(color: Colors.amber, fontSize: 12)),
-                                 ],
-                              ),
-                              trailing: const Icon(Icons.chevron_right, color: Colors.white54),
-                              onTap: () {
-                                 Navigator.push(context, MaterialPageRoute(builder: (_) => const TrainingGameScreen()));
-                              },
-                           ),
-                        ),
-                        
-                        // Active Games Header
-                        if (games.isNotEmpty)
-                           const Padding(
-                              padding: EdgeInsets.fromLTRB(16, 16, 16, 8),
-                              child: Text("Игры с ведущим:", style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold)),
-                           ),
+   }
 
-                        // List of Games
-                        ...games.map((gameDoc) {
+   String _formatDate(dynamic scheduledAt) {
+      if (scheduledAt == null) return '';
+      try {
+         final date = DateTime.parse(scheduledAt.toString());
+         return "${date.day.toString().padLeft(2, '0')}.${date.month.toString().padLeft(2, '0')} ${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}";
+      } catch (e) {
+         return '';
+      }
+   }
+}
                            final game = gameDoc.data();
                            final gameId = gameDoc.id;
                            final dateStr = game['scheduledAt'];
