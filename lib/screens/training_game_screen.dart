@@ -285,41 +285,13 @@ class _TrainingGameScreenState extends State<TrainingGameScreen> {
                     ),
                  ),
               ] else ...[
-                 const Text("У вас нет сохраненного расчета (карты).", style: TextStyle(color: Colors.grey)),
-                 const SizedBox(height: 8),
-                 // Fallback to all roles if no calculation? Or deny?
-                 // User said "roles corresponding to player map". 
-                 // If no map, maybe show nothing or generic?
-                 // Let's keep generic grid as fallback or just message.
-                 // Ideally user HAS a calculation.
-                 Wrap(
-                 spacing: 12,
-                 runSpacing: 12,
-                 alignment: WrapAlignment.center,
-                 children: zones.entries.map((entry) {
-                     final roleId = entry.key;
-                     final roleData = entry.value;
-                     final isSelected = _selectedRole == roleId;
-
-                     return GestureDetector(
-                        onTap: () => _showRoleDetails(roleId, roleData),
-                        child: Container(
-                           width: 60,
-                           height: 60,
-                           decoration: BoxDecoration(
-                              color: isSelected ? Colors.green : Colors.blueAccent.withOpacity(0.2),
-                              border: Border.all(color: Colors.blueAccent),
-                              borderRadius: BorderRadius.circular(12),
-                           ),
-                           alignment: Alignment.center,
-                           child: Text(
-                              "$roleId", 
-                              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18)
-                           ),
-                        ),
-                     );
-                 }).toList(),
-              ),
+                 const Center(
+                   child: Padding(
+                     padding: EdgeInsets.all(20),
+                     child: Text("Внимание: Для использования тренировочного режима необходимо иметь сохраненный профиль (расчет).", 
+                       style: TextStyle(color: Colors.orangeAccent), textAlign: TextAlign.center),
+                   ),
+                 ),
               ],
               
               const SizedBox(height: 30),
@@ -336,10 +308,10 @@ class _TrainingGameScreenState extends State<TrainingGameScreen> {
        );
   }
 
-  // Helper to safely get role number from user matrix
-  int _n(int idx) => (idx < _userMatrix.length) ? (_userMatrix[idx] == 0 ? 22 : _userMatrix[idx]) : 22;
+   // Helper to safely get role number from user matrix
+   int _n(int idx) => (idx < _userMatrix.length) ? (_userMatrix[idx] == 0 ? 22 : _userMatrix[idx]) : 22;
 
-  Widget _buildSheetSection(String title, List<int> cardNums) {
+   Widget _buildSheetSection(String title, List<int> cardNums) {
       return Column(
          children: [
             Padding(
@@ -351,7 +323,7 @@ class _TrainingGameScreenState extends State<TrainingGameScreen> {
                children: cardNums.map<Widget>((num) {
                   final isSelected = _selectedRole == num;
                   return GestureDetector(
-                     onTap: () => _showRoleDetails(num, zones[num] ?? {}),
+                     onTap: () => _showRoleDetails(num),
                      child: Container(
                         width: 50,
                         height: 70,
@@ -399,49 +371,65 @@ class _TrainingGameScreenState extends State<TrainingGameScreen> {
       );
    }
 
-  void _showRoleDetails(int roleId, Map<String, String> data) {
+  void _showRoleDetails(int number) {
+    final info = KnowledgeService.getRoleInfo(number);
+    final name = info['role_name'] ?? 'Роль $number';
+    final description = info['description'] ?? 'Описание отсутствует';
+    
+    final keyQuality = info['role_key'] ?? '';
+    final strength = info['role_strength'] ?? '';
+    final challenge = info['role_challenge'] ?? '';
+    final roleInLife = info['role_inlife'] ?? '';
+    final roleQuestion = info['role_question'] ?? '';
+
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (ctx) => AlertDialog(
         backgroundColor: const Color(0xFF1E293B),
-        title: Text("${data['name']} ($roleId)", style: const TextStyle(color: Colors.white)),
+        title: Text('$number. $name', style: const TextStyle(color: Colors.white)),
         content: SingleChildScrollView(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text(data['description'] ?? '', style: const TextStyle(color: Colors.white70, fontSize: 16)),
-              const SizedBox(height: 12),
-              const Text("Ключ роли:", style: TextStyle(color: Colors.blueAccent, fontWeight: FontWeight.bold)),
-              Text(data['role_key'] ?? '', style: const TextStyle(color: Colors.white60)),
-               const SizedBox(height: 8),
-              const Text("В жизни:", style: TextStyle(color: Colors.blueAccent, fontWeight: FontWeight.bold)),
-              Text(data['role_inlife'] ?? '', style: const TextStyle(color: Colors.white60)),
+               Text(description, style: const TextStyle(color: Colors.white70, fontSize: 14, height: 1.4)),
+               const SizedBox(height: 16),
+               
+               if (keyQuality.isNotEmpty) ...[
+                 const Text("Ключевое качество:", style: TextStyle(color: Colors.blueAccent, fontWeight: FontWeight.bold)),
+                 Text(keyQuality, style: const TextStyle(color: Colors.white60)),
+                 const SizedBox(height: 8),
+               ],
+               
+               if (strength.isNotEmpty) ...[
+                 const Text("Сила роли:", style: TextStyle(color: Colors.greenAccent, fontWeight: FontWeight.bold)),
+                 Text(strength, style: const TextStyle(color: Colors.white60)),
+                 const SizedBox(height: 8),
+               ],
+               
+               if (challenge.isNotEmpty) ...[
+                  const Text("Вызов (ловушка):", style: TextStyle(color: Colors.orangeAccent, fontWeight: FontWeight.bold)),
+                  Text(challenge, style: const TextStyle(color: Colors.white60)),
+                  const SizedBox(height: 8),
+               ],
+               
+               if (roleInLife.isNotEmpty) ...[
+                  const Text("В жизни:", style: TextStyle(color: Colors.purpleAccent, fontWeight: FontWeight.bold)),
+                  Text(roleInLife, style: const TextStyle(color: Colors.white60)),
+               ]
             ],
           ),
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context), 
+            onPressed: () => Navigator.pop(ctx), 
             child: const Text("Отмена", style: TextStyle(color: Colors.grey))
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: Colors.blueAccent),
             onPressed: () {
-               setState(() => _selectedRole = roleId);
-               Navigator.pop(context);
-               _saveResult(); // Auto-save after confirmation? Or let user click save? 
-               // User flow: Select -> (Screen shows Result) -> Save? 
-               // Wait, existing flow was Select -> Click "Save result"?
-               // Let's check _buildActiveScreen buttons.
-               
-               // Existing flow had a "Confirm/Next" button likely. 
-               // Actually, let's keep it simple: Select -> Set State. 
-               // Then user clicks "Ответить" (Answer) if it exists.
-               // Checking code... there is no "Answer" button in the viewed code. 
-               // Ah, previously viewed code didn't show the bottom part.
-               // Assuming there is a button to confirm. If not, I should add one or auto-save.
-               // Let's assume there is a button below the Grid.
+               setState(() => _selectedRole = number);
+               Navigator.pop(ctx);
             }, 
             child: const Text("Выбрать эту роль")
           ),
