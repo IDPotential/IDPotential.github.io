@@ -3,6 +3,7 @@ import 'dart:math';
 import '../services/firestore_service.dart';
 import '../data/diagnostic_data.dart'; // Import Diagnostic Data
 import '../services/knowledge_service.dart';
+import 'calculation_screen.dart';
 
 class TrainingGameScreen extends StatefulWidget {
   const TrainingGameScreen({super.key});
@@ -20,6 +21,14 @@ class _TrainingGameScreenState extends State<TrainingGameScreen> {
   String? _currentSituationId;
   int? _selectedRole;
   bool _isResultSaved = false;
+
+  void _openProfileCreation() async {
+      await Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => const CalculationScreen()),
+      );
+      _loadData(); // Reload after return
+  }
 
   // Cache for situations
   List<Map<String, dynamic>> _allSituations = [];
@@ -288,8 +297,21 @@ class _TrainingGameScreenState extends State<TrainingGameScreen> {
                  const Center(
                    child: Padding(
                      padding: EdgeInsets.all(20),
-                     child: Text("Внимание: Для использования тренировочного режима необходимо иметь сохраненный профиль (расчет).", 
-                       style: TextStyle(color: Colors.orangeAccent), textAlign: TextAlign.center),
+                     child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                            Text("У вас нет игрового профиля", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+                            SizedBox(height: 12),
+                            Text("Для тренировки необходимо создать свою карту (расчет).", style: TextStyle(color: Colors.white70), textAlign: TextAlign.center),
+                            SizedBox(height: 24),
+                            // Button to create profile
+                            ElevatedButton( // Button needed here
+                                onPressed: _openProfileCreation, // Method to be added
+                                style: ElevatedButton.styleFrom(backgroundColor: Colors.blueAccent),
+                                child: Text("Создать профиль")
+                            )
+                        ],
+                     ),
                    ),
                  ),
               ],
