@@ -3,7 +3,9 @@ import 'dart:math';
 import '../services/firestore_service.dart';
 import '../data/diagnostic_data.dart'; // Import Diagnostic Data
 import '../services/knowledge_service.dart';
+import '../services/knowledge_service.dart';
 import 'calculation_screen.dart';
+import '../widgets/role_info_dialog.dart'; // Import Custom Dialog
 
 class TrainingGameScreen extends StatefulWidget {
   const TrainingGameScreen({super.key});
@@ -345,67 +347,57 @@ class _TrainingGameScreenState extends State<TrainingGameScreen> {
          availableRoles = List.generate(22, (i) => i + 1);
       }
 
-      return Column(
-         crossAxisAlignment: CrossAxisAlignment.start,
-         children: [
-            const Padding(
-               padding: EdgeInsets.only(bottom: 12),
-               child: Text("Выберите роль (из вашей карты):", style: TextStyle(color: Colors.white70)),
-            ),
-            SingleChildScrollView(
-               scrollDirection: Axis.horizontal,
-               child: Row(
-                  children: availableRoles.map((num) {
-                      final isSelected = _selectedRole == num;
-                      return GestureDetector(
-                         onTap: () => setState(() => _selectedRole = num),
-                         onLongPress: () => _showRoleDetails(num), // Allow viewing details
-                         child: Container(
-                            width: 60, // Slightly wider for better touch
-                            height: 85,
-                            margin: const EdgeInsets.only(right: 12),
-                            decoration: BoxDecoration(
-                               borderRadius: BorderRadius.circular(8),
-                               border: Border.all(color: isSelected ? Colors.greenAccent : Colors.white12, width: isSelected ? 2 : 1),
-                               boxShadow: [BoxShadow(color: Colors.black38, blurRadius: 4, offset: const Offset(0, 2))],
-                            ),
-                            child: Stack(
-                               children: [
-                                  ClipRRect(
-                                     borderRadius: BorderRadius.circular(7),
-                                     child: Image.asset(
-                                        'assets/images/cards/role_$num.png',
-                                        fit: BoxFit.cover,
-                                        width: double.infinity,
-                                        height: double.infinity,
-                                        errorBuilder: (c, e, s) => Container(color: Colors.white10, child: Center(child: Text("$num", style: const TextStyle(color: Colors.white54, fontSize: 12)))),
-                                     ),
-                                  ),
-                                  // Number badge
-                                  Positioned(
-                                     bottom: 0, right: 0, left: 0,
-                                     child: Container(
-                                        decoration: const BoxDecoration(
-                                           color: Colors.black87,
-                                           borderRadius: BorderRadius.only(bottomLeft: Radius.circular(7), bottomRight: Radius.circular(7)),
-                                        ),
-                                        padding: const EdgeInsets.symmetric(vertical: 2),
-                                        child: Text("$num", textAlign: TextAlign.center, style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
-                                     ),
-                                  ),
-                                  if (isSelected) 
-                                     const Positioned(
-                                        top: 4, right: 4,
-                                        child: Icon(Icons.check_circle, color: Colors.greenAccent, size: 18) 
-                                     )
-                               ],
+      return Wrap(
+         spacing: 12,
+         runSpacing: 12,
+         alignment: WrapAlignment.center,
+         children: availableRoles.map((num) {
+             final isSelected = _selectedRole == num;
+             return GestureDetector(
+                onTap: () => setState(() => _selectedRole = num),
+                onLongPress: () => _showRoleDetails(num), // Allow viewing details
+                child: Container(
+                   width: 60,
+                   height: 85,
+                   decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: isSelected ? Colors.greenAccent : Colors.white12, width: isSelected ? 2 : 1),
+                      boxShadow: [BoxShadow(color: Colors.black38, blurRadius: 4, offset: const Offset(0, 2))],
+                   ),
+                   child: Stack(
+                      children: [
+                         ClipRRect(
+                            borderRadius: BorderRadius.circular(7),
+                            child: Image.asset(
+                               'assets/images/cards/role_$num.png',
+                               fit: BoxFit.cover,
+                               width: double.infinity,
+                               height: double.infinity,
+                               errorBuilder: (c, e, s) => Container(color: Colors.white10, child: Center(child: Text("$num", style: const TextStyle(color: Colors.white54, fontSize: 12)))),
                             ),
                          ),
-                      );
-                  }).toList(),
-               ),
-            ),
-         ],
+                         // Number badge
+                         Positioned(
+                            bottom: 0, right: 0, left: 0,
+                            child: Container(
+                               decoration: const BoxDecoration(
+                                  color: Colors.black87,
+                                  borderRadius: BorderRadius.only(bottomLeft: Radius.circular(7), bottomRight: Radius.circular(7)),
+                               ),
+                               padding: const EdgeInsets.symmetric(vertical: 2),
+                               child: Text("$num", textAlign: TextAlign.center, style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
+                            ),
+                         ),
+                         if (isSelected) 
+                            const Positioned(
+                               top: 4, right: 4,
+                               child: Icon(Icons.check_circle, color: Colors.greenAccent, size: 18) 
+                            )
+                      ],
+                   ),
+                ),
+             );
+         }).toList(),
       );
    }
 
@@ -470,68 +462,14 @@ class _TrainingGameScreenState extends State<TrainingGameScreen> {
    }
 
   void _showRoleDetails(int number) {
-    final info = KnowledgeService.getRoleInfo(number);
-    final name = info['role_name'] ?? 'Роль $number';
-    final description = info['description'] ?? 'Описание отсутствует';
-    
-    final keyQuality = info['role_key'] ?? '';
-    final strength = info['role_strength'] ?? '';
-    final challenge = info['role_challenge'] ?? '';
-    final roleInLife = info['role_inlife'] ?? '';
-    final roleQuestion = info['role_question'] ?? '';
-
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: const Color(0xFF1E293B),
-        title: Text('$number. $name', style: const TextStyle(color: Colors.white)),
-        content: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-               Text(description, style: const TextStyle(color: Colors.white70, fontSize: 14, height: 1.4)),
-               const SizedBox(height: 16),
-               
-               if (keyQuality.isNotEmpty) ...[
-                 const Text("Ключевое качество:", style: TextStyle(color: Colors.blueAccent, fontWeight: FontWeight.bold)),
-                 Text(keyQuality, style: const TextStyle(color: Colors.white60)),
-                 const SizedBox(height: 8),
-               ],
-               
-               if (strength.isNotEmpty) ...[
-                 const Text("Сила роли:", style: TextStyle(color: Colors.greenAccent, fontWeight: FontWeight.bold)),
-                 Text(strength, style: const TextStyle(color: Colors.white60)),
-                 const SizedBox(height: 8),
-               ],
-               
-               if (challenge.isNotEmpty) ...[
-                  const Text("Вызов (ловушка):", style: TextStyle(color: Colors.orangeAccent, fontWeight: FontWeight.bold)),
-                  Text(challenge, style: const TextStyle(color: Colors.white60)),
-                  const SizedBox(height: 8),
-               ],
-               
-               if (roleInLife.isNotEmpty) ...[
-                  const Text("В жизни:", style: TextStyle(color: Colors.purpleAccent, fontWeight: FontWeight.bold)),
-                  Text(roleInLife, style: const TextStyle(color: Colors.white60)),
-               ]
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx), 
-            child: const Text("Отмена", style: TextStyle(color: Colors.grey))
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.blueAccent),
-            onPressed: () {
-               setState(() => _selectedRole = number);
-               Navigator.pop(ctx);
-            }, 
-            child: const Text("Выбрать эту роль")
-          ),
-        ],
+      builder: (ctx) => RoleInfoDialog(
+        roleNumber: number,
+        canSelect: true,
+        onSelect: () {
+           setState(() => _selectedRole = number);
+        },
       ),
     );
   }

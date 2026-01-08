@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../services/knowledge_service.dart';
-import 'role_detail_screen.dart';
+import '../widgets/role_info_dialog.dart'; // Import Custom Dialog
 
 class GameDetailsScreen extends StatelessWidget {
   final String gameId;
@@ -65,7 +65,7 @@ class GameDetailsScreen extends StatelessWidget {
                     itemBuilder: (context, index) {
                        final data = docs[index].data();
                        final situation = data['situation'] ?? 'Нет описания';
-                       final answer = data['answer'];
+                       final answer = data['answer']; // This is the user's thought/answer text
                        final role = data['role'];
                        final votes = data['votes'] ?? 0;
                        final roundIdx = data['roundIndex'] ?? (index + 1);
@@ -90,10 +90,13 @@ class GameDetailsScreen extends StatelessWidget {
                                        Text(situation, style: const TextStyle(fontSize: 15)),
                                        const SizedBox(height: 16),
                                        
-                                       // Removed 'Your Answer' section by request
-                                       // const Text("Ваш ответ:", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.blueAccent)),
-                                       // const SizedBox(height: 4),
-                                       // ...
+                                       if (answer != null && answer.toString().isNotEmpty) ...[
+                                          const Text("Ваш комментарий/ответ:", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.blueAccent)),
+                                          const SizedBox(height: 4),
+                                          Text(answer.toString(), style: const TextStyle(fontStyle: FontStyle.italic)),
+                                          const SizedBox(height: 16),
+                                       ],
+                                       
                                        Row(
                                           children: [
                                              if (role != null) ...[
@@ -101,7 +104,10 @@ class GameDetailsScreen extends StatelessWidget {
                                                 const SizedBox(width: 12),
                                                 InkWell(
                                                    onTap: () {
-                                                      Navigator.push(context, MaterialPageRoute(builder: (_) => RoleDetailScreen(number: role, isAspect: false)));
+                                                      showDialog(
+                                                         context: context,
+                                                         builder: (context) => RoleInfoDialog(roleNumber: role)
+                                                      );
                                                    },
                                                    child: Text(
                                                       "Выбрана Роль $role ${KnowledgeService.getRoleInfo(role)['role_name'] ?? ''}", 

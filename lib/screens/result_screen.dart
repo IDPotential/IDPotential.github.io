@@ -13,7 +13,7 @@ import '../services/knowledge_service.dart';
 import '../widgets/diagnostic_scheme.dart';
 import '../utils/file_saver.dart';
 import '../services/firestore_service.dart'; // import
-import 'role_detail_screen.dart';
+import '../widgets/role_info_dialog.dart'; // Import Custom Dialog
 
 class ResultScreen extends StatefulWidget {
   final Calculation calculation;
@@ -444,14 +444,9 @@ class _ResultScreenState extends State<ResultScreen> {
                         if (href.startsWith('role:')) {
                           final roleNum = int.tryParse(href.substring(5));
                           if (roleNum != null) {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => RoleDetailScreen(
-                                  number: roleNum,
-                                  isAspect: false,
-                                ),
-                              ),
+                            showDialog(
+                              context: context,
+                              builder: (context) => RoleInfoDialog(roleNumber: roleNum),
                             );
                           }
                         } else if (href.startsWith('aspect:')) {

@@ -177,8 +177,13 @@ class _GameScreenState extends State<GameScreen> {
          setState(() {
             _targetGameId = gameId;
             _targetGameTitle = data['title'];
-            final ts = data['scheduledAt'] as Timestamp?;
-            _targetGameDate = ts != null ? DateFormat('dd.MM.yyyy HH:mm').format(ts.toDate()) : null;
+            DateTime? date;
+            if (data['scheduledAt'] is Timestamp) {
+               date = (data['scheduledAt'] as Timestamp).toDate();
+            } else if (data['scheduledAt'] is String) {
+               date = DateTime.tryParse(data['scheduledAt']);
+            }
+            _targetGameDate = date != null ? DateFormat('dd.MM.yyyy HH:mm').format(date) : null;
             _targetHostName = data['hostName'];
             _zoomId = data['zoomId'];
             _zoomPassword = data['zoomPassword'];
