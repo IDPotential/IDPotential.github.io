@@ -44,6 +44,9 @@ class _TrainingGameScreenState extends State<TrainingGameScreen> {
       if (targetPack != null) {
           final situations = List<Map<String, dynamic>>.from(targetPack.data()['situations'] ?? []);
           _allSituations = situations;
+          debugPrint("Loaded ${_allSituations.length} situations from pack ${targetPack.id}");
+      } else {
+          debugPrint("Training Pack 'Соло' not found!");
       }
     } catch (e) {
       debugPrint("Error loading training data: $e");
@@ -53,8 +56,16 @@ class _TrainingGameScreenState extends State<TrainingGameScreen> {
   }
 
   void _getNewSituation() {
-    if (_dailyCount >= 2) return;
-    if (_allSituations.isEmpty) return;
+    debugPrint("Get Situation Clicked. DailyCount: $_dailyCount, Situations: ${_allSituations.length}");
+    
+    if (_dailyCount >= 2) {
+       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Лимит на сегодня исчерпан!")));
+       return;
+    }
+    if (_allSituations.isEmpty) {
+       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Ошибка: Ситуации не найдены!"), backgroundColor: Colors.red));
+       return;
+    }
 
     final random = Random();
     final item = _allSituations[random.nextInt(_allSituations.length)];
