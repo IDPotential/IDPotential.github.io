@@ -66,7 +66,7 @@ class GameDetailsScreen extends StatelessWidget {
                        final data = docs[index].data();
                        final situation = data['situation'] ?? 'Нет описания';
                        final answer = data['answer']; // This is the user's thought/answer text
-                       final role = data['role'];
+                       final role = data['role'] as int?;
                        final votes = data['votes'] ?? 0;
                        final roundIdx = data['roundIndex'] ?? (index + 1);
                        
@@ -106,11 +106,11 @@ class GameDetailsScreen extends StatelessWidget {
                                                    onTap: () {
                                                       showDialog(
                                                          context: context,
-                                                         builder: (context) => RoleInfoDialog(roleNumber: role)
+                                                         builder: (context) => RoleInfoDialog(roleNumber: role!)
                                                       );
                                                    },
                                                    child: Text(
-                                                      "Выбрана Роль $role ${KnowledgeService.getRoleInfo(role)['role_name'] ?? ''}", 
+                                                      "Выбрана Роль $role ${KnowledgeService.getRoleInfo(role!)['role_name'] ?? ''}", 
                                                       style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.blueAccent, decoration: TextDecoration.underline)
                                                    ),
                                                 )
