@@ -333,8 +333,7 @@ class _TrainingGameScreenState extends State<TrainingGameScreen> {
               )
            ],
         ),
-      );
-      );
+       );
   }
 
   // Helper to safely get role number from user matrix
