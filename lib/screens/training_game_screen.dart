@@ -3,7 +3,7 @@ import 'dart:math';
 import '../services/firestore_service.dart';
 import '../data/diagnostic_data.dart'; // Import Diagnostic Data
 import '../services/knowledge_service.dart';
-import '../services/knowledge_service.dart';
+
 import 'calculation_screen.dart';
 import '../widgets/role_info_dialog.dart'; // Import Custom Dialog
 
@@ -44,34 +44,79 @@ class _TrainingGameScreenState extends State<TrainingGameScreen> {
   Future<void> _loadData() async {
     setState(() => _isLoading = true);
     try {
-      // 1. Get Daily Limit
-      final count = await _firestoreService.getDailyTrainingCount();
-      _dailyCount = count;
-
-      // 2. Load Situations (lazy load logic)
-      final packs = await _firestoreService.getSituationPacks();
-      debugPrint("DEBUG: Found ${packs.length} packs: ${packs.map((e) => e.data()['title']).toList()}");
-
-      // Try to find "Ситуации Соло", else fallback to any
-      var targetPack = packs.where((d) => d.data()['title'].toString().contains('Соло')).firstOrNull;
-      targetPack ??= packs.firstOrNull;
-
-      if (targetPack != null) {
-          final situations = List<Map<String, dynamic>>.from(targetPack.data()['situations'] ?? []);
-          _allSituations = situations;
-      } else {
-          debugPrint("Training Pack 'Соло' not found!");
-      }
-
-      // 3. Load User Calculation
+      // 1. Load User Calculation FIRST to get Age & Matrix
       final calcData = await _firestoreService.getLatestCalculation();
+      int userAge = 30; // Default to adult if unknown
+
       if (calcData != null) {
+          // Matrix
           if (calcData['numbers'] != null) {
               _userMatrix = List<int>.from(calcData['numbers']);
           } else if (calcData['matrix'] != null) {
               _userMatrix = List<int>.from(calcData['matrix']);
           }
+          
+          // Age Calculation
+          if (calcData['birthDate'] != null) {
+             try {
+                // Expected format: DD.MM.YYYY
+                final parts = calcData['birthDate'].toString().split('.');
+                if (parts.length == 3) {
+                   final year = int.parse(parts[2]);
+                   userAge = DateTime.now().year - year;
+                   debugPrint("User Age: $userAge (Born: $year)");
+                }
+             } catch (e) {
+                debugPrint("Error parsing birthDate: $e");
+             }
+          }
       }
+
+      // 2. Get Daily Limit
+      final count = await _firestoreService.getDailyTrainingCount();
+      _dailyCount = count;
+
+      // 3. Load Situations based on Age
+      final packs = await _firestoreService.getSituationPacks();
+      debugPrint("DEBUG: Found ${packs.length} packs. User Age: $userAge");
+
+      Map<String, dynamic>? targetPackData;
+
+      // Logic: 
+      // < 12: pack_Solo_kids
+      // 12-17: pack_Solo_teen
+      // 18+ : Соло or default
+
+      if (userAge < 12) {
+          targetPackData = packs.where((d) {
+             final t = d.data()['title'].toString().toLowerCase();
+             return t.contains('kids') || t.contains('дети');
+          }).firstOrNull?.data();
+          if (targetPackData != null) debugPrint("Selected: KIDS pack");
+      } 
+      
+      if (targetPackData == null && userAge >= 12 && userAge < 18) {
+          targetPackData = packs.where((d) {
+             final t = d.data()['title'].toString().toLowerCase();
+             return t.contains('teen') || t.contains('подрост'); 
+          }).firstOrNull?.data();
+          if (targetPackData != null) debugPrint("Selected: TEEN pack");
+      }
+
+      // Fallback / Adult
+      if (targetPackData == null) {
+          targetPackData = packs.where((d) => d.data()['title'].toString().contains('Соло')).firstOrNull?.data();
+          targetPackData ??= packs.firstOrNull?.data();
+          debugPrint("Selected: DEFAULT/SOLO pack");
+      }
+
+      if (targetPackData != null) {
+          final situations = List<Map<String, dynamic>>.from(targetPackData['situations'] ?? []);
+          _allSituations = situations;
+      } else {
+          debugPrint("Training Pack not found!");
+      }
+
     } catch (e) {
       debugPrint("Error loading training data: $e");
     } finally {
