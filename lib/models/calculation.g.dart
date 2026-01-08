@@ -26,13 +26,15 @@ class CalculationAdapter extends TypeAdapter<Calculation> {
       group: fields[6] as String?,
       notes: fields[7] as String?,
       decryption: fields[8] as int,
+      firebaseId: fields[9] as String?,
+      telegram: fields[10] as String?,
     );
   }
 
   @override
   void write(BinaryWriter writer, Calculation obj) {
     writer
-      ..writeByte(9)
+      ..writeByte(11)
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)
@@ -50,7 +52,11 @@ class CalculationAdapter extends TypeAdapter<Calculation> {
       ..writeByte(7)
       ..write(obj.notes)
       ..writeByte(8)
-      ..write(obj.decryption);
+      ..write(obj.decryption)
+      ..writeByte(9)
+      ..write(obj.firebaseId)
+      ..writeByte(10)
+      ..write(obj.telegram);
   }
 
   @override
