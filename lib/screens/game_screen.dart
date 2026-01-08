@@ -1861,11 +1861,43 @@ child: Text("Игры с ведущим:", style: TextStyle(color: Colors.white5
 
        int n(int idx) => (idx < matrix.length) ? (matrix[idx] == 0 ? 22 : matrix[idx]) : 22;
 
+       // Helper for rows
+       Widget row(List<Widget> children) => Padding(
+          padding: const EdgeInsets.only(bottom: 12),
+          child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: children.map((c) => Expanded(child: c)).toList()),
+       );
+
        return Column(
           children: [
-             Row(children: [ Expanded(child: _buildSheetSection("ФАЗЫ ЖИЗНИ", [n(0), n(1), n(2)])), Expanded(child: _buildSheetSection("ТОЧКА ВХОДА", [n(3)])) ]),
-             // Simplified view for modal (just key blocks)
-             Row(children: [ Expanded(child: _buildSheetSection("МОТИВ", [n(8)])), Expanded(child: _buildSheetSection("МЕТОД", [n(9)])), Expanded(child: _buildSheetSection("СФЕРА", [n(10)])) ]),
+             // 1. Phases & Entry
+             row([ 
+                _buildSheetSection("ФАЗЫ ЖИЗНИ", [n(0), n(1), n(2)]), 
+                _buildSheetSection("ТОЧКА ВХОДА", [n(3)]) 
+             ]),
+             
+             // 2. Duality (Female/Male) - Usually indices 4,5
+             // Assuming 4 is Female, 5 is Male or vice versa based on context, but typically displayed together.
+             // User said "duality female and male".
+             row([
+                _buildSheetSection("ДУАЛЬНОСТЬ (Ж/М)", [n(4), n(5)]),
+                // Fears/Balance usually 6, 7
+                _buildSheetSection("СТРАХИ / БАЛАНС", [n(6), n(7)])
+             ]),
+
+             // 3. Core (Motive, Method, Sphere)
+             row([ 
+                _buildSheetSection("МОТИВ", [n(8)]), 
+                _buildSheetSection("СПОСОБ", [n(9)]), // Or 9/11? 9 is usually method.
+                _buildSheetSection("СФЕРА", [n(10)]) 
+             ]),
+
+             // 4. Exit Point (Usually 12 or 13, let's show both if available or just 12?)
+             // 12 is often Exit/Realization. 13 is Subconscious/Depths? 
+             // Schema: 12 is center bottom. 13 is deep bottom.
+             row([
+                 _buildSheetSection("ТОЧКА ВЫХОДА", [n(12)]),
+                 _buildSheetSection("ГЛУБИНА", [n(13)]) // Adding depth for completeness as "point of exit" might imply final
+             ]),
           ],
        );
    }
