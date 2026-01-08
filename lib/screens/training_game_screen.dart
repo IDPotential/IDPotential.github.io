@@ -54,8 +54,13 @@ class _TrainingGameScreenState extends State<TrainingGameScreen> {
 
       // 3. Load User Calculation
       final calcData = await _firestoreService.getLatestCalculation();
-      if (calcData != null && calcData['matrix'] != null) {
-         _userMatrix = List<int>.from(calcData['matrix']); 
+      if (calcData != null) {
+          if (calcData['numbers'] != null) {
+              _userMatrix = List<int>.from(calcData['numbers']);
+          } else if (calcData['matrix'] != null) {
+              // Fallback for legacy data if any
+              _userMatrix = List<int>.from(calcData['matrix']);
+          }
       }
     } catch (e) {
       debugPrint("Error loading training data: $e");
