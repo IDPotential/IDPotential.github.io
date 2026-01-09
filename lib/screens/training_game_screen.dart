@@ -363,6 +363,7 @@ class _TrainingGameScreenState extends State<TrainingGameScreen> {
    // Helper to safely get role number from user matrix
    int _n(int idx) => (idx < _userMatrix.length) ? (_userMatrix[idx] == 0 ? 22 : _userMatrix[idx]) : 22;
 
+   // Grid Implementation
    Widget _buildNumberSelection() {
       // Logic: Unique, sorted, 0->22
       final Set<int> uniqueNumbers = {};
@@ -376,112 +377,75 @@ class _TrainingGameScreenState extends State<TrainingGameScreen> {
       
       final sortedNumbers = uniqueNumbers.toList()..sort();
 
-      return SizedBox(
-        height: 110, // Fixed height for horizontal list
-        child: ListView.separated(
-          scrollDirection: Axis.horizontal,
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          itemCount: sortedNumbers.length,
-          separatorBuilder: (context, index) => const SizedBox(width: 8),
-          itemBuilder: (context, index) {
-            final number = sortedNumbers[index];
-            final isSelected = _selectedRole == number;
-            return GestureDetector(
-               onTap: () => setState(() => _selectedRole = number),
-               onLongPress: () => _showRoleDetails(number),
-               child: Container(
-                 width: 80, // Fixed width for cards
-                 decoration: BoxDecoration(
-                    border: isSelected ? Border.all(color: Colors.orange, width: 3) : null,
-                    borderRadius: BorderRadius.circular(8),
-                    boxShadow: isSelected ? [BoxShadow(color: Colors.orange.withOpacity(0.5), blurRadius: 8)] : null,
-                 ),
-                 child: Card(
-                    clipBehavior: Clip.antiAlias, 
-                    margin: EdgeInsets.zero, 
-                    elevation: isSelected ? 8 : 2,
-                    child: Column(
-                       crossAxisAlignment: CrossAxisAlignment.stretch,
-                       children: [
-                          Expanded(
-                             child: Image.asset(
-                                'assets/images/cards/role_$number.png', 
-                                fit: BoxFit.cover, 
-                                errorBuilder: (c,e,s)=>const Icon(Icons.image_not_supported)
-                             ),
+      return LayoutBuilder(
+        builder: (context, constraints) {
+           // Responsive grid logic
+           int crossAxisCount = constraints.maxWidth > 600 ? 7 : 5;
+           
+           return GridView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(), // Scroll handled by parent
+              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                 crossAxisCount: crossAxisCount,
+                 childAspectRatio: 0.7,
+                 crossAxisSpacing: 8,
+                 mainAxisSpacing: 8,
+              ),
+              itemCount: sortedNumbers.length,
+              itemBuilder: (context, index) {
+                 final number = sortedNumbers[index];
+                 final isSelected = _selectedRole == number;
+                 
+                 return GestureDetector(
+                    onTap: () {
+                         showDialog(
+                           context: context,
+                           builder: (ctx) => RoleInfoDialog(
+                             roleNumber: number,
+                             canSelect: true,
+                             onSelect: () {
+                                setState(() => _selectedRole = number);
+                                // Dialog is closed by RoleInfoDialog usually, but if not we pop? 
+                                // RoleInfoDialog usually pops itself on simple view? No, onSelect logic usually pops. 
+                                // Let's rely on RoleInfoDialog implementation.
+                                // Actually checking RoleInfoDialog: it calls onSelect() then Navigator.pop(context). 
+                             },
+                           ),
+                         );
+                    },
+                    child: Container(
+                       decoration: BoxDecoration(
+                          border: isSelected ? Border.all(color: Colors.orange, width: 3) : null,
+                          borderRadius: BorderRadius.circular(8),
+                          boxShadow: isSelected ? [BoxShadow(color: Colors.orange.withOpacity(0.5), blurRadius: 8)] : null,
+                       ),
+                       child: Card(
+                          clipBehavior: Clip.antiAlias, 
+                          margin: EdgeInsets.zero, 
+                          elevation: isSelected ? 8 : 2,
+                          child: Column(
+                             crossAxisAlignment: CrossAxisAlignment.stretch,
+                             children: [
+                                Expanded(
+                                   child: Image.asset(
+                                      'assets/images/cards/role_$number.png', 
+                                      fit: BoxFit.cover, 
+                                      errorBuilder: (c,e,s)=>const Icon(Icons.image_not_supported)
+                                   ),
+                                ),
+                                Container(
+                                   color: isSelected ? Colors.orange : Colors.black54,
+                                   padding: const EdgeInsets.symmetric(vertical: 2),
+                                   child: Text('$number', textAlign: TextAlign.center, style: const TextStyle(fontSize: 12, color: Colors.white, fontWeight: FontWeight.bold)),
+                                ),
+                             ],
                           ),
-                          Container(
-                             color: isSelected ? Colors.orange : Colors.black54,
-                             padding: const EdgeInsets.symmetric(vertical: 2),
-                             child: Text('$number', textAlign: TextAlign.center, style: const TextStyle(fontSize: 12, color: Colors.white, fontWeight: FontWeight.bold)),
-                          ),
-                       ],
+                       ),
                     ),
-                 ),
-               ),
-            );
-          },
-        ),
-      );
-   }
-
-   Widget _buildSheetSection(String title, List<int> cardNums) {
-      return Column(
-         children: [
-            Padding(
-               padding: const EdgeInsets.symmetric(vertical: 6),
-               child: Text(title, style: const TextStyle(color: Colors.white38, fontSize: 8, fontWeight: FontWeight.bold, letterSpacing: 0.5), textAlign: TextAlign.center, overflow: TextOverflow.ellipsis),
-            ),
-            Row(
-               mainAxisAlignment: MainAxisAlignment.center,
-               children: cardNums.map<Widget>((num) {
-                  final isSelected = _selectedRole == num;
-                  return GestureDetector(
-                     onTap: () => _showRoleDetails(num),
-                     child: Container(
-                        width: 50,
-                        height: 70,
-                        margin: const EdgeInsets.symmetric(horizontal: 2),
-                        decoration: BoxDecoration(
-                           borderRadius: BorderRadius.circular(6),
-                           border: Border.all(color: isSelected ? Colors.greenAccent : Colors.white12, width: isSelected ? 2 : 0.5),
-                           boxShadow: [BoxShadow(color: Colors.black26, blurRadius: 4)],
-                        ),
-                        child: Stack(
-                           children: [
-                              ClipRRect(
-                                 borderRadius: BorderRadius.circular(6),
-                                 child: Image.asset(
-                                    'assets/images/cards/role_$num.png',
-                                    fit: BoxFit.cover,
-                                    width: double.infinity,
-                                    height: double.infinity,
-                                    errorBuilder: (c, e, s) => Container(color: Colors.white10, child: Center(child: Text("$num", style: const TextStyle(color: Colors.white54, fontSize: 10)))),
-                                 ),
-                              ),
-                              Positioned(
-                                 bottom: 0, right: 0, left: 0,
-                                 child: Container(
-                                    decoration: const BoxDecoration(
-                                       color: Colors.black54,
-                                       borderRadius: BorderRadius.only(bottomLeft: Radius.circular(6), bottomRight: Radius.circular(6)),
-                                    ),
-                                    padding: const EdgeInsets.symmetric(vertical: 1),
-                                    child: Text("$num", textAlign: TextAlign.center, style: const TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold)),
-                                 ),
-                              ),
-                              if (isSelected) 
-                                 Positioned(
-                                    top: 2, right: 2,
-                                    child: const Icon(Icons.check_circle, color: Colors.greenAccent, size: 14) 
-                                 )
-                           ],
-                        ),
-                     ),
-                  );
-               }).toList(),
-            ),
-         ],
+                 );
+              },
+           );
+        }
       );
    }
 
