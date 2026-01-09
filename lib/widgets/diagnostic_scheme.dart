@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:id_potential_app/widgets/role_info_dialog.dart'; // Import Custom Dialog
+import 'package:id_diagnostic_app/widgets/role_info_dialog.dart'; // Import Custom Dialog Correctly
 
 class DiagnosticSchemeWidget extends StatelessWidget {
   final List<int> numbers;
