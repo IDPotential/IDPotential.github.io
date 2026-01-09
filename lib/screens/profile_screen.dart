@@ -491,18 +491,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
                    // User Q&A History
                   const Divider(height: 40, thickness: 2),
                    Text(
-                    "История игр", 
-                    style: Theme.of(context).textTheme.titleMedium,
-                  ),
-                  const SizedBox(height: 10),
-                  _buildGameHistoryList(),
-                  const Divider(height: 40, thickness: 2),
-                   Text(
                     "История обращений", 
                     style: Theme.of(context).textTheme.titleMedium,
                   ),
                   const SizedBox(height: 10),
                   _buildUserRequestsList(),
+                  const Divider(height: 40, thickness: 2),
+                   Text(
+                    "История игр", 
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
+                  const SizedBox(height: 10),
+                  _buildGameHistoryList(),
                 ],
               ],
             ),
