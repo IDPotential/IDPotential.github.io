@@ -595,12 +595,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         tooltip: 'Telegram: $userContact',
                       ),
                     
-                    if (type == 'question')
-                       IconButton(
+                    IconButton(
                         icon: const Icon(Icons.reply, color: Colors.blueAccent),
-                        onPressed: () => _replyToQuestion(doc.id),
+                        onPressed: () => _replyToQuestion(doc.id, data['userId']),
                         tooltip: 'Ответить',
-                      ),
+                    ),
                       
                     if (type != 'question') 
                       IconButton(
@@ -667,7 +666,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
       await _processRequest(requestId, userId, 'approve_$type', amountToCredit);
   }
 
-  Future<void> _replyToQuestion(String requestId) async {
+  String? _encodeQueryParameters(Map<String, String> params) {
+    return params.entries
+        .map((e) => '${Uri.encodeComponent(e.key)}=${Uri.encodeComponent(e.value)}')
+        .join('&');
+  }
+
+  Future<void> _replyToQuestion(String requestId, String userId) async {
       final controller = TextEditingController();
       final reply = await showDialog<String>(
         context: context,
@@ -695,8 +700,33 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
       if (reply != null && reply.isNotEmpty) {
           try {
+             // 1. Save to Firestore
              await _firestoreService.answerRequest(requestId, reply);
-             if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Ответ отправлен')));
+             
+             // 2. Fetch User Email and Duplicate to Mail
+             final userDoc = await FirebaseFirestore.instance.collection('users').doc(userId).get();
+             final email = userDoc.data()?['email'] as String?;
+             
+             if (email != null && email.isNotEmpty) {
+                final Uri emailLaunchUri = Uri(
+                  scheme: 'mailto',
+                  path: email,
+                  query: _encodeQueryParameters(<String, String>{
+                    'subject': 'Ответ на ваш запрос (ID Potential)',
+                    'body': 'Здравствуйте!\n\nОтвет администратора:\n"$reply"\n\n--\nС уважением, команда ID Potential.'
+                  }),
+                );
+                
+                if (await canLaunchUrl(emailLaunchUri)) {
+                   await launchUrl(emailLaunchUri);
+                   if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Ответ сохранен и открыт почтовый клиент')));
+                } else {
+                   if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Ответ сохранен, но не удалось открыть почту')));
+                }
+             } else {
+                 if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Ответ сохранен (Email пользователя не найден)')));
+             }
+
           } catch(e) {
              if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Ошибка: $e')));
           }

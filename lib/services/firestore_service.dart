@@ -872,6 +872,7 @@ class FirestoreService {
              'situationId': situationId,
              'isTraining': true,
              'votes': 0, // No votes in single player
+             'timestamp': FieldValue.serverTimestamp(),
           });
       });
   }

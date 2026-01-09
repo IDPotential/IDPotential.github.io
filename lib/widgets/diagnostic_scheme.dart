@@ -139,8 +139,6 @@ class DiagnosticSchemeWidget extends StatelessWidget {
                               fontSize: fontSize,
                               color: Colors.black, // Color kept black
                               fontWeight: FontWeight.bold,
-                              decoration: TextDecoration.underline, // Visual cue for clickable
-                              decorationStyle: TextDecorationStyle.dotted,
                           ),
                         ),
                       ),

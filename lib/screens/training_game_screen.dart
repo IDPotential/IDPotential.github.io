@@ -302,6 +302,17 @@ class _TrainingGameScreenState extends State<TrainingGameScreen> {
         child: Column(
            crossAxisAlignment: CrossAxisAlignment.stretch,
            children: [
+               // Header: Available Count
+               Center(
+                  child: Padding(
+                     padding: const EdgeInsets.only(bottom: 16.0),
+                     child: Text(
+                        "Доступно ситуаций на сегодня: ${_isExtraPaid ? 1 : (2 - _dailyCount).clamp(0, 2)}", 
+                        style: const TextStyle(color: Colors.greenAccent, fontSize: 16, fontWeight: FontWeight.bold)
+                     ),
+                  )
+               ),
+
               // Situation Card
               Card(
                  color: Colors.white10,
