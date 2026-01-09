@@ -1655,7 +1655,7 @@ ToggleButtons(
             onPressed: _showProfileDialog,
             backgroundColor: Colors.blueAccent,
             icon: const Icon(Icons.person, color: Colors.white),
-            label: const Text("Профиль и История", style: TextStyle(color: Colors.white)),
+            label: const Text("Профиль", style: TextStyle(color: Colors.white)),
          ),
          body: Container(
             color: const Color(0xFF0F172A),
@@ -1775,12 +1775,7 @@ child: Text("Игры с ведущим:", style: TextStyle(color: Colors.white5
    }
 
    void _showProfileDialog() async {
-      final calcData = await _firestoreService.getLatestCalculation();
-      // Fetch history or usage stats if needed. For now, just user profile.
-      // Actually user wanted History here too. 
-      // FirestoreService doesn't have a direct "getHistory" easily accessible here without duplicating HistoryScreen logic?
-      // Let's assume we can fetch history stream or just link to History Screen?
-      // User said "move it to this block". so effectively duplicate the list.
+      final profile = await _firestoreService.getGameProfile();
       
       if (!mounted) return;
 
@@ -1790,60 +1785,55 @@ child: Text("Игры с ведущим:", style: TextStyle(color: Colors.white5
          backgroundColor: const Color(0xFF0F172A),
          shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
          builder: (ctx) => DraggableScrollableSheet(
-            initialChildSize: 0.8,
-            minChildSize: 0.5,
-            maxChildSize: 0.95,
+            initialChildSize: 0.6,
+            minChildSize: 0.4,
+            maxChildSize: 0.8,
             expand: false,
             builder: (_, scrollController) => ListView(
                controller: scrollController,
                padding: const EdgeInsets.all(24),
                children: [
-                  const Center(child: Text("Профиль и История", style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold))),
+                  const Center(child: Text("Профиль", style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold))),
                   const SizedBox(height: 20),
                   
-                  if (calcData == null)
+                  if (profile == null)
                      const Text("Профиль не найден", style: TextStyle(color: Colors.white54))
                   else ...[
-                     _buildProfileInfo(calcData),
+                     _buildProfileInfo(profile),
                      const SizedBox(height: 24),
                      const Text("Моя Карта (Роли)", style: TextStyle(color: Colors.white70, fontSize: 16, fontWeight: FontWeight.bold)),
                      const SizedBox(height: 12),
-                     _buildProfileMap(calcData),
+                     _buildProfileMap(profile),
                   ],
-
-                  const SizedBox(height: 30),
-                  const Divider(color: Colors.white24),
-                  const SizedBox(height: 10),
-                  const Text("История Игр", style: TextStyle(color: Colors.white70, fontSize: 16, fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 10),
-                  _buildHistoryList(),
                ],
             ),
          ),
       );
    }
 
-   Widget _buildProfileInfo(Map<String, dynamic> data) {
+   Widget _buildProfileInfo(Calculation data) {
       return Container(
          padding: const EdgeInsets.all(16),
          decoration: BoxDecoration(color: Colors.white10, borderRadius: BorderRadius.circular(12)),
          child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-               Text("Имя: ${data['name'] ?? 'Не указано'}", style: const TextStyle(color: Colors.white)),
+               Text("Имя: ${data.name}", style: const TextStyle(color: Colors.white)),
                const SizedBox(height: 8),
-               Text("Дата рождения: ${data['birthDate'] ?? 'Не указана'}", style: const TextStyle(color: Colors.white70)),
+               Text("Дата рождения: ${data.birthDate}", style: const TextStyle(color: Colors.white70)),
                const SizedBox(height: 8),
-               Text("Пол: ${data['gender'] == 'male' ? 'Мужской' : 'Женский'}", style: const TextStyle(color: Colors.white70)),
+               Text("Пол: ${data.gender == 'М' ? 'Мужской' : 'Женский'}", style: const TextStyle(color: Colors.white70)),
+               if (data.telegram != null && data.telegram!.isNotEmpty) ...[
+                   const SizedBox(height: 8),
+                   Text("Telegram: ${data.telegram}", style: const TextStyle(color: Colors.white70)),
+               ]
             ],
          ),
       );
    }
 
-   Widget _buildProfileMap(Map<String, dynamic> data) {
-       List<int> matrix = [];
-       if (data['numbers'] != null) matrix = List<int>.from(data['numbers']);
-       else if (data['matrix'] != null) matrix = List<int>.from(data['matrix']);
+   Widget _buildProfileMap(Calculation data) {
+       List<int> matrix = data.numbers;
        
        if (matrix.isEmpty) return const Text("Нет данных карты", style: TextStyle(color: Colors.white30));
 
@@ -1889,35 +1879,5 @@ child: Text("Игры с ведущим:", style: TextStyle(color: Colors.white5
        );
    }
 
-   Widget _buildHistoryList() {
-      // Reusing History logic (stream)
-      // Since we don't have user ID easily here without extra fetch, 
-      // we assume _gameProfile has it or we query by 'participants' array contains current user?
-      // Actually FirestoreService.getUserHistory() exists? No.
-      // HistoryScreen uses: _firestoreService.getGameHistory(userId) ?? 
-      // Let's check FirestoreService for history method.
-      // If not, we might need to skip or fetch simply.
-      
-      // Temporary solution: Simple text or query if possible
-      return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-         stream: _firestoreService.getGameHistoryStream(), // Need to ensure this exists or create it
-         builder: (ctx, snapshot) {
-             if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
-             final docs = snapshot.data!.docs;
-             if (docs.isEmpty) return const Text("История пуста", style: TextStyle(color: Colors.white38));
-             
-             return Column(
-                children: docs.map((doc) {
-                   final d = doc.data();
-                   return ListTile(
-                      contentPadding: EdgeInsets.zero,
-                      title: Text(d['title'] ?? 'Игра', style: const TextStyle(color: Colors.white)),
-                      subtitle: Text(d['date'] ?? '', style: const TextStyle(color: Colors.white54)),
-                      trailing: Text(d['roleName'] ?? '', style: const TextStyle(color: Colors.greenAccent)),
-                   );
-                }).toList(),
-             );
-         }
-      );
-   }
+
 }
