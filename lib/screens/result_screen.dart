@@ -438,7 +438,7 @@ class _ResultScreenState extends State<ResultScreen> {
                       h2: Theme.of(context).textTheme.headlineSmall,
                       p: Theme.of(context).textTheme.bodyLarge,
                       listBullet: Theme.of(context).textTheme.bodyLarge,
-                      a: const TextStyle(color: Colors.blueAccent, decoration: TextDecoration.underline),
+                      a: const TextStyle(color: Colors.blueAccent, decoration: TextDecoration.none),
                     ),
                     onTapLink: (text, href, title) {
                       if (href != null) {

@@ -16,6 +16,7 @@ import 'active_game_screen.dart';
 import 'training_game_screen.dart';
 import 'game_details_screen.dart';
 import '../services/database_service.dart';
+import '../widgets/role_info_dialog.dart';
 
 class GameScreen extends StatefulWidget {
   final String? gameId;
@@ -1095,7 +1096,7 @@ ToggleButtons(
                                           )
                                        ),
                                        // Host Kick Button for Active Players
-                                       if (_isHost && pStatus != 'pending')
+                                       if (_isHost && pData['status'] != 'pending')
                                           Positioned(
                                              top: 0, 
                                              right: 0,
@@ -1322,86 +1323,29 @@ ToggleButtons(
   // ... _buildRolesGrid ...
 
    void _showRoleInfo(int number) {
-    final info = KnowledgeService.getRoleInfo(number);
-    final name = info['role_name'] ?? 'Роль $number';
-    final description = info['description'] ?? 'Описание отсутствует';
-    
-    final keyQuality = info['role_key'] ?? '';
-    final strength = info['role_strength'] ?? '';
-    final challenge = info['role_challenge'] ?? '';
-    final roleInLife = info['role_inlife'] ?? '';
-    final roleQuestion = info['role_question'] ?? '';
-    
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text('$number. $name'),
-        content: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-               if (keyQuality.isNotEmpty) 
-                  Text(keyQuality, style: const TextStyle(fontStyle: FontStyle.italic, color: Colors.grey)),
-               const SizedBox(height: 10),
-               const Text("Описание:", style: TextStyle(fontWeight: FontWeight.bold)),
-               Text(description),
-               const SizedBox(height: 10),
-
-               if (strength.isNotEmpty) ...[
-                  const Text("Сила:", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.green)),
-                  Text(strength),
-                  const SizedBox(height: 8),
-               ],
-               
-               if (challenge.isNotEmpty) ...[
-                  const Text("Вызов:", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.redAccent)),
-                  Text(challenge),
-                  const SizedBox(height: 8),
-               ],
-               
-               if (roleInLife.isNotEmpty) ...[
-                  const SizedBox(height: 8),
-                  const Text("Проявляется в жизни:", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.blueAccent)),
-                  Text(roleInLife),
-                  const SizedBox(height: 8),
-               ],
-               
-               if (roleQuestion.isNotEmpty) ...[
-                  const Divider(),
-                  const Text("Вопрос для рефлексии:", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.amber)),
-                  Text(roleQuestion, style: const TextStyle(fontStyle: FontStyle.italic)),
-               ],
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Закрыть'),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              setState(() {
-                _selectedRole = number;
-              });
-              
-              if (_targetGameId != null) {
-                  // Sync selection
-                  await _firestoreService.updateParticipantRole(_targetGameId!, number);
-                  if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Выбрана роль: $name (Отправлено ведущему)')));
-                  }
-              } else {
-                 if (context.mounted) {
-                     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Выбрана роль: $name')));
-                 }
+      builder: (context) => RoleInfoDialog(
+        roleNumber: number,
+        canSelect: true,
+        onSelect: () async {
+          setState(() {
+            _selectedRole = number;
+          });
+          
+          if (_targetGameId != null) {
+              // Sync selection
+              await _firestoreService.updateParticipantRole(_targetGameId!, number);
+              if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Выбрана роль: $number (Отправлено ведущему)')));
               }
-              if (context.mounted) Navigator.pop(context);
-            },
-            child: const Text('Выбрать роль'),
-          ),
-        ],
+          } else {
+             if (context.mounted) {
+                 ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Выбрана роль: $number')));
+             }
+          }
+          // Dialog pop is handled by RoleInfoDialog
+        },
       ),
     );
   }

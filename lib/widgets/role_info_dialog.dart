@@ -23,6 +23,7 @@ class RoleInfoDialog extends StatelessWidget {
     final strength = info['role_strength'] ?? '';
     final challenge = info['role_challenge'] ?? '';
     final roleInLife = info['role_inlife'] ?? '';
+    final question = info['role_question'] ?? '';
 
     return AlertDialog(
       backgroundColor: const Color(0xFF1E293B),
@@ -32,14 +33,14 @@ class RoleInfoDialog extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: [
-             Text(description, style: const TextStyle(color: Colors.white70, fontSize: 14, height: 1.4)),
-             const SizedBox(height: 16),
-             
              if (keyQuality.isNotEmpty) ...[
                const Text("Ключевое качество:", style: TextStyle(color: Colors.blueAccent, fontWeight: FontWeight.bold)),
                Text(keyQuality, style: const TextStyle(color: Colors.white60)),
-               const SizedBox(height: 8),
+               const SizedBox(height: 12),
              ],
+
+             Text(description, style: const TextStyle(color: Colors.white70, fontSize: 14, height: 1.4)),
+             const SizedBox(height: 16),
              
              if (strength.isNotEmpty) ...[
                const Text("Сила роли:", style: TextStyle(color: Colors.greenAccent, fontWeight: FontWeight.bold)),
@@ -48,14 +49,20 @@ class RoleInfoDialog extends StatelessWidget {
              ],
              
              if (challenge.isNotEmpty) ...[
-                const Text("Вызов (ловушка):", style: TextStyle(color: Colors.orangeAccent, fontWeight: FontWeight.bold)),
-                Text(challenge, style: const TextStyle(color: Colors.white60)),
-                const SizedBox(height: 8),
+               const Text("Вызов (ловушка):", style: TextStyle(color: Colors.orangeAccent, fontWeight: FontWeight.bold)),
+               Text(challenge, style: const TextStyle(color: Colors.white60)),
+               const SizedBox(height: 8),
              ],
              
              if (roleInLife.isNotEmpty) ...[
-                const Text("В жизни:", style: TextStyle(color: Colors.purpleAccent, fontWeight: FontWeight.bold)),
-                Text(roleInLife, style: const TextStyle(color: Colors.white60)),
+               const Text("В жизни:", style: TextStyle(color: Colors.purpleAccent, fontWeight: FontWeight.bold)),
+               Text(roleInLife, style: const TextStyle(color: Colors.white60)),
+               const SizedBox(height: 8),
+             ],
+
+             if (question.isNotEmpty) ...[
+                const Text("Вопрос для рефлексии:", style: TextStyle(color: Colors.cyanAccent, fontWeight: FontWeight.bold)),
+                Text(question, style: const TextStyle(color: Colors.white60, fontStyle: FontStyle.italic)),
              ]
           ],
         ),

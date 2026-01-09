@@ -322,39 +322,7 @@ class _TrainingGameScreenState extends State<TrainingGameScreen> {
               
               // Roles Dashboard (My Matrix)
               if (_userMatrix.isNotEmpty) ...[
-                 Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                       color: Colors.white10,
-                       borderRadius: BorderRadius.circular(16)
-                    ),
-                    child: Column(
-                       children: [
-                          Row(
-                             children: [
-                                Expanded(child: _buildSheetSection("ДУАЛЬНОСТЬ ИНЬ", [_n(4), _n(5)])),
-                                Expanded(child: _buildSheetSection("ДУАЛЬНОСТЬ ЯН", [_n(6), _n(7)])),
-                             ],
-                          ),
-                          const SizedBox(height: 8),
-                          Row(
-                             children: [
-                                Expanded(child: _buildSheetSection("МОТИВ", [_n(8)])),
-                                Expanded(child: _buildSheetSection("МЕТОД", [_n(9)])),
-                                Expanded(child: _buildSheetSection("СФЕРА", [_n(10)])),
-                             ]
-                          ),
-                          const SizedBox(height: 8),
-                          Row(
-                             children: [
-                                Expanded(child: _buildSheetSection("СТРАХИ", [_n(11)])),
-                                Expanded(child: _buildSheetSection("БАЛАНС", [_n(13)])),
-                                Expanded(child: _buildSheetSection(" ТОЧКА ВЫХОДА", [_n(12)])),
-                             ],
-                          ),
-                       ],
-                    ),
-                 ),
+                  _buildNumberSelection(),
               ] else ...[
                  Center(
                    child: Padding(
