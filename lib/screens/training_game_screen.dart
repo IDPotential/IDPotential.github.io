@@ -387,67 +387,58 @@ class _TrainingGameScreenState extends State<TrainingGameScreen> {
          if (n > 0 && n <= 22) uniqueNumbers.add(n);
          if (n == 0) uniqueNumbers.add(22);
       }
-      // If empty (shouldn't happen), fill 1-22
       if (uniqueNumbers.isEmpty) {
          uniqueNumbers.addAll(List.generate(22, (i) => i + 1));
       }
       
       final sortedNumbers = uniqueNumbers.toList()..sort();
 
-      return LayoutBuilder(
-        builder: (context, constraints) {
-          // RESPONSIVE: Increase columns on wider screens
-          final int crossAxisCount = constraints.maxWidth > 900 ? 10 : (constraints.maxWidth > 600 ? 7 : 5);
-          final double aspectRatio = constraints.maxWidth > 600 ? 0.75 : 0.65;
-
-          return GridView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(), // Scroll handled by parent
-            padding: const EdgeInsets.all(12),
-            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: crossAxisCount, 
-              childAspectRatio: aspectRatio, 
-              crossAxisSpacing: 8, 
-              mainAxisSpacing: 8,
-            ),
-            itemCount: sortedNumbers.length,
-            itemBuilder: (context, index) {
-              final number = sortedNumbers[index];
-              final isSelected = _selectedRole == number;
-              return GestureDetector(
-                onTap: () => setState(() => _selectedRole = number),
-                onLongPress: () => _showRoleDetails(number),
-                child: Container(
-                  decoration: BoxDecoration(
+      return SizedBox(
+        height: 110, // Fixed height for horizontal list
+        child: ListView.separated(
+          scrollDirection: Axis.horizontal,
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          itemCount: sortedNumbers.length,
+          separatorBuilder: (context, index) => const SizedBox(width: 8),
+          itemBuilder: (context, index) {
+            final number = sortedNumbers[index];
+            final isSelected = _selectedRole == number;
+            return GestureDetector(
+               onTap: () => setState(() => _selectedRole = number),
+               onLongPress: () => _showRoleDetails(number),
+               child: Container(
+                 width: 80, // Fixed width for cards
+                 decoration: BoxDecoration(
                     border: isSelected ? Border.all(color: Colors.orange, width: 3) : null,
                     borderRadius: BorderRadius.circular(8),
                     boxShadow: isSelected ? [BoxShadow(color: Colors.orange.withOpacity(0.5), blurRadius: 8)] : null,
-                  ),
-                  child: Card(
-                    clipBehavior: Clip.antiAlias, margin: EdgeInsets.zero, elevation: isSelected ? 8 : 2,
+                 ),
+                 child: Card(
+                    clipBehavior: Clip.antiAlias, 
+                    margin: EdgeInsets.zero, 
+                    elevation: isSelected ? 8 : 2,
                     child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        Expanded(
-                          child: Image.asset(
-                              'assets/images/cards/role_$number.png', 
-                              fit: BoxFit.cover, 
-                              errorBuilder: (c,e,s)=>const Icon(Icons.image_not_supported)
+                       crossAxisAlignment: CrossAxisAlignment.stretch,
+                       children: [
+                          Expanded(
+                             child: Image.asset(
+                                'assets/images/cards/role_$number.png', 
+                                fit: BoxFit.cover, 
+                                errorBuilder: (c,e,s)=>const Icon(Icons.image_not_supported)
+                             ),
                           ),
-                        ),
-                        Container(
-                          color: isSelected ? Colors.orange : Colors.black54,
-                          padding: const EdgeInsets.symmetric(vertical: 2),
-                          child: Text('$number', textAlign: TextAlign.center, style: const TextStyle(fontSize: 12, color: Colors.white, fontWeight: FontWeight.bold)),
-                        ),
-                      ],
+                          Container(
+                             color: isSelected ? Colors.orange : Colors.black54,
+                             padding: const EdgeInsets.symmetric(vertical: 2),
+                             child: Text('$number', textAlign: TextAlign.center, style: const TextStyle(fontSize: 12, color: Colors.white, fontWeight: FontWeight.bold)),
+                          ),
+                       ],
                     ),
-                  ),
-                ),
-              );
-            },
-          );
-        }
+                 ),
+               ),
+            );
+          },
+        ),
       );
    }
 
