@@ -302,7 +302,7 @@ class _TrainingGameScreenState extends State<TrainingGameScreen> {
                  ),
               ),
               const SizedBox(height: 20),
-              const Text("Какая роль подсознания сейчас активна?", style: TextStyle(color: Colors.blueAccent, fontSize: 16), textAlign: TextAlign.center),
+              const Text("Через какую роль подсознания вы будете действовать в этой ситуации?", style: TextStyle(color: Colors.blueAccent, fontSize: 16), textAlign: TextAlign.center),
               const SizedBox(height: 20),
               
               // Roles Dashboard (My Matrix)

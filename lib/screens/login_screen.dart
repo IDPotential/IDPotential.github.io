@@ -302,7 +302,9 @@ class _LoginScreenState extends State<LoginScreen> {
                           TextButton(
                              onPressed: _resetPassword,
                              child: const Text("Забыли пароль?", style: TextStyle(color: Colors.white38, fontSize: 12)),
-                          )
+                          ),
+                       const SizedBox(height: 20),
+                       const Text("v1.51.6", style: TextStyle(color: Colors.white24, fontSize: 10)),
                      ],
                    ),
                  ),
