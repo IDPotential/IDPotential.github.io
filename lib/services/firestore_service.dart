@@ -612,7 +612,15 @@ class FirestoreService {
 
   // --- Game Participation & Roles ---
   
-  Future<void> joinGameRequest(String gameId, String userName, String? telegram, List<int> numbers) async {
+  Future<void> joinGameRequest({
+      required String gameId, 
+      required String gameTitle, 
+      required String gameDate, 
+      required String userName, 
+      String? telegram, 
+      String? email, 
+      required List<int> numbers
+  }) async {
      final user = _auth.currentUser;
      if (user == null) return;
      
@@ -620,6 +628,7 @@ class FirestoreService {
        'userId': user.uid,
        'name': userName,
        'telegram': telegram,
+       'email': email, // Save Email
        'numbers': numbers, // Save Diagnostic numbers
        'status': 'pending', // pending, approved
        'playerNumber': null, // 1-8
@@ -629,7 +638,14 @@ class FirestoreService {
      }, SetOptions(merge: true));
 
   // Notify Admin via Telegram
-     _notifyAdminOfJoinRequest(userName, telegram, gameId);
+     _notifyAdminOfJoinRequest(
+        name: userName, 
+        tg: telegram, 
+        email: email, 
+        gameId: gameId, 
+        gameTitle: gameTitle, 
+        gameDate: gameDate
+     );
   }
 
   Future<void> updateParticipantAnswer(String gameId, String answer) async {
@@ -658,42 +674,57 @@ class FirestoreService {
       });
   }
 
-  void _notifyAdminOfJoinRequest(String name, String? tg, String gameId) async {
+  void _notifyAdminOfJoinRequest({
+      required String name, 
+      String? tg, 
+      String? email, 
+      required String gameId, 
+      required String gameTitle, 
+      required String gameDate
+  }) async {
     // Use ConfigService if token is sensitive, or load dynamically. 
     // Ideally: ConfigService().telegramToken
     final token = 'TOKEN_REMOVED_CHECK_CONFIG'; // TODO: Add to Remote Config
     final adminId = '196473271';
     
-    // 1. Fetch Game Title
-    String gameTitle = gameId;
-    try {
-       final gameDoc = await _db.collection('games').doc(gameId).get();
-       if (gameDoc.exists) {
-          gameTitle = gameDoc.data()?['title'] ?? gameId;
-       }
-    } catch (_) {}
-
     // 2. Fallback for Telegram (if missing)
     String telegramHandle = tg ?? "";
-    if (telegramHandle.isEmpty) {
-       // Try fetching from User Profile
+    String userEmail = email ?? "";
+    
+    if (telegramHandle.isEmpty || userEmail.isEmpty) {
+       // Try fetching from User Profile if missing
        try {
           final user = _auth.currentUser;
           if (user != null) {
-              final userDoc = await _db.collection('users').doc(user.uid).get();
-              final data = userDoc.data();
-              if (data != null) {
-                  telegramHandle = data['telegram'] ?? data['username'] ?? "";
-                  // Add @ for better readability if missing
-                  if (telegramHandle.isNotEmpty && !telegramHandle.startsWith('@')) {
-                      telegramHandle = '@$telegramHandle';
-                  }
+              if (userEmail.isEmpty) userEmail = user.email ?? "";
+              
+              if (telegramHandle.isEmpty) {
+                final userDoc = await _db.collection('users').doc(user.uid).get();
+                final data = userDoc.data();
+                if (data != null) {
+                    telegramHandle = data['telegram'] ?? data['username'] ?? "";
+                    if (telegramHandle.isNotEmpty && !telegramHandle.startsWith('@')) {
+                        telegramHandle = '@$telegramHandle';
+                    }
+                }
               }
           }
        } catch (_) {}
     }
     
-    final text = '🔔 Новая заявка на игру!\n\nИмя: $name\nTelegram: ${telegramHandle.isEmpty ? "не указан" : telegramHandle}\nИгра: $gameTitle\n\nПроверьте панель управления в приложении.';
+    final now = DateTime.now();
+    // Timezone adjustment +3 for Moscow if assuming server is UTC, or just local
+    // Using simple format
+    final timeStr = "${now.day}.${now.month} ${now.hour}:${now.minute.toString().padLeft(2, '0')}";
+
+    final text = '🔔 Новая заявка на игру!\n\n'
+           '🎮 Игра: $gameTitle\n'
+           '📅 Дата игры: $gameDate\n'
+           '👤 Имя: $name\n'
+           '✈️ Telegram: ${telegramHandle.isEmpty ? "не указан" : telegramHandle}\n'
+           '📧 Email: ${userEmail.isEmpty ? "не указан" : userEmail}\n'
+           '⏰ Время заявки: $timeStr\n\n'
+           'Проверьте панель управления в приложении.';
     
     try {
       final url = 'https://api.telegram.org/bot$token/sendMessage?chat_id=$adminId&text=${Uri.encodeComponent(text)}';

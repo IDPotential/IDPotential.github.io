@@ -684,7 +684,16 @@ ToggleButtons(
                   ),
                   onPressed: () async {
                       // Pass Numbers now!
-                      await _firestoreService.joinGameRequest(_targetGameId!, _gameProfile!.name, _gameProfile!.telegram, _gameProfile!.numbers); 
+                      final userEmail = FirebaseAuth.instance.currentUser?.email;
+                      await _firestoreService.joinGameRequest(
+                         gameId: _targetGameId!, 
+                         gameTitle: _targetGameTitle ?? "Без названия",
+                         gameDate: _targetGameDate ?? "Не указана",
+                         userName: _gameProfile!.name, 
+                         telegram: _gameProfile!.telegram, 
+                         email: userEmail,
+                         numbers: _gameProfile!.numbers
+                      ); 
                       setState(() {
                         _participantStatus = 'pending';
                       });
