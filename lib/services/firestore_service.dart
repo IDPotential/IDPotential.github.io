@@ -836,7 +836,7 @@ class FirestoreService {
       return doc.data()?['count'] ?? 0;
   }
 
-  Future<void> saveTrainingResult(String situationText, int role, String packId, String situationId) async {
+  Future<void> saveTrainingResult(String situationText, int role, String packId, String situationId, {bool bypassLimit = false}) async {
       final user = _auth.currentUser;
       if (user == null) return;
 
@@ -854,7 +854,7 @@ class FirestoreService {
               currentCount = statsDoc.data()?['count'] ?? 0;
           }
 
-          if (currentCount >= 2) {
+          if (currentCount >= 2 && !bypassLimit) {
              throw Exception("Daily limit reached");
           }
 

@@ -23,6 +23,7 @@ class _TrainingGameScreenState extends State<TrainingGameScreen> {
   String? _currentSituationId;
   int? _selectedRole;
   bool _isResultSaved = false;
+  bool _isExtraPaid = false;
 
   void _openProfileCreation() async {
       await Navigator.push(
@@ -127,7 +128,7 @@ class _TrainingGameScreenState extends State<TrainingGameScreen> {
   void _getNewSituation() {
     debugPrint("Get Situation Clicked. DailyCount: $_dailyCount, Situations: ${_allSituations.length}");
     
-    if (_dailyCount >= 2) {
+    if (_dailyCount >= 2 && !_isExtraPaid) {
        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Лимит на сегодня исчерпан!")));
        return;
     }
@@ -156,11 +157,13 @@ class _TrainingGameScreenState extends State<TrainingGameScreen> {
            _currentSituation!, 
            _selectedRole!, 
            'training_pack', 
-           _currentSituationId ?? '0'
+           _currentSituationId ?? '0',
+           bypassLimit: _isExtraPaid
         );
         
         setState(() {
-           _dailyCount++;
+           if (!_isExtraPaid) _dailyCount++;
+           _isExtraPaid = false; // Reset extra paid after usage
            _isResultSaved = true;
            _isLoading = false;
         });
@@ -232,15 +235,27 @@ class _TrainingGameScreenState extends State<TrainingGameScreen> {
 
   Widget _buildStartScreen() {
      if (_dailyCount >= 2) {
-        return const Center(
+        return Center(
            child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                 Icon(Icons.emoji_events, size: 80, color: Colors.amber),
-                 SizedBox(height: 20),
-                 Text("Тренировка завершена!", style: TextStyle(color: Colors.white, fontSize: 24)),
-                 SizedBox(height: 10),
-                 Text("Возвращайтесь завтра за новыми инсайтами.", style: TextStyle(color: Colors.white54)),
+                 const Icon(Icons.emoji_events, size: 80, color: Colors.amber),
+                 const SizedBox(height: 20),
+                 const Text("Тренировка завершена!", style: TextStyle(color: Colors.white, fontSize: 24)),
+                 const SizedBox(height: 10),
+                 const Text("Возвращайтесь завтра за новыми инсайтами.", style: TextStyle(color: Colors.white54)),
+                 const SizedBox(height: 30),
+                 
+                 // Paid Extension Button
+                 ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(
+                       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                       backgroundColor: Colors.purpleAccent
+                    ),
+                    icon: const Icon(Icons.stars, color: Colors.white),
+                    label: const Text("Еще одна ситуация сегодня (5 кр.)", style: TextStyle(fontWeight: FontWeight.bold)),
+                    onPressed: _buyExtraSituation, // Added: onPressed logic for the button
+                 )
               ],
            ),
         );
@@ -513,5 +528,41 @@ class _TrainingGameScreenState extends State<TrainingGameScreen> {
         },
       ),
     );
+  }
+
+
+  Future<void> _buyExtraSituation() async {
+      final confirm = await showDialog<bool>(
+         context: context,
+         builder: (ctx) => AlertDialog(
+            title: const Text("Купить дополнительную ситуацию?"),
+            content: const Text("Стоимость: 5 кредитов.\nВы сможете пройти еще одну тренировочную ситуацию сегодня."),
+            actions: [
+               TextButton(onPressed: ()=>Navigator.pop(ctx, false), child: const Text("Отмена")),
+               ElevatedButton(onPressed: ()=>Navigator.pop(ctx, true), child: const Text("Купить")),
+            ],
+         )
+      );
+
+      if (confirm != true) return;
+
+      setState(() => _isLoading = true);
+      try {
+         final success = await _firestoreService.consumeCredit(5);
+         if (success) {
+            setState(() {
+               _isExtraPaid = true;
+               _isLoading = false;
+            });
+            _getNewSituation();
+            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Оплата успешна!"), backgroundColor: Colors.green));
+         } else {
+             setState(() => _isLoading = false);
+             ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Недостаточно кредитов!"), backgroundColor: Colors.red));
+         }
+      } catch (e) {
+         setState(() => _isLoading = false);
+         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Ошибка: $e"), backgroundColor: Colors.red));
+      }
   }
 }
