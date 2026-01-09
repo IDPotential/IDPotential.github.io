@@ -321,8 +321,8 @@ class _HistoryScreenState extends State<HistoryScreen> {
                     ..._processedCalculations.map((calc) => Card(
                        child: ListTile(
                           leading: CircleAvatar(
-                             backgroundColor: calc.gender == 'М' ? Colors.blue.withOpacity(0.2) : Colors.pink.withOpacity(0.2),
-                             child: Icon(calc.gender == 'М' ? Icons.male : Icons.female, color: calc.gender == 'М' ? Colors.blue : Colors.pink, size: 20)
+                             backgroundColor: (calc.gender == 'Ж' || calc.gender == 'F') ? Colors.pink.withOpacity(0.2) : Colors.blue.withOpacity(0.2),
+                             child: Icon((calc.gender == 'Ж' || calc.gender == 'F') ? Icons.female : Icons.male, color: (calc.gender == 'Ж' || calc.gender == 'F') ? Colors.pink : Colors.blue, size: 20)
                           ),
                           title: Text(calc.name, style: const TextStyle(fontWeight: FontWeight.bold)),
                           subtitle: Text(calc.birthDate),
