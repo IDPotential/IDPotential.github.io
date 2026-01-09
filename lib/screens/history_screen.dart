@@ -10,6 +10,7 @@ import '../services/firestore_service.dart';
 import 'result_screen.dart';
 import 'calculation_screen.dart';
 import 'game_details_screen.dart';
+import '../widgets/role_info_dialog.dart';
 
 class HistoryScreen extends StatefulWidget {
   const HistoryScreen({super.key});

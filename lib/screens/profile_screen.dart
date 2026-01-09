@@ -7,6 +7,7 @@ import '../services/auth_service.dart';
 import 'login_screen.dart';
 import 'games_list_screen.dart';
 import 'game_details_screen.dart';
+import '../widgets/role_info_dialog.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
