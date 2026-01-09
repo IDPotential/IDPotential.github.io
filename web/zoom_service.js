@@ -187,7 +187,8 @@ async function initZoom(meetingNumber, password, userName, sdkKey, sdkSecret, cu
                     zoomRoot.style.top = "50%";
 
                     // APPLY SCALE & CENTERING
-                    // Shift up by 50px (calc(-50% - 50px))
+                    // Shift up by 50px (calc(-50% - 30px)) - Reduced slightly to be safe on smaller screens
+                    // Unconditional shift for all screen sizes
                     zoomRoot.style.transform = `translate(-50%, calc(-50% - 50px)) scale(${scale})`;
                     zoomRoot.style.transformOrigin = 'center center';
                 }

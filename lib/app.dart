@@ -34,32 +34,34 @@ class _AppHomeState extends State<AppHome> {
     return Scaffold(
       appBar: null, // Let individual screens handle their own AppBars to avoid double headers
       body: _screens[_selectedIndex],
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _selectedIndex,
-        onTap: (index) {
-          setState(() {
-            _selectedIndex = index;
-          });
-        },
-        type: BottomNavigationBarType.fixed, // Ensure >3 items show labels
-        items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.home),
-            label: 'Главная',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.history),
-            label: 'История',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.menu_book),
-            label: 'Библиотека',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.casino), // Game icon
-            label: 'Игра',
-          ),
-        ],
+      bottomNavigationBar: SafeArea(
+        child: BottomNavigationBar(
+          currentIndex: _selectedIndex,
+          onTap: (index) {
+            setState(() {
+              _selectedIndex = index;
+            });
+          },
+          type: BottomNavigationBarType.fixed, // Ensure >3 items show labels
+          items: const [
+            BottomNavigationBarItem(
+              icon: Icon(Icons.home),
+              label: 'Главная',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.history),
+              label: 'История',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.menu_book),
+              label: 'Библиотека',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.casino), // Game icon
+              label: 'Игра',
+            ),
+          ],
+        ),
       ),
     );
   }
