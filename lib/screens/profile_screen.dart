@@ -812,51 +812,118 @@ class _ProfileScreenState extends State<ProfileScreen> {
             physics: const NeverScrollableScrollPhysics(),
             shrinkWrap: true,
             itemCount: docs.length,
-            itemBuilder: (context, index) {
-               final data = docs[index].data();
-               final title = data['gameTitle'] ?? 'Игра';
-               final score = data['score'] ?? 0;
-               final rank = data['rank'] ?? 0;
-               final total = data['totalParticipants'] ?? 0;
-               final dateRaw = data['date'] ?? '';
-               
-               String dateStr = dateRaw;
-               if (dateRaw is String && dateRaw.contains('T')) {
-                  dateStr = dateRaw.split('T')[0];
-               }
+             itemBuilder: (context, index) {
+                final data = docs[index].data();
+                final title = data['gameTitle'] ?? 'Игра';
+                final dateRaw = data['date'] ?? '';
+                final isTraining = data['isTraining'] == true;
+                
+                String dateStr = dateRaw.toString();
+                if (dateStr.contains('T')) dateStr = dateStr.split('T')[0];
+                if (data['date'] is Timestamp) {
+                   dateStr = (data['date'] as Timestamp).toDate().toString().split(' ')[0];
+                }
 
-               return Card(
-                  color: Colors.blueAccent.withOpacity(0.05),
-                  margin: const EdgeInsets.only(bottom: 8),
-                  child: ListTile(
-                     leading: CircleAvatar(
-                        backgroundColor: rank == 1 ? Colors.orange : Colors.blueGrey,
-                        child: Text("$rank", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                     ),
-                     title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
-                     subtitle: Text(dateStr),
-                     trailing: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        children: [
-                           Text("$score кр.", style: const TextStyle(color: Colors.greenAccent, fontWeight: FontWeight.bold, fontSize: 16)),
-                           Text("Место: $rank/$total", style: const TextStyle(fontSize: 10, color: Colors.grey)),
-                        ],
-                     ),
-                     onTap: () {
-                        Navigator.push(
-                           context, 
-                           MaterialPageRoute(builder: (context) => GameDetailsScreen(
-                              gameId: docs[index].id,
-                              gameTitle: title,
-                              totalScore: score,
-                              rank: rank,
-                           ))
-                        );
-                     },
-                  ),
-               );
-            }
+                if (isTraining) {
+                   final role = data['role'] as int?;
+                   final situation = data['situation'] ?? '';
+                   
+                   return Card(
+                      color: Colors.purple.withOpacity(0.05),
+                      margin: const EdgeInsets.only(bottom: 8),
+                      child: ListTile(
+                         leading: const CircleAvatar(
+                            backgroundColor: Colors.purpleAccent,
+                            child: Icon(Icons.psychology, color: Colors.white),
+                         ),
+                         title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
+                         subtitle: Text(dateStr),
+                         trailing: role != null 
+                            ? Container(
+                               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                               decoration: BoxDecoration(color: Colors.orange, borderRadius: BorderRadius.circular(4)),
+                               child: Text("#$role", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold))
+                            )
+                            : null,
+                         onTap: () {
+                             // Show simple dialog with situation and role
+                             showDialog(
+                                context: context,
+                                builder: (ctx) => AlertDialog(
+                                   title: const Text("Тренировка"),
+                                   content: SingleChildScrollView(
+                                      child: Column(
+                                         mainAxisSize: MainAxisSize.min,
+                                         children: [
+                                            Text(situation, style: const TextStyle(fontSize: 16), textAlign: TextAlign.center),
+                                            const SizedBox(height: 20),
+                                            const Divider(),
+                                            const SizedBox(height: 10),
+                                            const Text("Ваш выбор:", style: TextStyle(color: Colors.grey)),
+                                            const SizedBox(height: 10),
+                                            if (role != null)
+                                               GestureDetector(
+                                                  onTap: () {
+                                                      Navigator.pop(ctx);
+                                                      showDialog(context: context, builder: (c) => RoleInfoDialog(roleNumber: role));
+                                                  },
+                                                  child: Column(
+                                                     children: [
+                                                        Image.asset('assets/images/cards/role_$role.png', height: 100, errorBuilder: (c,e,s)=>const Icon(Icons.image)),
+                                                        const SizedBox(height: 8),
+                                                        Text("Роль #$role", style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.blueAccent, decoration: TextDecoration.underline))
+                                                     ],
+                                                  ),
+                                               )
+                                         ],
+                                      ),
+                                   ),
+                                   actions: [
+                                      TextButton(onPressed: ()=>Navigator.pop(ctx), child: const Text("Закрыть"))
+                                   ],
+                                )
+                             );
+                         },
+                      ),
+                   );
+                }
+
+                final score = data['score'] ?? 0;
+                final rank = data['rank'] ?? 0;
+                final total = data['totalParticipants'] ?? 0;
+
+                return Card(
+                   color: Colors.blueAccent.withOpacity(0.05),
+                   margin: const EdgeInsets.only(bottom: 8),
+                   child: ListTile(
+                      leading: CircleAvatar(
+                         backgroundColor: rank == 1 ? Colors.orange : Colors.blueGrey,
+                         child: Text("$rank", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                      ),
+                      title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
+                      subtitle: Text(dateStr),
+                      trailing: Column(
+                         mainAxisAlignment: MainAxisAlignment.center,
+                         crossAxisAlignment: CrossAxisAlignment.end,
+                         children: [
+                            Text("$score кр.", style: const TextStyle(color: Colors.greenAccent, fontWeight: FontWeight.bold, fontSize: 16)),
+                            Text("Место: $rank/$total", style: const TextStyle(fontSize: 10, color: Colors.grey)),
+                         ],
+                      ),
+                      onTap: () {
+                         Navigator.push(
+                            context, 
+                            MaterialPageRoute(builder: (context) => GameDetailsScreen(
+                               gameId: docs[index].id,
+                               gameTitle: title,
+                               totalScore: score,
+                               rank: rank,
+                            ))
+                         );
+                      },
+                   ),
+                );
+             }
          );
       }
     );
