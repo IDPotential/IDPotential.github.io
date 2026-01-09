@@ -4,10 +4,12 @@ import 'package:file_picker/file_picker.dart'; // import file_picker
 import 'package:flutter/foundation.dart'; // for kIsWeb
 import 'package:universal_io/io.dart'; // Handles File cross-platform (io for mobile, stub for web)
 import 'dart:convert'; // for utf8
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/calculation.dart';
 import '../services/firestore_service.dart';
 import 'result_screen.dart';
 import 'calculation_screen.dart';
+import 'game_details_screen.dart';
 
 class HistoryScreen extends StatefulWidget {
   const HistoryScreen({super.key});
