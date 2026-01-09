@@ -1094,6 +1094,36 @@ ToggleButtons(
                                              ],
                                           )
                                        ),
+                                       // Host Kick Button for Active Players
+                                       if (_isHost && pStatus != 'pending')
+                                          Positioned(
+                                             top: 0, 
+                                             right: 0,
+                                             child: IconButton(
+                                                icon: const Icon(Icons.cancel, color: Colors.redAccent, size: 20),
+                                                tooltip: "Удалить игрока",
+                                                onPressed: () {
+                                                   showDialog(
+                                                      context: context,
+                                                      builder: (ctx) => AlertDialog(
+                                                         title: const Text("Удалить игрока?"),
+                                                         content: Text("Вы уверены, что хотите исключить ${pName}?"),
+                                                         actions: [
+                                                            TextButton(onPressed: ()=>Navigator.pop(ctx), child: const Text("Отмена")),
+                                                            ElevatedButton(
+                                                               style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+                                                               onPressed: () {
+                                                                  Navigator.pop(ctx);
+                                                                  _firestoreService.removeParticipant(_targetGameId!, pUid);
+                                                               }, 
+                                                               child: const Text("Удалить")
+                                                            ),
+                                                         ],
+                                                      )
+                                                   );
+                                                },
+                                             )
+                                          )
                                     ],
                                  ),
                               ),

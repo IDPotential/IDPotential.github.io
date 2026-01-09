@@ -90,7 +90,7 @@ service cloud.firestore {
                     (isAuthenticated() && resource.data.hostId == request.auth.uid);
       
       match /participants/{participantId} {
-        allow create, update: if isOwner(participantId) || isAdmin() ||
+        allow create, update, delete: if isOwner(participantId) || isAdmin() ||
                               // Allow Host/Controller to update participants (e.g. kick, vote)
                               (isAuthenticated() && get(/databases/$(database)/documents/games/$(gameId)).data.hostId == request.auth.uid);
         allow read: if isAuthenticated(); 
