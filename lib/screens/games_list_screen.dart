@@ -34,7 +34,17 @@ class _GamesListScreenState extends State<GamesListScreen> {
     }
   }
 
-  void _showGameDialog({String? docId, String? currentTitle, DateTime? currentDate, String? currentZoomId, String? currentZoomPassword, String? currentPackId, List<String>? currentCategories, bool? currentIsTestGame}) {
+  void _showGameDialog({
+    String? docId, 
+    String? currentTitle, 
+    DateTime? currentDate, 
+    String? currentZoomId, 
+    String? currentZoomPassword, 
+    String? currentPackId, 
+    List<String>? currentCategories, 
+    bool? currentIsTestGame,
+    String? currentGameType // territory, money_queue, mafia
+  }) {
     final titleController = TextEditingController(text: currentTitle);
     final zoomIdController = TextEditingController(text: currentZoomId);
     final zoomPasswordController = TextEditingController(text: currentZoomPassword);
@@ -48,6 +58,13 @@ class _GamesListScreenState extends State<GamesListScreen> {
     
     bool isTestGame = currentIsTestGame ?? false;
     bool isEditing = docId != null;
+    String selectedGameType = currentGameType ?? 'territory';
+    
+    final Map<String, String> gameTypes = {
+       'territory': 'Территория Себя',
+       'money_queue': 'Очередь из Денег',
+       'mafia': 'Мафия'
+    };
 
     showDialog(
       context: context,
@@ -83,6 +100,19 @@ class _GamesListScreenState extends State<GamesListScreen> {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  // GAME TYPE DROPDOWN
+                  DropdownButtonFormField<String>(
+                     value: selectedGameType,
+                     decoration: const InputDecoration(labelText: 'Тип игры'),
+                     dropdownColor: const Color(0xFF1E293B),
+                     style: const TextStyle(color: Colors.white),
+                     items: gameTypes.entries.map((e) => DropdownMenuItem(value: e.key, child: Text(e.value))).toList(),
+                     onChanged: (val) {
+                        if (val != null) setStateDialog(() => selectedGameType = val);
+                     },
+                  ),
+                  const SizedBox(height: 16),
+
                   TextField(
                     controller: titleController,
                     decoration: const InputDecoration(labelText: 'Название игры'),
@@ -138,77 +168,75 @@ class _GamesListScreenState extends State<GamesListScreen> {
                     controlAffinity: ListTileControlAffinity.leading,
                     contentPadding: EdgeInsets.zero,
                   ),
-                  const Divider(),
-                  const Text("Ситуации", style: TextStyle(fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 8),
-                  
-                  // PACK DROPDOWN
-                  if (availablePacks.isEmpty)
-                     const Text("Загрузка пакетов... (или нет доступных)", style: TextStyle(fontSize: 12, color: Colors.grey))
-                  else
-                     DropdownButtonFormField<String>(
-                        isExpanded: true,
-                        decoration: InputDecoration(
-                           labelText: 'Пакет ситуаций (${availablePacks.length})',
-                           labelStyle: const TextStyle(color: Colors.white70),
-                           filled: true,
-                           fillColor: Colors.white10, // Slight contrast against dialog
-                           border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                        ),
-                        dropdownColor: const Color(0xFF1E293B), // Dark background
-                        style: const TextStyle(color: Colors.white), // White text
-                        value: selectedPackId,
-                        // hint: const Text("Выберите пакет ситуаций", style: TextStyle(color: Colors.white70)),
-                        items: availablePacks.map((p) {
-                           return DropdownMenuItem<String>(
-                              value: p.id,
-                              child: Text(
-                                 p.data()['title'] ?? 'Без названия',
-                                 style: const TextStyle(color: Colors.white),
-                                 overflow: TextOverflow.ellipsis,
+                  if (selectedGameType == 'territory') ...[ // Only show for Territory
+                       const Divider(),
+                       const Text("Ситуации", style: TextStyle(fontWeight: FontWeight.bold)),
+                       const SizedBox(height: 8),
+
+                       if (availablePacks.isEmpty)
+                         const Text("Загрузка пакетов... (или нет доступных)", style: TextStyle(fontSize: 12, color: Colors.grey))
+                       else ...[
+                           DropdownButtonFormField<String>(
+                              isExpanded: true,
+                              decoration: InputDecoration(
+                                 labelText: 'Пакет ситуаций (${availablePacks.length})',
+                                 labelStyle: const TextStyle(color: Colors.white70),
+                                 filled: true,
+                                 fillColor: Colors.white10,
+                                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
                               ),
-                           );
-                        }).toList(),
-                        onChanged: (val) {
-                           if (val != null) {
-                              setStateDialog(() {
-                                 selectedPackId = val;
-                                 selectedCategories = []; // Reset categories on pack change
-                                 
-                                 // Update categories list
-                                 final packData = availablePacks.firstWhere((p) => p.id == val).data();
-                                 final sits = (packData['situations'] as List<dynamic>? ?? []);
-                                 final cats = sits.map((s) => s['category'] as String? ?? "General").toSet().toList();
-                                 cats.sort();
-                                 availableCategories = cats;
-                              });
-                           }
-                        },
-                     ),
-                     
-                  const SizedBox(height: 8),
-                  // CATEGORIES MULTI-SELECT
-                  if (availableCategories.isNotEmpty) ...[
-                     const Text("Фильтр категорий (пусто = все):", style: TextStyle(fontSize: 12)),
-                     Wrap(
-                        spacing: 6,
-                        children: availableCategories.map((cat) {
-                           final isSelected = selectedCategories.contains(cat);
-                           return FilterChip(
-                              label: Text(cat, style: const TextStyle(fontSize: 11)),
-                              selected: isSelected,
-                              onSelected: (val) {
-                                 setStateDialog(() {
-                                    if (val) {
-                                       selectedCategories.add(cat);
-                                    } else {
-                                       selectedCategories.remove(cat);
-                                    }
-                                 });
+                              dropdownColor: const Color(0xFF1E293B),
+                              style: const TextStyle(color: Colors.white),
+                              value: selectedPackId,
+                              items: availablePacks.map((p) {
+                                 return DropdownMenuItem<String>(
+                                    value: p.id,
+                                    child: Text(
+                                       p.data()['title'] ?? 'Без названия',
+                                       style: const TextStyle(color: Colors.white),
+                                       overflow: TextOverflow.ellipsis,
+                                    ),
+                                 );
+                              }).toList(),
+                              onChanged: (val) {
+                                 if (val != null) {
+                                    setStateDialog(() {
+                                       selectedPackId = val;
+                                       selectedCategories = [];
+                                       // Update categories
+                                       final packData = availablePacks.firstWhere((p) => p.id == val).data();
+                                       final sits = (packData['situations'] as List<dynamic>? ?? []);
+                                       final cats = sits.map((s) => s['category'] as String? ?? "General").toSet().toList();
+                                       cats.sort();
+                                       availableCategories = cats;
+                                    });
+                                 }
                               },
-                           );
-                        }).toList(),
-                     )
+                           ),
+                           const SizedBox(height: 8),
+                           if (availableCategories.isNotEmpty) ...[
+                               const Text("Фильтр категорий (пусто = все):", style: TextStyle(fontSize: 12)),
+                               Wrap(
+                                  spacing: 6,
+                                  children: availableCategories.map((cat) {
+                                     final isSelected = selectedCategories.contains(cat);
+                                     return FilterChip(
+                                        label: Text(cat, style: const TextStyle(fontSize: 11)),
+                                        selected: isSelected,
+                                        onSelected: (val) {
+                                           setStateDialog(() {
+                                              if (val) {
+                                                 selectedCategories.add(cat);
+                                              } else {
+                                                 selectedCategories.remove(cat);
+                                              }
+                                           });
+                                        },
+                                     );
+                                  }).toList(),
+                               )
+                           ]
+                       ]
                   ]
                 ],
               ),
@@ -231,6 +259,7 @@ class _GamesListScreenState extends State<GamesListScreen> {
                           situationPackId: selectedPackId,
                           situationCategories: selectedCategories,
                           isTestGame: isTestGame,
+                          gameType: selectedGameType,
                         );
                       } else {
                         await _firestoreService.createGame(
@@ -241,6 +270,7 @@ class _GamesListScreenState extends State<GamesListScreen> {
                           situationPackId: selectedPackId,
                           situationCategories: selectedCategories,
                           isTestGame: isTestGame,
+                          gameType: selectedGameType,
                         );
                       }
                       if (context.mounted) Navigator.pop(context);
@@ -357,6 +387,7 @@ class _GamesListScreenState extends State<GamesListScreen> {
                                       currentPackId: game['situationPackId'],
                                       currentCategories: (game['situationCategories'] as List<dynamic>?)?.cast<String>(),
                                       currentIsTestGame: game['isTestGame'],
+                                      currentGameType: game['gameType'],
                                    );
                                 } else if (value == 'delete') {
                                    _deleteGame(docId, game['title'] ?? '');

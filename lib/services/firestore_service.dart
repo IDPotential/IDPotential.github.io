@@ -437,7 +437,8 @@ class FirestoreService {
       String? zoomPassword,
       String? situationPackId,
       List<String>? situationCategories,
-      bool isTestGame = false,
+      bool? isTestGame,
+      String gameType = 'territory',
   }) async {
     final user = _auth.currentUser;
     if (user == null) throw Exception("User not logged in");
@@ -466,6 +467,7 @@ class FirestoreService {
       'hostId': user.uid,
       'hostName': userName,
       'title': title,
+      'gameType': gameType, // Storing game type
       'scheduledAt': date.toIso8601String(),
       'zoomId': zoomId,
       'zoomPassword': zoomPassword,
@@ -488,6 +490,7 @@ class FirestoreService {
       String? situationPackId,
       List<String>? situationCategories,
       bool? isTestGame,
+      String? gameType,
   }) async {
     final Map<String, dynamic> data = {
       'title': title,
@@ -495,6 +498,8 @@ class FirestoreService {
       'zoomId': zoomId,
       'zoomPassword': zoomPassword,
     };
+
+    if (gameType != null) data['gameType'] = gameType;
 
     if (situationPackId != null) data['situationPackId'] = situationPackId;
     if (situationCategories != null) data['situationCategories'] = situationCategories;
