@@ -284,7 +284,7 @@ class _GamesListScreenState extends State<GamesListScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Игровые сессии v1.51.6', style: TextStyle(fontSize: 16))),
+      appBar: AppBar(title: const Text('Игровые сессии v1.52', style: TextStyle(fontSize: 16))),
       floatingActionButton: _isAdmin ? FloatingActionButton(
         onPressed: () => _showGameDialog(),
         child: const Icon(Icons.add),
