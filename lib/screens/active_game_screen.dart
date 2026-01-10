@@ -1970,11 +1970,14 @@ class _VirtualPlayerDialogState extends State<_VirtualPlayerDialog> {
                  ),
                  const Divider(color: Colors.white10),
                  
-                 ...folders.map((f) => ListTile(
+                  ...folders.map((f) => ListTile(
                     leading: const Icon(Icons.folder, color: Colors.orange),
                     title: Text(f, style: const TextStyle(color: Colors.white)),
                     trailing: const Icon(Icons.chevron_right, color: Colors.white54),
-                    onTap: () => setState(() => _currentFolder = f),
+                    onTap: () {
+                       debugPrint("Selected folder: $f");
+                       setState(() => _currentFolder = f);
+                    },
                  ))
               ],
            );

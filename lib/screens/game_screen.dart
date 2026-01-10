@@ -67,6 +67,7 @@ class _GameScreenState extends State<GameScreen> {
     _registerZoomViewFactory();
     _loadProfile();
     _checkHostStatus();
+    _checkTesterStatus();
     
     if (widget.gameId != null) {
        _targetGameId = widget.gameId;
@@ -281,6 +282,17 @@ class _GameScreenState extends State<GameScreen> {
   // ... _buildRolesGrid ...
 
   // ... _buildVotingBoard ...
+
+  Future<void> _checkTesterStatus() async {
+    final isTester = await _firestoreService.isTester();
+    if (mounted) {
+      setState(() {
+        _isTester = isTester;
+      });
+    }
+  }
+
+
 
   @override
   Widget build(BuildContext context) {

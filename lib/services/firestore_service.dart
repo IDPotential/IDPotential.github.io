@@ -28,6 +28,21 @@ class FirestoreService {
     return _db.collection('users').doc(user.uid).snapshots();
   }
 
+  Future<bool> isTester() async {
+    final user = _auth.currentUser;
+    if (user == null) return false;
+    try {
+      final doc = await _db.collection('users').doc(user.uid).get();
+      final data = doc.data();
+      if (data != null && data['tester'] == 1) {
+        return true;
+      }
+    } catch (e) {
+      debugPrint("Error checking tester status: $e");
+    }
+    return false;
+  }
+
   // --- Calculations ---
 
   Future<String> saveCalculation(Calculation calc) async {
