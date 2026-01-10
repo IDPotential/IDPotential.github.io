@@ -89,6 +89,7 @@ class _GameScreenState extends State<GameScreen> {
   }
 
   bool _showGameSelection = false;
+  bool _isTester = false; // Added for Test Game visibility
   List<QueryDocumentSnapshot<Map<String, dynamic>>> _availableGames = [];
 
   List<QueryDocumentSnapshot<Map<String, dynamic>>> _latestGamesDocs = [];
@@ -799,6 +800,12 @@ ToggleButtons(
         final role = data['role'];
         final pgmd = data['pgmd'];
         final isHostMode = data['isHostMode'] ?? false;
+        
+        if (mounted) {
+           setState(() {
+              _isTester = data['isTester'] ?? false;
+           });
+        }
         
         // Allow if Admin or Diagnost-Host (>= 10) AND Host Mode is enabled
         final hasRights = role == 'admin' || (pgmd != null && pgmd >= 10);
@@ -1665,7 +1672,13 @@ ToggleButtons(
                   if (snapshot.hasError) return Center(child: Text("Ошибка: ${snapshot.error}", style: const TextStyle(color: Colors.red)));
                   if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
 
-                  final games = snapshot.data!.docs;
+                  final gamesRaw = snapshot.data!.docs;
+                  final games = gamesRaw.where((g) {
+                     final d = g.data();
+                     final isTest = d['isTestGame'] ?? false;
+                     // Show if NOT test game, OR if user IS tester
+                     return !isTest || _isTester;
+                  }).toList();
                   
                   // Client-side sorting
                   games.sort((a, b) {
@@ -1713,7 +1726,7 @@ ToggleButtons(
                         // 3. Host Games Header
                         const Padding(
                            padding: EdgeInsets.fromLTRB(20, 16, 20, 10),
-child: Text("Игры с ведущим:", style: TextStyle(color: Colors.white54, fontWeight: FontWeight.bold, fontSize: 14)),
+child: Text("Расписание ближайших игр с ведущим", style: TextStyle(color: Colors.white54, fontWeight: FontWeight.bold, fontSize: 14)),
                         ),
 
                         // 4. Games List or Empty State

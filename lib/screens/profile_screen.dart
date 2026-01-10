@@ -8,6 +8,7 @@ import 'login_screen.dart';
 import 'games_list_screen.dart';
 import 'game_details_screen.dart';
 import '../widgets/role_info_dialog.dart';
+import '../widgets/user_matrix_widget.dart'; // Import Matrix Widget
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -315,6 +316,108 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
+  void _replyToQuestion(String requestId, String userId) async {
+       final controller = TextEditingController();
+       final reply = await showDialog<String>(
+         context: context,
+         builder: (context) => AlertDialog(
+           title: const Text('Ответить пользователю'),
+           content: TextField(
+             controller: controller,
+             decoration: const InputDecoration(hintText: 'Введите ответ...', border: OutlineInputBorder()),
+             maxLines: 5,
+             autofocus: true,
+           ),
+           actions: [
+             TextButton(onPressed: () => Navigator.pop(context), child: const Text('Отмена')),
+              ElevatedButton(
+               onPressed: () {
+                 if (controller.text.trim().isNotEmpty) {
+                    Navigator.pop(context, controller.text.trim());
+                 }
+               }, 
+               child: const Text('Отправить')
+             ),
+           ]
+         )
+       );
+ 
+       if (reply != null && reply.isNotEmpty) {
+           try {
+              // 1. Save to Firestore
+              await _firestoreService.answerRequest(requestId, reply);
+              
+              // 2. Fetch User Email and Duplicate to Mail
+              final userDoc = await FirebaseFirestore.instance.collection('users').doc(userId).get();
+              final email = userDoc.data()?['email'] as String?;
+              
+              if (email != null && email.isNotEmpty) {
+                 final Uri emailLaunchUri = Uri(
+                   scheme: 'mailto',
+                   path: email,
+                   query: _encodeQueryParameters(<String, String>{
+                     'subject': 'Ответ на ваш запрос (ID Potential)',
+                     'body': 'Здравствуйте!\n\nОтвет администратора:\n"$reply"\n\n--\nС уважением, команда ID Potential.'
+                   }),
+                 );
+                 
+                 if (await canLaunchUrl(emailLaunchUri)) {
+                    await launchUrl(emailLaunchUri);
+                    if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Ответ сохранен и открыт почтовый клиент')));
+                 } else {
+                    if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Ответ сохранен, но не удалось открыть почту')));
+                 }
+              } else {
+                  if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Ответ сохранен (Email пользователя не найден)')));
+              }
+ 
+           } catch(e) {
+              if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Ошибка: $e')));
+           }
+       }
+   }
+
+   String? _encodeQueryParameters(Map<String, String> params) {
+     return params.entries
+         .map((e) => '${Uri.encodeComponent(e.key)}=${Uri.encodeComponent(e.value)}')
+         .join('&');
+   }
+
+  void _approveRequest(String requestId, String userId, String type, int? initialValue) async {
+       int amountToCredit = initialValue ?? 0;
+       
+       if (type == 'bonus' || type == 'deposit') {
+          final controller = TextEditingController(text: amountToCredit > 0 ? amountToCredit.toString() : '');
+           final enteredAmount = await showDialog<int>(
+             context: context,
+             builder: (context) => AlertDialog(
+               title: Text('Подтвердить пополнение ($type)'),
+               content: TextField(
+                 controller: controller,
+                 decoration: const InputDecoration(labelText: 'Сумма кредитов', suffixText: 'кр.'),
+                 keyboardType: TextInputType.number,
+                 autofocus: true,
+               ),
+               actions: [
+                 TextButton(onPressed: () => Navigator.pop(context), child: const Text('Отмена')),
+                 TextButton(
+                   onPressed: () {
+                     final val = int.tryParse(controller.text);
+                     Navigator.pop(context, val);
+                   }, 
+                   child: const Text('Пополнить')
+                 ),
+               ]
+             )
+           );
+           
+           if (enteredAmount == null) return; 
+           amountToCredit = enteredAmount;
+       }
+ 
+       await _processRequest(requestId, userId, 'approve_$type', amountToCredit);
+   }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -384,6 +487,42 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
                 
                 const SizedBox(height: 20),
+
+                // My Matrix (Roles) Widget
+                FutureBuilder<Map<String, dynamic>?>(
+                   future: _firestoreService.getLatestCalculation(), // Fallback to latest calc
+                   builder: (context, calcSnapshot) {
+                       List<int> numbers = [];
+                       final gameProfile = userData['game_profile'] as Map<String, dynamic>?;
+
+                       if (gameProfile != null && gameProfile['numbers'] != null) {
+                           numbers = List<int>.from(gameProfile['numbers']);
+                       } else if (calcSnapshot.hasData && calcSnapshot.data != null) {
+                           numbers = List<int>.from(calcSnapshot.data!['numbers']);
+                       }
+                       
+                       if (numbers.isEmpty) return const SizedBox.shrink();
+
+                       return Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                             const Text("Моя матрица", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                             const SizedBox(height: 10),
+                             UserMatrixWidget(
+                                matrix: numbers,
+                                isInteractive: true,
+                                onRoleTap: (role) {
+                                   showDialog(
+                                      context: context,
+                                      builder: (ctx) => RoleInfoDialog(roleNumber: role),
+                                   );
+                                },
+                             ),
+                             const SizedBox(height: 20),
+                          ],
+                       );
+                   }
+                ),
                 
                 if (pgmd >= 10)
                    Card(
@@ -427,11 +566,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           style: ElevatedButton.styleFrom(backgroundColor: Colors.orangeAccent),
                         ),
                       
-                      // Show "Link Telegram" only if we are NOT already linked AND (optional: we are not purely a telegram user? No, always allow linking)
-                      // Actually, if we are logged in via Token, we ARE the telegram user.
-                      // Logic: If I am "Token User" (no password provider), I want to "Link Email".
-                      // If I am "Email User", I want to "Link Telegram".
-                      
                       if (_isTokenKeyOnly())
                          ElevatedButton.icon(
                            onPressed: _showLinkEmailDialog,
@@ -474,19 +608,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   ),
                   const SizedBox(height: 10),
                   _buildAdminRequestsList(),
-                  
-                  // --- MIGRATION TOOLS ---
-                  const Divider(),
-                  // DISABLED BY REQUEST
-                  // ListTile(
-                  //   leading: const Icon(Icons.upload_file, color: Colors.orange),
-                  //   title: const Text("Загрузить 'Ситуации 2026'"),
-                  //   subtitle: const Text("Миграция из файла в Firestore"),
-                  //   onTap: () async {
-                  //       // ... logic removed ...
-                  //       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Функция отключена. Используйте python скрипт.")));
-                  //   },
-                  // ),
                 ] else ...[
                    // User Q&A History
                   const Divider(height: 40, thickness: 2),
@@ -628,109 +749,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
         );
       },
     );
-  }
-
-  Future<void> _approveRequest(String requestId, String userId, String type, int? initialValue) async {
-      int amountToCredit = initialValue ?? 0;
-      
-      if (type == 'bonus' || type == 'deposit') {
-          // ... (existing amount dialog logic) ...
-         final controller = TextEditingController(text: amountToCredit > 0 ? amountToCredit.toString() : '');
-          final enteredAmount = await showDialog<int>(
-            context: context,
-            builder: (context) => AlertDialog(
-              title: Text('Подтвердить пополнение ($type)'),
-              content: TextField(
-                controller: controller,
-                decoration: const InputDecoration(labelText: 'Сумма кредитов', suffixText: 'кр.'),
-                keyboardType: TextInputType.number,
-                autofocus: true,
-              ),
-              actions: [
-                TextButton(onPressed: () => Navigator.pop(context), child: const Text('Отмена')),
-                TextButton(
-                  onPressed: () {
-                    final val = int.tryParse(controller.text);
-                    Navigator.pop(context, val);
-                  }, 
-                  child: const Text('Пополнить')
-                ),
-              ]
-            )
-          );
-          
-          if (enteredAmount == null) return; 
-          amountToCredit = enteredAmount;
-      }
-
-      await _processRequest(requestId, userId, 'approve_$type', amountToCredit);
-  }
-
-  String? _encodeQueryParameters(Map<String, String> params) {
-    return params.entries
-        .map((e) => '${Uri.encodeComponent(e.key)}=${Uri.encodeComponent(e.value)}')
-        .join('&');
-  }
-
-  Future<void> _replyToQuestion(String requestId, String userId) async {
-      final controller = TextEditingController();
-      final reply = await showDialog<String>(
-        context: context,
-        builder: (context) => AlertDialog(
-          title: const Text('Ответить пользователю'),
-          content: TextField(
-            controller: controller,
-            decoration: const InputDecoration(hintText: 'Введите ответ...', border: OutlineInputBorder()),
-            maxLines: 5,
-            autofocus: true,
-          ),
-          actions: [
-            TextButton(onPressed: () => Navigator.pop(context), child: const Text('Отмена')),
-             ElevatedButton(
-              onPressed: () {
-                if (controller.text.trim().isNotEmpty) {
-                   Navigator.pop(context, controller.text.trim());
-                }
-              }, 
-              child: const Text('Отправить')
-            ),
-          ]
-        )
-      );
-
-      if (reply != null && reply.isNotEmpty) {
-          try {
-             // 1. Save to Firestore
-             await _firestoreService.answerRequest(requestId, reply);
-             
-             // 2. Fetch User Email and Duplicate to Mail
-             final userDoc = await FirebaseFirestore.instance.collection('users').doc(userId).get();
-             final email = userDoc.data()?['email'] as String?;
-             
-             if (email != null && email.isNotEmpty) {
-                final Uri emailLaunchUri = Uri(
-                  scheme: 'mailto',
-                  path: email,
-                  query: _encodeQueryParameters(<String, String>{
-                    'subject': 'Ответ на ваш запрос (ID Potential)',
-                    'body': 'Здравствуйте!\n\nОтвет администратора:\n"$reply"\n\n--\nС уважением, команда ID Potential.'
-                  }),
-                );
-                
-                if (await canLaunchUrl(emailLaunchUri)) {
-                   await launchUrl(emailLaunchUri);
-                   if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Ответ сохранен и открыт почтовый клиент')));
-                } else {
-                   if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Ответ сохранен, но не удалось открыть почту')));
-                }
-             } else {
-                 if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Ответ сохранен (Email пользователя не найден)')));
-             }
-
-          } catch(e) {
-             if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Ошибка: $e')));
-          }
-      }
   }
 
   Widget _buildUserRequestsList() {

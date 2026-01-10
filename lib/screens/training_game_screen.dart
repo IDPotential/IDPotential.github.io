@@ -6,6 +6,8 @@ import '../services/knowledge_service.dart';
 
 import 'calculation_screen.dart';
 import '../widgets/role_info_dialog.dart'; // Import Custom Dialog
+import '../widgets/user_matrix_widget.dart'; // Import Matrix Widget
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class TrainingGameScreen extends StatefulWidget {
   const TrainingGameScreen({super.key});
@@ -45,39 +47,50 @@ class _TrainingGameScreenState extends State<TrainingGameScreen> {
   Future<void> _loadData() async {
     setState(() => _isLoading = true);
     try {
-      // 1. Load User Calculation FIRST to get Age & Matrix
-      final calcData = await _firestoreService.getLatestCalculation();
-      int userAge = 30; // Default to adult if unknown
-
-      if (calcData != null) {
-          // Matrix
-          if (calcData['numbers'] != null) {
-              _userMatrix = List<int>.from(calcData['numbers']);
-          } else if (calcData['matrix'] != null) {
-              _userMatrix = List<int>.from(calcData['matrix']);
+      // 1. Load User Data (Profile) for AGE and MATRIX (Sync with Profile)
+      int userAge = 30; // Default
+      final userDoc = await _firestoreService.getUserData().first; // Get single snapshot
+      if (userDoc.exists && userDoc.data() != null) {
+          final data = userDoc.data()!;
+          if (data['birthDate'] != null) {
+              try {
+                  // Format: "DD.MM.YYYY" or similar string
+                  final parts = data['birthDate'].toString().split('.');
+                   if (parts.length == 3) {
+                     final year = int.parse(parts[2]);
+                     userAge = DateTime.now().year - year;
+                     debugPrint("User Age (Profile): $userAge");
+                   }
+              } catch (e) {
+                  debugPrint("Error parsing profile birthDate: $e");
+              }
           }
-          
-          // Age Calculation
-          if (calcData['birthDate'] != null) {
-             try {
-                // Expected format: DD.MM.YYYY
-                final parts = calcData['birthDate'].toString().split('.');
-                if (parts.length == 3) {
-                   final year = int.parse(parts[2]);
-                   userAge = DateTime.now().year - year;
-                   debugPrint("User Age: $userAge (Born: $year)");
-                }
-             } catch (e) {
-                debugPrint("Error parsing birthDate: $e");
-             }
+
+          // Matrix Sync (Priority: game_profile)
+          final gameProfile = data['game_profile'] as Map<String, dynamic>?;
+          if (gameProfile != null && gameProfile['numbers'] != null) {
+              _userMatrix = List<int>.from(gameProfile['numbers']);
+              debugPrint("User Matrix loaded from Profile (game_profile)");
           }
       }
 
-      // 2. Get Daily Limit
+      // 2. Load User Calculation for MATRIX (Fallback if not in Profile)
+      if (_userMatrix.isEmpty) {
+         final calcData = await _firestoreService.getLatestCalculation();
+         if (calcData != null) {
+             if (calcData['numbers'] != null) {
+                 _userMatrix = List<int>.from(calcData['numbers']);
+             } else if (calcData['matrix'] != null) {
+                 _userMatrix = List<int>.from(calcData['matrix']);
+             }
+         }
+      }
+
+      // 3. Get Daily Limit
       final count = await _firestoreService.getDailyTrainingCount();
       _dailyCount = count;
 
-      // 3. Load Situations based on Age
+      // 4. Load Situations based on Age
       final packs = await _firestoreService.getSituationPacks();
       debugPrint("DEBUG: Found ${packs.length} packs. User Age: $userAge");
 
@@ -254,7 +267,7 @@ class _TrainingGameScreenState extends State<TrainingGameScreen> {
                     ),
                     icon: const Icon(Icons.stars, color: Colors.white),
                     label: const Text("Еще одна ситуация сегодня (5 кр.)", style: TextStyle(fontWeight: FontWeight.bold)),
-                    onPressed: _buyExtraSituation, // Added: onPressed logic for the button
+                    onPressed: _buyExtraSituation,
                  )
               ],
            ),
@@ -333,23 +346,38 @@ class _TrainingGameScreenState extends State<TrainingGameScreen> {
               
               // Roles Dashboard (My Matrix)
               if (_userMatrix.isNotEmpty) ...[
-                  _buildNumberSelection(),
+                  UserMatrixWidget(
+                      matrix: _userMatrix,
+                      selectedRole: _selectedRole,
+                      onRoleTap: (role) {
+                          showDialog(
+                            context: context,
+                            builder: (ctx) => RoleInfoDialog(
+                              roleNumber: role,
+                              canSelect: true,
+                              onSelect: () {
+                                 setState(() => _selectedRole = role);
+                              },
+                            ),
+                          );
+                      },
+                  ),
               ] else ...[
                  Center(
                    child: Padding(
-                     padding: EdgeInsets.all(20),
+                     padding: const EdgeInsets.all(20),
                      child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                            Text("У вас нет игрового профиля", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
-                            SizedBox(height: 12),
-                            Text("Для тренировки необходимо создать свою карту (расчет).", style: TextStyle(color: Colors.white70), textAlign: TextAlign.center),
-                            SizedBox(height: 24),
+                            const Text("У вас нет игрового профиля", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+                            const SizedBox(height: 12),
+                            const Text("Для тренировки необходимо создать свою карту (расчет).", style: TextStyle(color: Colors.white70), textAlign: TextAlign.center),
+                            const SizedBox(height: 24),
                             // Button to create profile
-                            ElevatedButton( // Button needed here
-                                onPressed: _openProfileCreation, // Method to be added
+                            ElevatedButton(
+                                onPressed: _openProfileCreation, 
                                 style: ElevatedButton.styleFrom(backgroundColor: Colors.blueAccent),
-                                child: Text("Создать профиль")
+                                child: const Text("Создать профиль")
                             )
                         ],
                      ),
@@ -370,95 +398,6 @@ class _TrainingGameScreenState extends State<TrainingGameScreen> {
         ),
        );
   }
-
-   // Helper to safely get role number from user matrix
-   int _n(int idx) => (idx < _userMatrix.length) ? (_userMatrix[idx] == 0 ? 22 : _userMatrix[idx]) : 22;
-
-   // Grid Implementation
-   Widget _buildNumberSelection() {
-      // Logic: Unique, sorted, 0->22
-      final Set<int> uniqueNumbers = {};
-      for (var n in _userMatrix) {
-         if (n > 0 && n <= 22) uniqueNumbers.add(n);
-         if (n == 0) uniqueNumbers.add(22);
-      }
-      if (uniqueNumbers.isEmpty) {
-         uniqueNumbers.addAll(List.generate(22, (i) => i + 1));
-      }
-      
-      final sortedNumbers = uniqueNumbers.toList()..sort();
-
-      return LayoutBuilder(
-        builder: (context, constraints) {
-           // Responsive grid logic
-           int crossAxisCount = constraints.maxWidth > 600 ? 7 : 5;
-           
-           return GridView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(), // Scroll handled by parent
-              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                 crossAxisCount: crossAxisCount,
-                 childAspectRatio: 0.7,
-                 crossAxisSpacing: 8,
-                 mainAxisSpacing: 8,
-              ),
-              itemCount: sortedNumbers.length,
-              itemBuilder: (context, index) {
-                 final number = sortedNumbers[index];
-                 final isSelected = _selectedRole == number;
-                 
-                 return GestureDetector(
-                    onTap: () {
-                         showDialog(
-                           context: context,
-                           builder: (ctx) => RoleInfoDialog(
-                             roleNumber: number,
-                             canSelect: true,
-                             onSelect: () {
-                                setState(() => _selectedRole = number);
-                                // Dialog is closed by RoleInfoDialog usually, but if not we pop? 
-                                // RoleInfoDialog usually pops itself on simple view? No, onSelect logic usually pops. 
-                                // Let's rely on RoleInfoDialog implementation.
-                                // Actually checking RoleInfoDialog: it calls onSelect() then Navigator.pop(context). 
-                             },
-                           ),
-                         );
-                    },
-                    child: Container(
-                       decoration: BoxDecoration(
-                          border: isSelected ? Border.all(color: Colors.orange, width: 3) : null,
-                          borderRadius: BorderRadius.circular(8),
-                          boxShadow: isSelected ? [BoxShadow(color: Colors.orange.withOpacity(0.5), blurRadius: 8)] : null,
-                       ),
-                       child: Card(
-                          clipBehavior: Clip.antiAlias, 
-                          margin: EdgeInsets.zero, 
-                          elevation: isSelected ? 8 : 2,
-                          child: Column(
-                             crossAxisAlignment: CrossAxisAlignment.stretch,
-                             children: [
-                                Expanded(
-                                   child: Image.asset(
-                                      'assets/images/cards/role_$number.png', 
-                                      fit: BoxFit.cover, 
-                                      errorBuilder: (c,e,s)=>const Icon(Icons.image_not_supported)
-                                   ),
-                                ),
-                                Container(
-                                   color: isSelected ? Colors.orange : Colors.black54,
-                                   padding: const EdgeInsets.symmetric(vertical: 2),
-                                   child: Text('$number', textAlign: TextAlign.center, style: const TextStyle(fontSize: 12, color: Colors.white, fontWeight: FontWeight.bold)),
-                                ),
-                             ],
-                          ),
-                       ),
-                    ),
-                 );
-              },
-           );
-        }
-      );
-   }
 
   void _showRoleDetails(int number) {
     showDialog(

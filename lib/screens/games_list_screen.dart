@@ -34,7 +34,7 @@ class _GamesListScreenState extends State<GamesListScreen> {
     }
   }
 
-  void _showGameDialog({String? docId, String? currentTitle, DateTime? currentDate, String? currentZoomId, String? currentZoomPassword, String? currentPackId, List<String>? currentCategories}) {
+  void _showGameDialog({String? docId, String? currentTitle, DateTime? currentDate, String? currentZoomId, String? currentZoomPassword, String? currentPackId, List<String>? currentCategories, bool? currentIsTestGame}) {
     final titleController = TextEditingController(text: currentTitle);
     final zoomIdController = TextEditingController(text: currentZoomId);
     final zoomPasswordController = TextEditingController(text: currentZoomPassword);
@@ -46,6 +46,7 @@ class _GamesListScreenState extends State<GamesListScreen> {
     List<QueryDocumentSnapshot<Map<String, dynamic>>> availablePacks = [];
     List<String> availableCategories = []; // Categories for the selected pack
     
+    bool isTestGame = currentIsTestGame ?? false;
     bool isEditing = docId != null;
 
     showDialog(
@@ -109,13 +110,13 @@ class _GamesListScreenState extends State<GamesListScreen> {
   
                          if (pickedTime != null) {
                             setStateDialog(() {
-                              selectedDate = DateTime(
-                                 pickedDate.year, 
-                                 pickedDate.month, 
-                                 pickedDate.day, 
-                                 pickedTime.hour, 
-                                 pickedTime.minute
-                              );
+                               selectedDate = DateTime(
+                                  pickedDate.year, 
+                                  pickedDate.month, 
+                                  pickedDate.day, 
+                                  pickedTime.hour, 
+                                  pickedTime.minute
+                               );
                             });
                          }
                       }
@@ -129,6 +130,13 @@ class _GamesListScreenState extends State<GamesListScreen> {
                   TextField(
                     controller: zoomPasswordController,
                     decoration: const InputDecoration(labelText: 'Zoom Password'),
+                  ),
+                  CheckboxListTile(
+                    title: const Text("Тестовая игра (только для тестеров)"),
+                    value: isTestGame,
+                    onChanged: (val) => setStateDialog(() => isTestGame = val ?? false),
+                    controlAffinity: ListTileControlAffinity.leading,
+                    contentPadding: EdgeInsets.zero,
                   ),
                   const Divider(),
                   const Text("Ситуации", style: TextStyle(fontWeight: FontWeight.bold)),
@@ -222,6 +230,7 @@ class _GamesListScreenState extends State<GamesListScreen> {
                           zoomPassword: zoomPasswordController.text,
                           situationPackId: selectedPackId,
                           situationCategories: selectedCategories,
+                          isTestGame: isTestGame,
                         );
                       } else {
                         await _firestoreService.createGame(
@@ -231,6 +240,7 @@ class _GamesListScreenState extends State<GamesListScreen> {
                           zoomPassword: zoomPasswordController.text,
                           situationPackId: selectedPackId,
                           situationCategories: selectedCategories,
+                          isTestGame: isTestGame,
                         );
                       }
                       if (context.mounted) Navigator.pop(context);
@@ -346,6 +356,7 @@ class _GamesListScreenState extends State<GamesListScreen> {
                                       currentZoomPassword: game['zoomPassword'],
                                       currentPackId: game['situationPackId'],
                                       currentCategories: (game['situationCategories'] as List<dynamic>?)?.cast<String>(),
+                                      currentIsTestGame: game['isTestGame'],
                                    );
                                 } else if (value == 'delete') {
                                    _deleteGame(docId, game['title'] ?? '');

@@ -422,6 +422,7 @@ class FirestoreService {
       String? zoomPassword,
       String? situationPackId,
       List<String>? situationCategories,
+      bool isTestGame = false,
   }) async {
     final user = _auth.currentUser;
     if (user == null) throw Exception("User not logged in");
@@ -455,6 +456,7 @@ class FirestoreService {
       'zoomPassword': zoomPassword,
       'situationPackId': situationPackId,
       'situationCategories': situationCategories,
+      'isTestGame': isTestGame,
       'status': 'scheduled',
       'stage': 'selection', // Default stage
       'createdAt': FieldValue.serverTimestamp(),
@@ -470,6 +472,7 @@ class FirestoreService {
       String? zoomPassword,
       String? situationPackId,
       List<String>? situationCategories,
+      bool? isTestGame,
   }) async {
     final Map<String, dynamic> data = {
       'title': title,
@@ -477,11 +480,10 @@ class FirestoreService {
       'zoomId': zoomId,
       'zoomPassword': zoomPassword,
     };
-    
+
     if (situationPackId != null) data['situationPackId'] = situationPackId;
-    // Allow clearing categories if empty list is passed? Or just update if provided?
-    // Usually update takes what is given.
     if (situationCategories != null) data['situationCategories'] = situationCategories;
+    if (isTestGame != null) data['isTestGame'] = isTestGame;
     
     await _db.collection('games').doc(gameId).update(data);
   }
