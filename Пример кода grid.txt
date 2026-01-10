@@ -1,0 +1,101 @@
+import React, { useEffect, useState } from "react";
+
+function ZoomVideoView({ client, mediaStream }) {
+  const [participants, setParticipants] = useState([]);
+  const [viewMode, setViewMode] = useState("grid"); // "grid" или "speaker"
+
+  useEffect(() => {
+    const updateParticipants = () => {
+      const allUsers = client.getAllUser();
+      setParticipants(allUsers);
+    };
+
+    updateParticipants();
+    client.on("user-added", updateParticipants);
+    client.on("user-removed", updateParticipants);
+
+    return () => {
+      client.off("user-added", updateParticipants);
+      client.off("user-removed", updateParticipants);
+    };
+  }, [client]);
+
+  // Пример функции для рендера видео
+  const renderVideo = async (userId, element) => {
+    await mediaStream.renderVideo(element, userId, 640, 360, 0, 0, 3);
+  };
+
+  return (
+    <div>
+      {/* Кнопка переключения */}
+      <button
+        onClick={() =>
+          setViewMode((prev) => (prev === "grid" ? "speaker" : "grid"))
+        }
+      >
+        Переключить вид: {viewMode === "grid" ? "Speaker View" : "Grid View"}
+      </button>
+
+      {/* Контейнер для видео */}
+      <div
+        className={
+          viewMode === "grid"
+            ? "video-grid"
+            : "video-speaker-view"
+        }
+      >
+        {viewMode === "grid" ? (
+          // GRID VIEW
+          participants.map((user) => (
+            <div
+              key={user.userId}
+              className="video-item"
+              ref={(el) => el && renderVideo(user.userId, el)}
+            />
+          ))
+        ) : (
+          // SPEAKER VIEW (показываем активного + своё видео)
+          <>
+            <div
+              className="video-item large"
+              ref={(el) => {
+                const activeSpeaker = client.getActiveSpeaker();
+                if (el && activeSpeaker) renderVideo(activeSpeaker.userId, el);
+              }}
+            />
+            <div
+              className="video-item small"
+              ref={(el) => el && renderVideo(client.getCurrentUserInfo().userId, el)}
+            />
+          </>
+        )}
+      </div>
+
+      {/* Немного CSS */}
+      <style>{`
+        .video-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+          gap: 8px;
+        }
+        .video-speaker-view {
+          display: flex;
+          gap: 8px;
+        }
+        .video-item {
+          width: 100%;
+          background: #000;
+          aspect-ratio: 16/9;
+        }
+        .video-item.large {
+          flex: 3;
+        }
+        .video-item.small {
+          flex: 1;
+        }
+      `}</style>
+    </div>
+  );
+}
+
+export default ZoomVideoView;

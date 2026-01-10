@@ -5,6 +5,11 @@ void initZoom(String meetingId, String password, String name, String sdkKey, Str
   js.context.callMethod('initZoom', [meetingId, password, name, sdkKey, sdkSecret, jsCustomization]);
 }
 
+
 void leaveZoom() {
   js.context.callMethod('leaveZoom');
+}
+
+void toggleZoomGrid(bool enable) {
+  js.context.callMethod('toggleZoomGrid', [enable]);
 }

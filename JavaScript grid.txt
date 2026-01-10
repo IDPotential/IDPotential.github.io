@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <title>Zoom Web SDK — Переключение видов</title>
+  <style>
+    #video-container {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 8px;
+    }
+    .video-item {
+      background: #000;
+      aspect-ratio: 16/9;
+    }
+    .speaker-view {
+      display: flex;
+      gap: 8px;
+    }
+    .video-large {
+      flex: 3;
+    }
+    .video-small {
+      flex: 1;
+    }
+  </style>
+</head>
+<body>
+  <button id="switch-view-btn">Переключить вид (Grid/Speaker)</button>
+  <div id="video-container"></div>
+
+  <script type="module">
+    import { ZoomMtgEmbedded } from "@zoomus/websdk/embedded";
+
+    const client = ZoomMtgEmbedded.createClient();
+    let mediaStream;
+    let viewMode = "grid"; // 'grid' или 'speaker'
+
+    // Инициализация и подключение (примерно)
+    const meetingSDKElement = document.getElementById("video-container");
+
+    client.init({
+      zoomAppRoot: meetingSDKElement,
+      language: "ru-RU",
+    });
+
+    // Подключение к встрече (примерно, реальные значения заменить)
+    client.join({
+      sdkKey: "YOUR_SDK_KEY",
+      signature: "YOUR_SIGNATURE",
+      meetingNumber: "MEETING_ID",
+      password: "MEETING_PASS",
+      userName: "User Name",
+    });
+
+    client.on("connection-change", async (payload) => {
+      if (payload.state === "Connected") {
+        mediaStream = client.getMediaStream();
+        renderGridView();
+      }
+    });
+
+    // Переключение между режимами
+    document.getElementById("switch-view-btn").addEventListener("click", () => {
+      viewMode = viewMode === "grid" ? "speaker" : "grid";
+      if (viewMode === "grid") renderGridView();
+      else renderSpeakerView();
+    });
+
+    async function renderGridView() {
+      const container = document.getElementById("video-container");
+      container.className = "";
+      container.innerHTML = "";
+      container.style.display = "grid";
+
+      const users = client.getAllUser();
+      for (const user of users) {
+        const div = document.createElement("div");
+        div.classList.add("video-item");
+        container.appendChild(div);
+        await mediaStream.renderVideo(div, user.userId, 640, 360, 0, 0, 3);
+      }
+    }
+
+    async function renderSpeakerView() {
+      const container = document.getElementById("video-container");
+      container.className = "speaker-view";
+      container.innerHTML = "";
+
+      const activeSpeaker = client.getActiveSpeaker();
+      const currentUser = client.getCurrentUserInfo();
+
+      const largeDiv = document.createElement("div");
+      largeDiv.classList.add("video-item", "video-large");
+      container.appendChild(largeDiv);
+
+      const smallDiv = document.createElement("div");
+      smallDiv.classList.add("video-item", "video-small");
+      container.appendChild(smallDiv);
+
+      if (activeSpeaker) {
+        await mediaStream.renderVideo(largeDiv, activeSpeaker.userId, 640, 360, 0, 0, 3);
+      }
+      await mediaStream.renderVideo(smallDiv, currentUser.userId, 320, 180, 0, 0, 3);
+    }
+
+    // Обновление при изменении участников
+    client.on("user-added", () => {
+      if (viewMode === "grid") renderGridView();
+    });
+    client.on("user-removed", () => {
+      if (viewMode === "grid") renderGridView();
+    });
+    client.on("active-speaker", () => {
+      if (viewMode === "speaker") renderSpeakerView();
+    });
+  </script>
+</body>
+</html>

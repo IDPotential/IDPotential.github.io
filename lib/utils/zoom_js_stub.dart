@@ -5,3 +5,7 @@ void initZoom(String meetingId, String password, String name, String sdkKey, Str
 void leaveZoom() {
   // No-op on mobile
 }
+
+void toggleZoomGrid(bool enable) {
+  // No-op on mobile
+}

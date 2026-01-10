@@ -53,6 +53,7 @@ class _ActiveGameScreenState extends State<ActiveGameScreen> {
   int? _playerNumber;
   
   bool _isVideoActive = false; 
+  bool _isGridMode = false;
   String _roomName = '';
   final GlobalKey _zoomViewKey = GlobalKey();
   
@@ -539,6 +540,24 @@ class _ActiveGameScreenState extends State<ActiveGameScreen> {
           child: Row(
              mainAxisSize: MainAxisSize.min,
              children: [
+                // 0. Grid Toggle (New)
+                if (_isVideoActive) ...[
+                   SizedBox(
+                      width: 56, height: 56,
+                      child: FloatingActionButton(
+                        heroTag: 'toggle_grid',
+                        backgroundColor: _isGridMode ? Colors.blueAccent : Colors.grey[800],
+                        onPressed: () {
+                            setState(() => _isGridMode = !_isGridMode);
+                            if (kIsWeb) zoom_js.toggleZoomGrid(_isGridMode);
+                        },
+                        tooltip: _isGridMode ? "Обычный вид" : "Сетка",
+                        child: Icon(_isGridMode ? Icons.grid_off : Icons.grid_view, color: Colors.white, size: 28),
+                      ),
+                   ),
+                   const SizedBox(width: 12),
+                ],
+
                 // 1. Situation Controls (Left side of the row)
                 if (hasControl) ...[
                    SizedBox(
