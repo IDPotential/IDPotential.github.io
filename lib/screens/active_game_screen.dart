@@ -577,7 +577,7 @@ class _ActiveGameScreenState extends State<ActiveGameScreen> {
              mainAxisSize: MainAxisSize.min,
              children: [
                 // 0. Grid Toggle (New)
-                if (_isVideoActive) ...[
+                if (false && _isVideoActive) ...[
                    SizedBox(
                       width: 56, height: 56,
                       child: FloatingActionButton(
