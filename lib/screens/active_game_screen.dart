@@ -187,32 +187,68 @@ class _ActiveGameScreenState extends State<ActiveGameScreen> {
            child: SafeArea(
              child: _gameStatus == 'archived' 
                ? _buildGameArchivedScreen()
-               : Column(
-                   children: [
-                     // Top Section: Video
-                     Expanded(
-                       flex: 5,
-                       child: Container(
-                         color: Colors.black87,
-                         child: Stack(
+               : LayoutBuilder(
+                   builder: (context, constraints) {
+                      bool isLandscape = constraints.maxWidth > constraints.maxHeight;
+                      
+                      if (isLandscape) {
+                        return Row(
+                           crossAxisAlignment: CrossAxisAlignment.stretch,
                            children: [
-                             _isVideoActive 
-                               ? _buildZoomPanel() 
-                               : _buildVideoPlaceholder(),
-                           ]
-                         )
-                       ),
-                     ),
-                     const Divider(height: 1, thickness: 1, color: Colors.grey),
-                     // Bottom Section: Dashboard
-                     Expanded(
-                       flex: 5,
-                       child: widget.isHost && _gameStatus != 'archived'
-                         ? _buildHostDashboard()
-                         : _buildPlayerDashboard(),
-                     ),
-                   ],
-                 ),
+                              // Left: Video (Larger)
+                              Expanded(
+                                flex: 6,
+                                child: Container(
+                                  color: Colors.black87,
+                                  child: Stack(
+                                    children: [
+                                      _isVideoActive 
+                                        ? _buildZoomPanel() 
+                                        : _buildVideoPlaceholder(),
+                                    ]
+                                  )
+                                ),
+                              ),
+                              const VerticalDivider(width: 1, thickness: 1, color: Colors.grey),
+                              // Right: Dashboard
+                              Expanded(
+                                flex: 4,
+                                child: widget.isHost && _gameStatus != 'archived'
+                                  ? _buildHostDashboard()
+                                  : _buildPlayerDashboard(),
+                              ),
+                           ],
+                        );
+                      } else {
+                        return Column(
+                           children: [
+                             // Top Section: Video
+                             Expanded(
+                               flex: 5,
+                               child: Container(
+                                 color: Colors.black87,
+                                 child: Stack(
+                                   children: [
+                                     _isVideoActive 
+                                       ? _buildZoomPanel() 
+                                       : _buildVideoPlaceholder(),
+                                   ]
+                                 )
+                               ),
+                             ),
+                             const Divider(height: 1, thickness: 1, color: Colors.grey),
+                             // Bottom Section: Dashboard
+                             Expanded(
+                               flex: 5,
+                               child: widget.isHost && _gameStatus != 'archived'
+                                 ? _buildHostDashboard()
+                                 : _buildPlayerDashboard(),
+                             ),
+                           ],
+                         );
+                      }
+                   }
+               ),
            )
         )
       );
