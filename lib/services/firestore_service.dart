@@ -426,6 +426,21 @@ class FirestoreService {
       });
   }
 
+  Future<void> removeParticipant(String gameId, String userId) async {
+    // 1. Remove from sub-collection
+    await _db
+        .collection('games')
+        .doc(gameId)
+        .collection('participants')
+        .doc(userId)
+        .delete();
+
+    // 2. Remove from participants array in main doc (if used for quick access)
+    await _db.collection('games').doc(gameId).update({
+      'participants': FieldValue.arrayRemove([userId])
+    });
+  }
+
   Stream<DocumentSnapshot<Map<String, dynamic>>> getGameStream(String gameId) {
       return _db.collection('games').doc(gameId).snapshots();
   }
@@ -785,10 +800,7 @@ class FirestoreService {
     await _db.collection('games').doc(gameId).collection('participants').doc(userId).delete();
   }
 
-  // Alias for clarity when removing an already active player
-  Future<void> removeParticipant(String gameId, String userId) async {
-     return rejectParticipant(gameId, userId);
-  }
+
   
   Future<void> updateParticipantRole(String gameId, int? roleId, [String? targetUserId]) async {
     final user = _auth.currentUser;

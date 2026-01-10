@@ -572,8 +572,11 @@ class _ActiveGameScreenState extends State<ActiveGameScreen> {
 
         // Controls (Consolidated Bottom Right - Single Row)
         Positioned(
-          bottom: 10, right: 10, 
-          child: Row(
+          bottom: 0, right: 0, 
+          child: SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.all(10),
+              child: Row(
              mainAxisSize: MainAxisSize.min,
              children: [
                 // 0. Grid Toggle (New)
@@ -647,6 +650,8 @@ class _ActiveGameScreenState extends State<ActiveGameScreen> {
              ],
           ),
         ),
+      ),
+    ),
         
         // Remove old Bottom Right Positioned block (It's now merged above)
       ],
@@ -1767,7 +1772,7 @@ class _VirtualPlayerDialogState extends State<_VirtualPlayerDialog> {
            title: const Text("Добавить Виртуального Игрока", style: TextStyle(color: Colors.white)),
            content: SizedBox(
                width: 400,
-               height: 600, // Increased height for number picker
+               height: MediaQuery.of(context).size.height * 0.9, // Responsive height for mobile
                child: Column(
                    children: [
                        const TabBar(
