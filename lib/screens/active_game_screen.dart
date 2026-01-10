@@ -541,43 +541,53 @@ class _ActiveGameScreenState extends State<ActiveGameScreen> {
              children: [
                 // 1. Situation Controls (Left side of the row)
                 if (hasControl) ...[
-                   FloatingActionButton(
-                      mini: true,
-                      heroTag: 'refresh_sit',
-                      backgroundColor: Colors.blueGrey,
-                      child: const Icon(Icons.refresh, color: Colors.white),
-                      onPressed: _randomizeSituation,
+                   SizedBox(
+                     width: 56, height: 56, // Explicit large size
+                     child: FloatingActionButton(
+                        heroTag: 'refresh_sit',
+                        backgroundColor: Colors.blueGrey,
+                        child: const Icon(Icons.refresh, color: Colors.white, size: 32), // Larger icon
+                        onPressed: _randomizeSituation,
+                     ),
                    ),
-                   const SizedBox(width: 8),
-                   FloatingActionButton(
-                      mini: false, // Bigger button
-                      heroTag: 'show_sit',
-                      backgroundColor: isVisible ? Colors.green : Colors.orange,
-                      onPressed: () => _firestoreService.setSituationVisible(_targetGameId, !isVisible),
-                      tooltip: isVisible ? "Скрыть ситуацию" : "Показать ситуацию",
-                      child: Icon(isVisible ? Icons.visibility_off : Icons.visibility),
+                   const SizedBox(width: 12),
+                   SizedBox(
+                     width: 64, height: 64, // Even larger (2x mini is ~40 -> 80, but 64 is good for FAB default)
+                     child: FloatingActionButton(
+                        heroTag: 'show_sit',
+                        backgroundColor: isVisible ? Colors.green : Colors.orange,
+                        onPressed: () => _firestoreService.setSituationVisible(_targetGameId, !isVisible),
+                        tooltip: isVisible ? "Скрыть ситуацию" : "Показать ситуацию",
+                        child: Icon(isVisible ? Icons.visibility_off : Icons.visibility, size: 36),
+                     ),
                    ),
-                   const SizedBox(width: 16), // Space between situation and host/call controls
+                   const SizedBox(width: 24), // Space between situation and host/call controls
                 ],
                 // 2. Host Settings
                 if (widget.isHost) ...[
-                   IconButton(
-                      style: IconButton.styleFrom(backgroundColor: Colors.black54),
-                      icon: const Icon(Icons.settings_accessibility, color: Colors.blueAccent),
-                      tooltip: "Назначить управление ситуацией",
-                      onPressed: _showSituationControllerDialog,
+                   Container(
+                     decoration: const BoxDecoration(shape: BoxShape.circle, color: Colors.black54),
+                     child: IconButton(
+                        iconSize: 36, // Larger icon
+                        icon: const Icon(Icons.settings_accessibility, color: Colors.blueAccent),
+                        tooltip: "Назначить управление ситуацией",
+                        onPressed: _showSituationControllerDialog,
+                     ),
                    ),
-                   const SizedBox(width: 8),
+                   const SizedBox(width: 12),
                 ],
 
                 // 3. End Call
-                FloatingActionButton(
-                   mini: true, backgroundColor: Colors.red,
-                   child: const Icon(Icons.call_end),
-                   onPressed: () {
-                      zoom_js.leaveZoom();
-                      setState(() => _isVideoActive = false);
-                   },
+                SizedBox(
+                  width: 56, height: 56,
+                  child: FloatingActionButton(
+                     backgroundColor: Colors.red,
+                     child: const Icon(Icons.call_end, size: 32),
+                     onPressed: () {
+                        zoom_js.leaveZoom();
+                        setState(() => _isVideoActive = false);
+                     },
+                  ),
                 ),
              ],
           ),
@@ -1952,37 +1962,57 @@ class _VirtualPlayerDialogState extends State<_VirtualPlayerDialog> {
        );
      }
      
-     // Root Level: Folders + "All Items" (Implicit root)
-     return FutureBuilder<List<String>>(
-        future: DatabaseService().getFolders(),
-        builder: (context, snapshot) {
-           if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
-           
-           final folders = snapshot.data!;
-           
-           return ListView(
-              children: [
-                 ListTile(
-                    leading: const Icon(Icons.folder_shared, color: Colors.grey),
-                    title: const Text("Без папки", style: TextStyle(color: Colors.white)),
-                    trailing: const Icon(Icons.chevron_right, color: Colors.white54),
-                    onTap: () => setState(() => _currentFolder = ''), 
-                 ),
-                 const Divider(color: Colors.white10),
-                 
-                  ...folders.map((f) => ListTile(
-                    leading: const Icon(Icons.folder, color: Colors.orange),
-                    title: Text(f, style: const TextStyle(color: Colors.white)),
-                    trailing: const Icon(Icons.chevron_right, color: Colors.white54),
-                    onTap: () {
-                       debugPrint("Selected folder: $f");
-                       setState(() => _currentFolder = f);
-                    },
-                 ))
-              ],
-           );
-        }
-     );
+      // Root Level: Folders + "All Items" (Implicit root)
+      return Column(
+        children: [
+           // Warning for mobile users about local storage
+           if (kIsWeb)
+             Container(
+               padding: const EdgeInsets.all(8),
+               color: Colors.amber.withOpacity(0.2),
+               child: const Row(
+                 children: [
+                   Icon(Icons.info_outline, color: Colors.amber, size: 16),
+                   SizedBox(width: 8),
+                   Expanded(child: Text("История хранится только в этом браузере.", style: TextStyle(color: Colors.amber, fontSize: 10))),
+                 ],
+               ),
+             ),
+
+           Expanded(
+             child: FutureBuilder<List<String>>(
+                future: DatabaseService().getFolders(),
+                builder: (context, snapshot) {
+                   if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
+                   
+                   final folders = snapshot.data!;
+                   
+                   return ListView(
+                      children: [
+                         ListTile(
+                            leading: const Icon(Icons.folder_shared, color: Colors.grey),
+                            title: const Text("Без папки", style: TextStyle(color: Colors.white)),
+                            trailing: const Icon(Icons.chevron_right, color: Colors.white54),
+                            onTap: () => setState(() => _currentFolder = ''), 
+                         ),
+                         const Divider(color: Colors.white10),
+                         
+                          ...folders.map((f) => ListTile(
+                            leading: const Icon(Icons.folder, color: Colors.orange),
+                            title: Text(f, style: const TextStyle(color: Colors.white)),
+                            trailing: const Icon(Icons.chevron_right, color: Colors.white54),
+                            onTap: () {
+                               debugPrint("Selected folder: $f");
+                               setState(() => _currentFolder = f);
+                            },
+                         ))
+                      ],
+                   );
+                }
+             ),
+           ),
+        ],
+      );
   }
 }
 
