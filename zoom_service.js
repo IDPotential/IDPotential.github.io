@@ -1,6 +1,8 @@
 
 
 let client = null;
+let isGridMode = false;
+let gridUpdateInterval = null;
 
 async function initZoom(meetingNumber, password, userName, sdkKey, sdkSecret, customization = {}) {
     // Ensure strict cleanup before trying to initialize a new session
@@ -375,5 +377,197 @@ async function leaveZoom() {
     // We will rely on innerHTML = '' hitting the root.
 }
 
+
+// --- GRID VIEW IMPLEMENTATION ---
+
+async function toggleZoomGrid(enable) {
+    if (!client) return;
+    isGridMode = enable;
+    console.log("Toggling Grid Mode:", enable);
+
+    const defaultContainer = findZoomContainer(); // The platform view
+    // We need to find the internal ZMMTG root which usually takes over the container
+    // or just hide the specific ZK/react roots if possible. 
+    // Usually 'zmmtg-root' is the ID.
+    const zoomRoot = document.getElementById('zmmtg-root') || defaultContainer.firstElementChild;
+    const gridContainer = getOrCreateGridContainer();
+
+    if (enable) {
+        if (zoomRoot) zoomRoot.style.visibility = 'hidden'; // Don't display:none or it might kill audio
+        gridContainer.style.display = 'grid';
+        await renderGrid();
+
+        // Start polling/listener for updates
+        if (!gridUpdateInterval) {
+            gridUpdateInterval = setInterval(renderGrid, 5000); // Fallback poll
+        }
+
+        // Attach listeners if not already
+        try {
+            client.on('user-added', renderGrid);
+            client.on('user-removed', renderGrid);
+            client.on('user-updated', renderGrid);
+        } catch (e) { }
+
+    } else {
+        if (zoomRoot) zoomRoot.style.visibility = 'visible';
+        gridContainer.style.display = 'none';
+        stopGridRendering();
+
+        if (gridUpdateInterval) clearInterval(gridUpdateInterval);
+        gridUpdateInterval = null;
+
+        try {
+            client.off('user-added', renderGrid);
+            client.off('user-removed', renderGrid);
+            client.off('user-updated', renderGrid);
+        } catch (e) { }
+    }
+}
+
+function getOrCreateGridContainer() {
+    let el = document.getElementById('custom-grid-container');
+    if (!el) {
+        el = document.createElement('div');
+        el.id = 'custom-grid-container';
+        el.style.position = 'fixed';
+        el.style.top = '0';
+        el.style.left = '0';
+        el.style.width = '100vw'; // Use full viewport over the iframe/view
+        el.style.height = '100vh';
+        el.style.zIndex = '99999'; // On top of everything
+        el.style.backgroundColor = '#000';
+        el.style.display = 'none';
+
+        // CSS Grid Layout
+        el.style.gridTemplateColumns = 'repeat(auto-fit, minmax(300px, 1fr))';
+        el.style.gap = '10px';
+        el.style.padding = '10px';
+        el.style.boxSizing = 'border-box';
+        el.style.overflowY = 'auto'; // Scrollable
+
+        document.body.appendChild(el);
+    }
+    return el;
+}
+
+async function renderGrid() {
+    if (!isGridMode || !client) return;
+
+    try {
+        // Attempt to get participants
+        const participants = client.getAllUser();
+        const grid = getOrCreateGridContainer();
+
+        // Check if we have MediaStream access
+        // Note: ZoomMtgEmbedded might NOT expose 'getMediaStream' unless using Video SDK or specific version.
+        // If not available, we can't render video manually -> Show names only/Fallback.
+        let stream = null;
+        try { stream = client.getMediaStream(); } catch (e) { console.warn("No MediaStream:", e); }
+
+        if (!stream) {
+            // Fallback: Just show list of names if video not available
+            grid.innerHTML = '<h2 style="color:white; width:100%; text-align:center;">Grid View (Video not supported in this SDK mode)</h2>';
+            participants.forEach(p => {
+                const card = document.createElement('div');
+                card.style.background = '#333';
+                card.style.color = '#fff';
+                card.style.padding = '20px';
+                card.innerText = p.userName;
+                grid.appendChild(card);
+            });
+            return;
+        }
+
+        // Render Video Logic
+        // Diffing usually better, but for MVP re-render is okay if not too frequent
+        // We will TRY to keep existing canvases? No, simple re-render for now.
+        // STOP previous rendering first?
+
+        // Clearing innerHTML kills canvases. 
+        // We should manage nodes by ID.
+
+        const existingIds = Array.from(grid.children).map(c => c.dataset.userId);
+        const currentIds = participants.map(p => '' + p.userId);
+
+        // Remove old
+        existingIds.forEach(id => {
+            if (!currentIds.includes(id)) {
+                const child = grid.querySelector(`[data-user-id="${id}"]`);
+                if (child) {
+                    try { stream.stopRenderVideo(child.querySelector('canvas')); } catch (e) { }
+                    child.remove();
+                }
+            }
+        });
+
+        // Add new / Update
+        for (const p of participants) {
+            let card = grid.querySelector(`[data-user-id="${p.userId}"]`);
+            if (!card) {
+                card = document.createElement('div');
+                card.dataset.userId = p.userId;
+                card.style.position = 'relative';
+                card.style.background = '#222';
+                card.style.aspectRatio = '16/9';
+                card.style.overflow = 'hidden';
+
+                // Canvas for video
+                const canvas = document.createElement('canvas');
+                canvas.className = 'video-canvas';
+                canvas.style.width = '100%';
+                canvas.style.height = '100%';
+
+                // Label
+                const label = document.createElement('div');
+                label.innerText = p.userName;
+                label.style.position = 'absolute';
+                label.style.bottom = '5px';
+                label.style.left = '5px';
+                label.style.color = 'white';
+                label.style.background = 'rgba(0,0,0,0.5)';
+                label.style.padding = '2px 5px';
+                label.style.fontSize = '12px';
+
+                card.appendChild(canvas);
+                card.appendChild(label);
+                grid.appendChild(card);
+
+                // Render Video
+                try {
+                    // userId, canvas, width, height, x, y, quality
+                    await stream.renderVideo(canvas, p.userId, 640, 360, 0, 0, 2);
+                } catch (e) {
+                    console.warn('Failed to render video for', p.userName, e);
+                }
+            } else {
+                // Update label if needed
+                const l = card.querySelector('div');
+                if (l && l.innerText !== p.userName) l.innerText = p.userName;
+            }
+        }
+
+    } catch (error) {
+        console.error("Render Grid Error:", error);
+    }
+}
+
+function stopGridRendering() {
+    const grid = document.getElementById('custom-grid-container');
+    if (grid) {
+        // Stop all canvases
+        if (client) {
+            try {
+                const stream = client.getMediaStream();
+                const canvases = grid.querySelectorAll('canvas');
+                canvases.forEach(c => stream.stopRenderVideo(c));
+            } catch (e) { }
+        }
+        grid.innerHTML = ''; // efficient clear
+    }
+}
+
 window.initZoom = initZoom;
 window.leaveZoom = leaveZoom;
+window.toggleZoomGrid = toggleZoomGrid;
+
