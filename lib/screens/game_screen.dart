@@ -1458,7 +1458,14 @@ ToggleButtons(
            ),
            Row(
               mainAxisAlignment: MainAxisAlignment.center,
-              children: cardNums.map((num) => Container(
+              children: cardNums.map((num) => GestureDetector(
+                 onTap: () {
+                    showDialog(
+                       context: context,
+                       builder: (ctx) => RoleInfoDialog(roleNumber: num),
+                    );
+                 },
+                 child: Container(
                  width: 55,
                  height: 78,
                  margin: const EdgeInsets.symmetric(horizontal: 4),
@@ -1490,7 +1497,7 @@ ToggleButtons(
                        ),
                     ],
                  ),
-              )).toList(),
+              ))).toList(),
            ),
         ],
      );

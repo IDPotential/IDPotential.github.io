@@ -503,24 +503,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                        
                        if (numbers.isEmpty) return const SizedBox.shrink();
 
-                       return Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                             const Text("Моя матрица", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                             const SizedBox(height: 10),
-                             UserMatrixWidget(
-                                matrix: numbers,
-                                isInteractive: true,
-                                onRoleTap: (role) {
-                                   showDialog(
-                                      context: context,
-                                      builder: (ctx) => RoleInfoDialog(roleNumber: role),
-                                   );
-                                },
-                             ),
-                             const SizedBox(height: 20),
-                          ],
-                       );
+                       if (numbers.isEmpty) return const SizedBox.shrink();
+                       return const SizedBox.shrink(); // Matrix removed by request
                    }
                 ),
                 
