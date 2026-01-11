@@ -1749,6 +1749,10 @@ class _VirtualPlayerDialogState extends State<_VirtualPlayerDialog> {
   int? _selectedNumber; // 1-10
 
   // History Tab
+  final FirestoreService _firestoreService = FirestoreService();
+  bool _isLoadingHistory = false;
+  List<Calculation> _allCalculations = [];
+  List<String> _folders = [];
   String? _currentFolder;
 
   @override
@@ -1761,6 +1765,39 @@ class _VirtualPlayerDialogState extends State<_VirtualPlayerDialog> {
         break;
       }
     }
+    _loadHistory();
+  }
+
+  Future<void> _loadHistory() async {
+    setState(() => _isLoadingHistory = true);
+    try {
+      final rawDocs = await _firestoreService.getCalculationsRaw();
+      final List<Calculation> loadedCalcs = [];
+      final Set<String> folderSet = {};
+      
+      for (var doc in rawDocs) {
+        try {
+          final calc = Calculation.fromMap(doc);
+          loadedCalcs.add(calc); // No firebaseId needed for just reading values
+          if (calc.group != null && calc.group!.isNotEmpty) {
+            folderSet.add(calc.group!);
+          }
+        } catch (e) {
+          debugPrint("Error parsing doc: $e");
+        }
+      }
+      
+      if (mounted) {
+        setState(() {
+          _allCalculations = loadedCalcs;
+          _folders = folderSet.toList()..sort();
+        });
+      }
+    } catch (e) {
+      debugPrint("Error loading history: $e");
+    } finally {
+      if (mounted) setState(() => _isLoadingHistory = false);
+    }
   }
 
   @override
@@ -1772,7 +1809,7 @@ class _VirtualPlayerDialogState extends State<_VirtualPlayerDialog> {
            title: const Text("Добавить Виртуального Игрока", style: TextStyle(color: Colors.white)),
            content: SizedBox(
                width: 400,
-               height: MediaQuery.of(context).size.height * 0.9, // Responsive height for mobile
+               height: MediaQuery.of(context).size.height * 0.9, 
                child: Column(
                    children: [
                        const TabBar(
@@ -1790,7 +1827,7 @@ class _VirtualPlayerDialogState extends State<_VirtualPlayerDialog> {
                            )
                        ),
                        const Divider(color: Colors.white24),
-                       // Number Picker Section (Always visible)
+                       // Number Picker
                        const Padding(
                          padding: EdgeInsets.only(top: 8, bottom: 4),
                          child: Text("Выберите номер игрока:", style: TextStyle(color: Colors.white70)),
@@ -1930,16 +1967,8 @@ class _VirtualPlayerDialogState extends State<_VirtualPlayerDialog> {
                       
                       try {
                         numbers = CalculatorService.calculateDiagnostic(_dateCtrl.text, _nameCtrl.text, _gender);
-                        final calc = Calculation(
-                           name: _nameCtrl.text,
-                           birthDate: _dateCtrl.text,
-                           gender: _gender,
-                           numbers: numbers,
-                           createdAt: DateTime.now(),
-                           group: null
-                        );
-                        
-                        await DatabaseService().insertCalculation(calc);
+                        // Optional: Save to Firestore if desired, but user focused on loading FROM history.
+                        // We will allow adding strictly as virtual player for this game session.
                       } catch (e) {
                         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Ошибка расчета: $e")));
                         return;
@@ -1962,117 +1991,113 @@ class _VirtualPlayerDialogState extends State<_VirtualPlayerDialog> {
   }
 
   Widget _buildHistoryTab() {
-     // If folder selected -> Show Items
-     // If no folder -> Show Folders
-     
-     if (_currentFolder != null) {
-       return Column(
-          children: [
-             Padding(
-               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-               child: Row(
-                  children: [
-                     IconButton(
-                        icon: const Icon(Icons.arrow_back, color: Colors.white),
-                        onPressed: () => setState(() => _currentFolder = null),
-                     ),
-                     const SizedBox(width: 8),
-                     Icon(Icons.folder_open, color: Colors.orange[300]),
-                     const SizedBox(width: 8),
-                     Expanded(child: Text(_currentFolder!, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16))),
-                  ],
-               ),
-             ),
-             const Divider(height: 1, color: Colors.white24),
-             Expanded(
-                child: FutureBuilder<List<Calculation>>(
-                   future: DatabaseService().getCalculations(group: _currentFolder),
-                   builder: (context, snapshot) {
-                      if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
-                      final list = snapshot.data!;
-                      if (list.isEmpty) return const Center(child: Text("Папка пуста", style: TextStyle(color: Colors.white54)));
-                      
-                      return ListView.builder(
-                         itemCount: list.length,
-                         itemBuilder: (context, index) {
-                            final c = list[index];
-                            return ListTile(
-                               leading: const Icon(Icons.person, color: Colors.white70),
-                               title: Text(c.name, style: const TextStyle(color: Colors.white)),
-                               subtitle: Text(c.birthDate, style: const TextStyle(color: Colors.white38)),
-                               trailing: const Icon(Icons.add_circle_outline, color: Colors.greenAccent),
-                               onTap: () {
-                                  if (_selectedNumber == null) {
-                                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Выберите номер игрока!")));
-                                    return;
-                                  }
-                                  Navigator.pop(context, {
-                                    'name': c.name, 
-                                    'numbers': c.numbers,
-                                    'playerNumber': _selectedNumber
-                                  });
-                               },
-                            );
-                         }
-                      );
-                   }
-                )
-             )
-          ],
-       );
+     if (_isLoadingHistory) {
+         return const Center(child: CircularProgressIndicator());
      }
-     
-      // Root Level: Folders + "All Items" (Implicit root)
-      return Column(
-        children: [
-           // Warning for mobile users about local storage
-           if (kIsWeb)
-             Container(
-               padding: const EdgeInsets.all(8),
-               color: Colors.amber.withOpacity(0.2),
-               child: const Row(
-                 children: [
-                   Icon(Icons.info_outline, color: Colors.amber, size: 16),
-                   SizedBox(width: 8),
-                   Expanded(child: Text("История хранится только в этом браузере.", style: TextStyle(color: Colors.amber, fontSize: 10))),
-                 ],
-               ),
-             ),
+  
+     // Filtered list based on Current Folder
+     List<Calculation> currentList = [];
+     if (_currentFolder != null) {
+         currentList = _allCalculations.where((c) => c.group == _currentFolder).toList();
+     } else {
+         // In root, we show items with NO group
+         currentList = _allCalculations.where((c) => c.group == null || c.group!.isEmpty).toList();
+     }
 
-           Expanded(
-             child: FutureBuilder<List<String>>(
-                future: DatabaseService().getFolders(),
-                builder: (context, snapshot) {
-                   if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
-                   
-                   final folders = snapshot.data!;
-                   
-                   return ListView(
-                      children: [
-                         ListTile(
-                            leading: const Icon(Icons.folder_shared, color: Colors.grey),
-                            title: const Text("Без папки", style: TextStyle(color: Colors.white)),
-                            trailing: const Icon(Icons.chevron_right, color: Colors.white54),
-                            onTap: () => setState(() => _currentFolder = ''), 
-                         ),
-                         const Divider(color: Colors.white10),
-                         
-                          ...folders.map((f) => ListTile(
-                            leading: const Icon(Icons.folder, color: Colors.orange),
-                            title: Text(f, style: const TextStyle(color: Colors.white)),
-                            trailing: const Icon(Icons.chevron_right, color: Colors.white54),
-                            onTap: () {
-                               debugPrint("Selected folder: $f");
-                               setState(() => _currentFolder = f);
-                            },
-                         ))
-                      ],
-                   );
-                }
-             ),
+     // If folder selected -> Show Header + Items
+     // If no folder -> Show Folders + Root Items
+     
+     return Column(
+        children: [
+           // Header / Breadcrumb
+           Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+              color: Colors.white10,
+              child: Row(
+                  children: [
+                     if (_currentFolder != null) ...[
+                        IconButton(
+                           icon: const Icon(Icons.arrow_back, color: Colors.white, size: 20),
+                           onPressed: () => setState(() => _currentFolder = null),
+                           padding: EdgeInsets.zero,
+                           constraints: const BoxConstraints(),
+                        ),
+                        const SizedBox(width: 8),
+                        Icon(Icons.folder_open, color: Colors.orange[300], size: 20),
+                        const SizedBox(width: 8),
+                        Expanded(child: Text(_currentFolder!, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold))),
+                     ] else ...[
+                        const Icon(Icons.history, color: Colors.grey, size: 20),
+                        const SizedBox(width: 8),
+                        const Expanded(child: Text("История диагностик", style: TextStyle(color: Colors.white70))),
+                     ],
+                     
+                     IconButton(
+                       icon: const Icon(Icons.refresh, color: Colors.white54, size: 20),
+                       onPressed: _loadHistory
+                     )
+                  ],
+              ),
            ),
+           
+           Expanded(
+              child: ListView(
+                 padding: const EdgeInsets.all(8),
+                 children: [
+                    // FOLDERS (Only at root)
+                    if (_currentFolder == null)
+                       ..._folders.map((f) => Card(
+                          color: Colors.white10,
+                          margin: const EdgeInsets.only(bottom: 4),
+                          child: ListTile(
+                             dense: true,
+                             leading: const Icon(Icons.folder, color: Colors.orange),
+                             title: Text(f, style: const TextStyle(color: Colors.white)),
+                             trailing: const Icon(Icons.chevron_right, color: Colors.white54),
+                             onTap: () => setState(() => _currentFolder = f),
+                          ),
+                       )),
+                    
+                    if (_currentFolder == null && _folders.isNotEmpty)
+                        const Divider(color: Colors.white24, height: 16),
+
+                    // ITEMS
+                    if (currentList.isEmpty)
+                        const Padding(
+                           padding: EdgeInsets.all(16), 
+                           child: Center(child: Text("Пусто", style: TextStyle(color: Colors.white30)))
+                        ),
+
+                    ...currentList.map((c) => Card(
+                       color: Colors.white12,
+                       margin: const EdgeInsets.only(bottom: 4),
+                       child: ListTile(
+                          dense: true,
+                          leading: Icon(
+                              (c.gender=='Ж' || c.gender=='F') ? Icons.female : Icons.male, 
+                              color: (c.gender=='Ж' || c.gender=='F') ? Colors.pinkAccent : Colors.blueAccent
+                          ),
+                          title: Text(c.name, style: const TextStyle(color: Colors.white)),
+                          subtitle: Text(c.birthDate, style: const TextStyle(color: Colors.white38)),
+                          trailing: const Icon(Icons.add_circle_outline, color: Colors.greenAccent),
+                          onTap: () {
+                             if (_selectedNumber == null) {
+                               ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Выберите номер игрока!")));
+                               return;
+                             }
+                             Navigator.pop(context, {
+                               'name': c.name, 
+                               'numbers': c.numbers,
+                               'playerNumber': _selectedNumber
+                             });
+                          },
+                       ),
+                    ))
+                 ],
+              ),
+           )
         ],
-      );
+     );
   }
 }
 
