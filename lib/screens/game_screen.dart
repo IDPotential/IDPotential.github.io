@@ -1132,9 +1132,14 @@ ToggleButtons(
                                                             TextButton(onPressed: ()=>Navigator.pop(ctx), child: const Text("Отмена")),
                                                             ElevatedButton(
                                                                style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-                                                               onPressed: () {
-                                                                  Navigator.pop(ctx);
-                                                                  _firestoreService.removeParticipant(_targetGameId!, pUid);
+                                                               onPressed: () async {
+                                                                  try {
+                                                                     await _firestoreService.removeParticipant(_targetGameId!, pUid);
+                                                                     if (ctx.mounted) Navigator.pop(ctx);
+                                                                  } catch (e) {
+                                                                     if (ctx.mounted) Navigator.pop(ctx);
+                                                                     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Ошибка: $e")));
+                                                                  }
                                                                }, 
                                                                child: const Text("Удалить")
                                                             ),

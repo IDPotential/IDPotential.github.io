@@ -1246,9 +1246,14 @@ class _ActiveGameScreenState extends State<ActiveGameScreen> {
                ),
                ElevatedButton(
                   style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-                  onPressed: () {
-                     _firestoreService.removeParticipant(_targetGameId, userId);
-                     Navigator.pop(ctx);
+                  onPressed: () async {
+                     try {
+                        await _firestoreService.removeParticipant(_targetGameId, userId);
+                        if (ctx.mounted) Navigator.pop(ctx);
+                     } catch (e) {
+                        if (ctx.mounted) Navigator.pop(ctx);
+                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Ошибка: $e")));
+                     }
                   },
                   child: const Text("Удалить")
                )

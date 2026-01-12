@@ -427,18 +427,18 @@ class FirestoreService {
   }
 
   Future<void> removeParticipant(String gameId, String userId) async {
-    // 1. Remove from sub-collection
-    await _db
-        .collection('games')
-        .doc(gameId)
-        .collection('participants')
-        .doc(userId)
-        .delete();
-
-    // 2. Remove from participants array in main doc (if used for quick access)
-    await _db.collection('games').doc(gameId).update({
-      'participants': FieldValue.arrayRemove([userId])
-    });
+    try {
+      // Remove from sub-collection
+      await _db
+          .collection('games')
+          .doc(gameId)
+          .collection('participants')
+          .doc(userId)
+          .delete();
+    } catch (e) {
+      debugPrint("Error removing participant: $e");
+      rethrow;
+    }
   }
 
   Stream<DocumentSnapshot<Map<String, dynamic>>> getGameStream(String gameId) {
