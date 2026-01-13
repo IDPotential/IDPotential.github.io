@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
 import '../services/firestore_service.dart';
 import 'game_screen.dart';
+import 'game_report_screen.dart';
 
 class GamesListScreen extends StatefulWidget {
   const GamesListScreen({super.key});
@@ -391,10 +392,20 @@ class _GamesListScreenState extends State<GamesListScreen> {
                                    );
                                 } else if (value == 'delete') {
                                    _deleteGame(docId, game['title'] ?? '');
+                                } else if (value == 'report') {
+                                   Navigator.push(
+                                      context, 
+                                      MaterialPageRoute(builder: (context) => GameReportScreen(
+                                         gameId: docId, 
+                                         gameTitle: game['title'] ?? 'Game',
+                                         gameDate: date,
+                                      ))
+                                   );
                                 }
                              },
                              itemBuilder: (context) => [
                                 const PopupMenuItem(value: 'edit', child: Text("Изменить")),
+                                const PopupMenuItem(value: 'report', child: Text("Отчет")),
                                 const PopupMenuItem(value: 'delete', child: Text("Удалить", style: TextStyle(color: Colors.red))),
                              ],
                           ),

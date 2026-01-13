@@ -294,7 +294,7 @@ class FirestoreService {
       final gameDoc = await gameRef.get();
       final gameData = gameDoc.data() ?? {};
       final String situationText = (gameData['situation'] as Map?)?['text'] ?? "Контекст не сохранен";
-      final int currentRoundCount = gameData['roundCount'] ?? 0;
+      final int currentRoundCount = (gameData['roundCount'] ?? 0) + 1; // Increment for new round
       final Map<String, dynamic> currentStats = Map<String, dynamic>.from(gameData['stats'] ?? {});
 
       final participants = await gameRef.collection('participants').get();
@@ -310,7 +310,9 @@ class FirestoreService {
           }
       }
 
-      // 2. Update cumulative stats & Save History
+      // 2. Prepare Round Actions Data
+      List<Map<String, dynamic>> actions = [];
+
       roundVotes.forEach((uid, voteCount) {
           currentStats[uid] = (currentStats[uid] ?? 0) + voteCount;
       });
@@ -321,17 +323,33 @@ class FirestoreService {
           final receivedVotes = roundVotes[uid] ?? 0;
           final role = data['selectedRole'];
           final answer = data['currentAnswer'];
+          final votedFor = data['votedFor'];
+          final name = data['name'] ?? 'Unknown';
+          final pNum = data['playerNumber'];
 
-          // Save History for User
+          // Add to centralized actions list
+          if (role != null || answer != null || votedFor != null) {
+              actions.add({
+                  'userId': uid,
+                  'name': name,
+                  'playerNumber': pNum,
+                  'role': role,
+                  'answer': answer,
+                  'votedFor': votedFor,
+                  'receivedVotes': receivedVotes
+              });
+          }
+
+          // Save History for User (Legacy individual history)
           if (role != null || answer != null) {
              final historyRef = _db.collection('users').doc(uid).collection('game_history').doc(gameId).collection('rounds').doc();
              batch.set(historyRef, {
                  'situation': situationText,
-                 'answer': answer, // Check null in UI
+                 'answer': answer, 
                  'role': role,
                  'votes': receivedVotes,
                  'timestamp': FieldValue.serverTimestamp(),
-                 'roundIndex': currentRoundCount + 1
+                 'roundIndex': currentRoundCount
              });
           }
 
@@ -343,12 +361,23 @@ class FirestoreService {
               'currentAnswer': FieldValue.delete(),
           });
       }
+      
+      // 3. Save Centralized Round Document
+      if (actions.isNotEmpty) {
+         final roundRef = gameRef.collection('rounds').doc(currentRoundCount.toString());
+         batch.set(roundRef, {
+             'roundIndex': currentRoundCount,
+             'situation': situationText,
+             'actions': actions,
+             'timestamp': FieldValue.serverTimestamp(),
+         });
+      }
 
-      // 3. Update Game State
+      // 4. Update Game State
       batch.update(gameRef, {
           'stats': currentStats,
           'stage': 'selection',
-          'roundCount': FieldValue.increment(1) 
+          'roundCount': currentRoundCount 
       });
 
       await batch.commit();

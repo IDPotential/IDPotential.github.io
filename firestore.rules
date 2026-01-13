@@ -75,6 +75,22 @@ service cloud.firestore {
       }
     }
     
+    // --- Helper Functions (Game Context) ---
+    
+    // Check if user is the Host of the game
+    function isHost(gameId) {
+       return isAuthenticated() && 
+              get(/databases/$(database)/documents/games/$(gameId)).data.hostId == request.auth.uid;
+    }
+
+    // Check if user is the Controller of the situation
+    function isController(gameId) {
+       // Note: Safely accessing nested fields in rules checks existence implicitly or returns error/false
+       // We check if controllerId matches. 
+       return isAuthenticated() && 
+              get(/databases/$(database)/documents/games/$(gameId)).data.situation.controllerId == request.auth.uid;
+    }
+
     // 2. Games Collection
     match /situation_packs/{packId} {
       allow read: if isAuthenticated();
@@ -83,17 +99,28 @@ service cloud.firestore {
     
     match /games/{gameId} {
       allow read: if isAuthenticated();
-      allow create, delete: if isAdmin();
-      // Allow Host to update (e.g. stage, stats)
-      allow update: if isAdmin() || 
-                    (isAuthenticated() && resource.data.situation.controllerId == request.auth.uid) ||
-                    (isAuthenticated() && resource.data.hostId == request.auth.uid);
+      
+      // Create: Admin or Diagnost (checked via function)
+      allow create: if isAdmin();
+      
+      // Delete: Admin OR Host (Owner of the game)
+      allow delete: if isAdmin() || (isAuthenticated() && resource.data.hostId == request.auth.uid);
+      
+      // Update: Admin OR Host OR Controller
+      // Note: We use resource.data (existing doc) to check Host, because request.resource (new doc) might change it? 
+      // Usually Host doesn't change hostId.
+      allow update: if isAdmin() || isHost(gameId) || isController(gameId);
       
       match /participants/{participantId} {
-        allow create, update, delete: if isOwner(participantId) || isAdmin() ||
-                              // Allow Host/Controller to update participants (e.g. kick, vote)
-                              (isAuthenticated() && get(/databases/$(database)/documents/games/$(gameId)).data.hostId == request.auth.uid);
+        // Read: Any auth user
         allow read: if isAuthenticated(); 
+        
+        // Write (Create/Update/Delete): 
+        // 1. Owner (Player themselves)
+        // 2. Admin
+        // 3. Host (Manage game)
+        // 4. Controller (Manage game flow)
+        allow write: if isOwner(participantId) || isAdmin() || isHost(gameId) || isController(gameId);
       }
       
       match /answers/{answerId} {
