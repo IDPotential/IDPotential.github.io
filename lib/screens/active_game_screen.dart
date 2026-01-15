@@ -474,25 +474,30 @@ class _ActiveGameScreenState extends State<ActiveGameScreen> {
                 child: Container(
                     decoration: const BoxDecoration(
                        image: DecorationImage(
-                          image: AssetImage('assets/images/IDPGMD092025.png'),
+                          image: AssetImage('assets/images/fon.png'),
                           fit: BoxFit.cover,
-                          opacity: 0.1
                        )
                     ),
                     child: Stack(
-                        fit: StackFit.expand,
                         children: [
+                            // Logo Top Left
+                             Positioned(
+                                top: 16, left: 16,
+                                child: Image.asset('assets/images/logo.png', width: 60, fit: BoxFit.contain)
+                             ),
+
                             if (_situation['text'] != null && _situation['text'].toString().isNotEmpty)
                                 Center(
                                     child: Padding(
-                                        padding: const EdgeInsets.symmetric(horizontal: 32),
+                                        padding: const EdgeInsets.symmetric(horizontal: 48), // Match ZoomPanel padding
                                         child: Text(
                                             _situation['text'] ?? "",
                                             textAlign: TextAlign.center,
                                             style: const TextStyle(
-                                                color: Colors.white, 
-                                                fontSize: 24, 
-                                                fontWeight: FontWeight.bold,
+                                                fontFamily: 'DINPro',
+                                                fontWeight: FontWeight.w900,
+                                                fontSize: 24,
+                                                color: Colors.white,
                                                 shadows: [Shadow(color: Colors.black, blurRadius: 4, offset: Offset(1,1))]
                                             ),
                                         ),
@@ -503,12 +508,22 @@ class _ActiveGameScreenState extends State<ActiveGameScreen> {
                                    child: Text("Ситуация не выбрана", style: TextStyle(color: Colors.white24))
                                 ),
                                 
-                             // Show Situation Controls immediately here for Host?
-                             // Or stick to the standard controls overlay. 
-                             // The user mentioned "buttons choice situation and show situation" should remain.
-                             // Those are in _buildZoomPanel -> Positioned blocks. 
-                             // We should replicate those Overlay Controls here.
-                             
+                             // Link Bottom Left
+                             Positioned(
+                                bottom: 16, left: 16,
+                                child: InkWell(
+                                   onTap: () => launchUrl(Uri.parse("https://t.me/id_territory")),
+                                   child: const Text(
+                                      "https://t.me/id_territory",
+                                      style: TextStyle(
+                                         color: Colors.white70, 
+                                         fontSize: 12, 
+                                         decoration: TextDecoration.underline
+                                      ),
+                                   ),
+                                )
+                             ),
+
                              if (widget.isHost) _buildOfflineControlsOverlay(),
                         ],
                     ),
