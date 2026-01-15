@@ -218,9 +218,9 @@ class _ActiveGameScreenState extends State<ActiveGameScreen> {
                                     children: [
                                       _isVideoActive 
                                         ? _buildZoomPanel() 
-                                        : (_isOfflineMode ? _buildOfflineRecorder() : _buildVideoPlaceholder()),
-                                    ]
-                                  )
+                                        : (_isOfflineMode ? _buildOfflineLayout() : _buildVideoPlaceholder()),
+                                      ]
+                                    )
                                 ),
                               ),
                               const VerticalDivider(width: 1, thickness: 1, color: Colors.grey),
@@ -245,7 +245,7 @@ class _ActiveGameScreenState extends State<ActiveGameScreen> {
                                    children: [
                                      _isVideoActive 
                                        ? _buildZoomPanel() 
-                                       : (_isOfflineMode ? _buildOfflineRecorder() : _buildVideoPlaceholder()),
+                                       : (_isOfflineMode ? _buildOfflineLayout() : _buildVideoPlaceholder()),
                                    ]
                                  )
                                ),
@@ -457,11 +457,154 @@ class _ActiveGameScreenState extends State<ActiveGameScreen> {
 
   // --- OFFLINE RECORDER ---
 
-  Widget _buildOfflineRecorder() {
+  // --- OFFLINE LAYOUT ---
+  
+  Widget _buildOfflineLayout() {
+      // 2/3 Situation (if visible/chosen) or Placeholder, 1/3 Recorder
+      // Note: Situation is usually an overlay in Zoom panel, here we put it explicitly.
+      // We reusing _buildZoomPanel's logic for Situation overlay but in a dedicated widget.
+      
+      final bool isSituationVisible = _situation['isVisible'] == true || widget.isHost;
+      
+      return Column(
+        children: [
+            // Top: Situation Display (2/3)
+            Expanded(
+                flex: 2, 
+                child: Container(
+                    decoration: const BoxDecoration(
+                       image: DecorationImage(
+                          image: AssetImage('assets/images/IDPGMD092025.png'),
+                          fit: BoxFit.cover,
+                          opacity: 0.1
+                       )
+                    ),
+                    child: Stack(
+                        fit: StackFit.expand,
+                        children: [
+                            if (_situation['text'] != null && _situation['text'].toString().isNotEmpty)
+                                Center(
+                                    child: Padding(
+                                        padding: const EdgeInsets.symmetric(horizontal: 32),
+                                        child: Text(
+                                            _situation['text'] ?? "",
+                                            textAlign: TextAlign.center,
+                                            style: const TextStyle(
+                                                color: Colors.white, 
+                                                fontSize: 24, 
+                                                fontWeight: FontWeight.bold,
+                                                shadows: [Shadow(color: Colors.black, blurRadius: 4, offset: Offset(1,1))]
+                                            ),
+                                        ),
+                                    )
+                                )
+                            else 
+                                const Center(
+                                   child: Text("Ситуация не выбрана", style: TextStyle(color: Colors.white24))
+                                ),
+                                
+                             // Show Situation Controls immediately here for Host?
+                             // Or stick to the standard controls overlay. 
+                             // The user mentioned "buttons choice situation and show situation" should remain.
+                             // Those are in _buildZoomPanel -> Positioned blocks. 
+                             // We should replicate those Overlay Controls here.
+                             
+                             if (widget.isHost) _buildOfflineControlsOverlay(),
+                        ],
+                    ),
+                )
+            ),
+            
+            const Divider(height: 1, color: Colors.white12),
+            
+            // Bottom: Dictaphone (1/3)
+            Expanded(
+                flex: 1, 
+                child: _buildOfflineRecorder(simple: true)
+            )
+        ],
+      );
+  }
+
+  Widget _buildOfflineControlsOverlay() {
+      return Positioned(
+          bottom: 10, right: 10,
+          child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                   // Choose Situation
+                   FloatingActionButton(
+                      heroTag: 'off_sit_search',
+                      mini: true,
+                      backgroundColor: Colors.blueAccent,
+                      child: const Icon(Icons.search),
+                      onPressed: _showSituationSearchDialog
+                   ),
+                   const SizedBox(width: 8),
+                   // Toggle Visibility
+                   FloatingActionButton(
+                      heroTag: 'off_sit_vis',
+                      mini: true,
+                      backgroundColor: (_situation['isVisible'] == true) ? Colors.orange : Colors.grey,
+                      child: Icon((_situation['isVisible'] == true) ? Icons.visibility : Icons.visibility_off),
+                      onPressed: () {
+                         final newVal = !(_situation['isVisible'] == true);
+                         _firestoreService.setSituationVisible(_targetGameId, newVal);
+                      }
+                   )
+              ],
+          )
+      );
+  }
+
+  Widget _buildOfflineRecorder({bool simple = false}) {
       final String durationStr = _formatDuration(_recordDuration);
       
-      return Center(
-          child: Column(
+      return Container(
+          color: const Color(0xFF1E293B),
+          padding: const EdgeInsets.all(8),
+          child: Center(
+              child: simple 
+               ? Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                      // Status & Timer
+                      Column(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                              Text(
+                                 _isRecording ? "ЗАПИСЬ" : "",
+                                 style: const TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold, fontSize: 10)
+                              ),
+                              Text(durationStr, style: const TextStyle(color: Colors.white, fontSize: 32, fontFamily: 'monospace', fontWeight: FontWeight.bold)),
+                          ],
+                      ),
+                      const SizedBox(width: 24),
+                      // Controls
+                      if (!_isRecording)
+                         ElevatedButton(
+                             style: ElevatedButton.styleFrom(
+                                shape: const CircleBorder(), 
+                                padding: const EdgeInsets.all(16),
+                                backgroundColor: Colors.red
+                             ),
+                             onPressed: _startRecording,
+                             child: const Icon(Icons.mic, size: 24)
+                         )
+                      else 
+                         ElevatedButton(
+                             style: ElevatedButton.styleFrom(
+                                shape: const CircleBorder(), 
+                                padding: const EdgeInsets.all(16),
+                                backgroundColor: Colors.grey[800]
+                             ),
+                             onPressed: _stopAndSaveRecording,
+                             child: const Icon(Icons.stop, size: 24)
+                         )
+                  ],
+               )
+               : Column(
              mainAxisAlignment: MainAxisAlignment.center,
              children: [
                  const Icon(Icons.mic, size: 60, color: Colors.white70),
@@ -519,7 +662,7 @@ class _ActiveGameScreenState extends State<ActiveGameScreen> {
                  ]
              ],
           )
-      );
+      ));
   }
 
   String _formatDuration(int totalSeconds) {

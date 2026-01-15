@@ -127,6 +127,11 @@ service cloud.firestore {
         allow create: if isAuthenticated(); 
         allow read: if isAdmin(); 
       }
+
+      match /rounds/{roundId} {
+         allow read: if isAuthenticated();
+         allow write: if isAdmin() || isHost(gameId) || isController(gameId);
+      }
     }
     
     // 3. Requests Collection
