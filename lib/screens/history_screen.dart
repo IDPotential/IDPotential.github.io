@@ -366,90 +366,165 @@ class _HistoryScreenState extends State<HistoryScreen> {
   }
 
    Widget _buildGamesTab() {
+      // Nested StreamBuilder to fetch both Participant History and Host History
       return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-        stream: _firestoreService.getGameHistoryStream(),
-        builder: (context, snapshot) {
-           if (snapshot.hasError) return const Center(child: Text('Ошибка загрузки'));
-           if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
-           
-           final allDocs = snapshot.data!.docs;
-           // Filter output: "Real" games only for the list
-           final docs = allDocs.where((d) => d.data()['isTraining'] != true).toList();
-           
-           return ListView(
-              padding: const EdgeInsets.all(16),
-              children: [
-                 // TRAININGS HEADER
-                 Card(
-                    color: Colors.purple.withOpacity(0.1),
-                    margin: const EdgeInsets.only(bottom: 16),
-                    child: ListTile(
-                       leading: const CircleAvatar(
-                          backgroundColor: Colors.purple,
-                          child: Icon(Icons.school, color: Colors.white),
-                       ),
-                       title: const Text("Тренировочные игры", style: TextStyle(fontWeight: FontWeight.bold)),
-                       subtitle: const Text("Все ваши тренировки и ответы"),
-                       trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-                       onTap: () {
-                           Navigator.push(context, MaterialPageRoute(builder: (c) => const TrainingHistoryScreen()));
-                       },
-                    ),
-                 ),
+         stream: _firestoreService.getGameHistoryStream(), // Participant Stream
+         builder: (context, partSnapshot) {
+            
+            return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+               stream: _firestoreService.getHostGamesStream(), // Host Stream
+               builder: (context, hostSnapshot) {
+                  if (partSnapshot.hasError || hostSnapshot.hasError) return const Center(child: Text('Ошибка загрузки'));
+                  
+                  if (partSnapshot.connectionState == ConnectionState.waiting && hostSnapshot.connectionState == ConnectionState.waiting) {
+                     return const Center(child: CircularProgressIndicator());
+                  }
 
-                 if (docs.isEmpty) 
-                    const Center(child: Padding(padding: EdgeInsets.all(32), child: Text('Нет завершенных игр с ведущим', style: TextStyle(color: Colors.grey)))),
+                  // 1. Process Participant Games
+                  final partDocs = partSnapshot.data?.docs ?? [];
+                  final List<Map<String, dynamic>> combinedList = [];
 
-                 ...docs.map((doc) {
-                    final data = doc.data();
-                    final title = data['gameTitle'] ?? 'Игра';
-                    final dateRaw = data['date'] ?? '';
-                    
-                    String dateStr = dateRaw.toString();
-                    if (dateStr.contains('T')) dateStr = dateStr.split('T')[0];
-                    if (data['date'] is Timestamp) {
-                       dateStr = (data['date'] as Timestamp).toDate().toString().split(' ')[0];
-                    }
+                  for (var doc in partDocs) {
+                      final data = doc.data();
+                      if (data['isTraining'] == true) continue; // Skip training
 
-                    final score = data['score'] ?? 0;
-                    final rank = data['rank'] ?? 0;
-                    final total = data['totalParticipants'] ?? 0;
+                      String dateStr = (data['date'] ?? '').toString();
+                      DateTime? dateObj;
+                      if (data['date'] is Timestamp) {
+                         dateObj = (data['date'] as Timestamp).toDate();
+                         dateStr = dateObj.toString().split(' ')[0];
+                      } else if (dateStr.contains('T')) {
+                         dateStr = dateStr.split('T')[0];
+                         dateObj = DateTime.tryParse(data['date'] ?? '');
+                      }
 
-                    return Card(
-                       color: Colors.blueAccent.withOpacity(0.05),
-                       margin: const EdgeInsets.only(bottom: 8),
-                       child: ListTile(
-                          leading: CircleAvatar(
-                             backgroundColor: rank == 1 ? Colors.orange : Colors.blueGrey,
-                             child: Text("$rank", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                          ),
-                          title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
-                          subtitle: Text(dateStr),
-                          trailing: Column(
-                             mainAxisAlignment: MainAxisAlignment.center,
-                             crossAxisAlignment: CrossAxisAlignment.end,
-                             children: [
-                                Text("$score кр.", style: const TextStyle(color: Colors.greenAccent, fontWeight: FontWeight.bold, fontSize: 16)),
-                                Text("Место: $rank/$total", style: const TextStyle(fontSize: 10, color: Colors.grey)),
-                             ],
-                          ),
-                          onTap: () {
-                             Navigator.push(
-                                context, 
-                                MaterialPageRoute(builder: (context) => GameDetailsScreen(
-                                   gameId: doc.id,
-                                   gameTitle: title,
-                                   totalScore: score,
-                                   rank: rank,
-                                ))
-                             );
-                          },
-                       ),
-                    );
-                 }).toList()
-              ],
-           );
-        }
+                      combinedList.add({
+                         'type': 'participant',
+                         'docId': doc.id,
+                         'title': data['gameTitle'] ?? 'Игра',
+                         'dateStr': dateStr,
+                         'dateObj': dateObj ?? DateTime(2000),
+                         'score': data['score'] ?? 0,
+                         'rank': data['rank'] ?? 0,
+                         'total': data['totalParticipants'] ?? 0,
+                      });
+                  }
+
+                  // 2. Process Host Games
+                  final hostDocs = hostSnapshot.data?.docs ?? [];
+                  for (var doc in hostDocs) {
+                      final data = doc.data();
+                      if (data['isTraining'] == true) continue; // Filter out training games if any match host criteria
+                      
+                      String dateStr = (data['scheduledAt'] ?? '').toString();
+                      DateTime? dateObj;
+                      if (dateStr.isNotEmpty) {
+                          dateObj = DateTime.tryParse(dateStr);
+                          if (dateObj != null) {
+                             dateStr = "${dateObj.year}-${dateObj.month.toString().padLeft(2,'0')}-${dateObj.day.toString().padLeft(2,'0')}";
+                          }
+                      }
+                      
+                      combinedList.add({
+                         'type': 'host',
+                         'docId': doc.id,
+                         'title': data['title'] ?? 'Игра (Ведущий)',
+                         'dateStr': dateStr,
+                         'dateObj': dateObj ?? DateTime(2000),
+                         'score': 0, // Not applicable
+                         'rank': 'Host', // Marker
+                         'total': 0
+                      });
+                  }
+
+                  // 3. Sort by Date Descending
+                  combinedList.sort((a, b) => (b['dateObj'] as DateTime).compareTo(a['dateObj'] as DateTime));
+
+                  return ListView(
+                     padding: const EdgeInsets.all(16),
+                     children: [
+                        // TRAININGS HEADER
+                        Card(
+                           color: Colors.purple.withOpacity(0.1),
+                           margin: const EdgeInsets.only(bottom: 16),
+                           child: ListTile(
+                              leading: const CircleAvatar(
+                                 backgroundColor: Colors.purple,
+                                 child: Icon(Icons.school, color: Colors.white),
+                              ),
+                              title: const Text("Тренировочные игры", style: TextStyle(fontWeight: FontWeight.bold)),
+                              subtitle: const Text("Все ваши тренировки и ответы"),
+                              trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                              onTap: () {
+                                  Navigator.push(context, MaterialPageRoute(builder: (c) => const TrainingHistoryScreen()));
+                              },
+                           ),
+                        ),
+
+                        if (combinedList.isEmpty) 
+                           const Center(child: Padding(padding: EdgeInsets.all(32), child: Text('Нет завершенных игр', style: TextStyle(color: Colors.grey)))),
+
+                        ...combinedList.map((item) {
+                           final isHost = item['type'] == 'host';
+                           final rank = item['rank'];
+                           
+                           return Card(
+                              color: isHost ? Colors.orangeAccent.withOpacity(0.1) : Colors.blueAccent.withOpacity(0.05),
+                              margin: const EdgeInsets.only(bottom: 8),
+                              child: ListTile(
+                                 leading: CircleAvatar(
+                                    backgroundColor: isHost ? Colors.redAccent : (rank == 1 ? Colors.orange : Colors.blueGrey),
+                                    child: isHost 
+                                      ? const Icon(Icons.star, color: Colors.white) 
+                                      : Text("$rank", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                                 ),
+                                 title: Text(item['title'], style: const TextStyle(fontWeight: FontWeight.bold)),
+                                 subtitle: Text(isHost ? "Ведущий • ${item['dateStr']}" : "${item['dateStr']}"),
+                                 trailing: isHost 
+                                    ? const Icon(Icons.mic, color: Colors.white24)
+                                    : Column(
+                                       mainAxisAlignment: MainAxisAlignment.center,
+                                       crossAxisAlignment: CrossAxisAlignment.end,
+                                       children: [
+                                          Text("${item['score']} кр.", style: const TextStyle(color: Colors.greenAccent, fontWeight: FontWeight.bold, fontSize: 16)),
+                                          Text("Место: $rank/${item['total']}", style: const TextStyle(fontSize: 10, color: Colors.grey)),
+                                       ],
+                                    ),
+                                 onTap: () {
+                                    if (isHost) {
+                                       // Navigate to Host Report? Or Game Details?
+                                       // GameDetailsScreen might need updates to handle host view if it relies on 'my participant doc'
+                                       // For now, let's open it. GameDetailsScreen takes gameId.
+                                       Navigator.push(
+                                          context, 
+                                          MaterialPageRoute(builder: (context) => GameDetailsScreen(
+                                             gameId: item['docId'],
+                                             gameTitle: item['title'],
+                                             totalScore: 0,
+                                             rank: 0,
+                                             isHostView: true, 
+                                          ))
+                                       );
+                                    } else {
+                                       Navigator.push(
+                                          context, 
+                                          MaterialPageRoute(builder: (context) => GameDetailsScreen(
+                                             gameId: item['docId'],
+                                             gameTitle: item['title'],
+                                             totalScore: item['score'],
+                                             rank: item['rank'],
+                                          ))
+                                       );
+                                    }
+                                 },
+                              ),
+                           );
+                        }).toList()
+                     ],
+                  );
+               }
+            );
+         }
       );
    }
 }

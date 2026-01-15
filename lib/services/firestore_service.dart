@@ -889,6 +889,16 @@ class FirestoreService {
         .snapshots();
   }
 
+  Stream<QuerySnapshot<Map<String, dynamic>>> getHostGamesStream() {
+    final user = _auth.currentUser;
+    if (user == null) return const Stream.empty();
+    return _db.collection('games')
+        .where('hostId', isEqualTo: user.uid)
+        .where('status', isEqualTo: 'archived')
+        .orderBy('scheduledAt', descending: true)
+        .snapshots();
+  }
+
   // --- Training Game Mode ---
 
   Future<int> getDailyTrainingCount() async {
