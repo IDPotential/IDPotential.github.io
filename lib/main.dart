@@ -31,6 +31,7 @@ class MyApp extends StatefulWidget {
 class _MyAppState extends State<MyApp> {
   // Initialization Future
   late Future<void> _initFuture;
+  final ValueNotifier<String> _loadingStatus = ValueNotifier("Подключение к Firebase...");
 
   @override
   void initState() {
@@ -41,13 +42,17 @@ class _MyAppState extends State<MyApp> {
   Future<void> _initApp() async {
     try {
       // 1. Firebase
+      _loadingStatus.value = "Подключение к Firebase...";
       await Firebase.initializeApp(
         options: DefaultFirebaseOptions.currentPlatform,
       );
       
-      // 2. Config & DB
-      // We run them in parallel or sequence. Sequence is safer for dependencies.
+      // 2. Config
+      _loadingStatus.value = "Загрузка конфигурации...";
       await ConfigService().initialize();
+
+      // 3. Database
+      _loadingStatus.value = "Открытие базы данных...";
       await DatabaseService().init();
       
     } catch (e, stack) {
@@ -61,6 +66,7 @@ class _MyAppState extends State<MyApp> {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      // ... (Theme config remains same)
       title: 'Индивидуальная Диагностика Потенциала',
       debugShowCheckedModeBanner: false,
       localizationsDelegates: const [
@@ -210,7 +216,13 @@ class _MyAppState extends State<MyApp> {
                   const SizedBox(height: 24),
                   const CircularProgressIndicator(color: Color(0xFF3B82F6)),
                   const SizedBox(height: 16),
-                  const Text("Загрузка...", style: TextStyle(color: Colors.white54))
+                  
+                  ValueListenableBuilder<String>(
+                    valueListenable: _loadingStatus,
+                    builder: (context, status, _) {
+                      return Text(status, style: const TextStyle(color: Colors.white54));
+                    },
+                  ),
                 ],
               ),
             ),
