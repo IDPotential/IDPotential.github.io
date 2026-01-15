@@ -1,3 +1,4 @@
+import 'dart:async'; // Imported for runZonedGuarded
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -10,42 +11,58 @@ import 'services/config_service.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 
-void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-  
-  try {
-    // Init Firebase
-    await Firebase.initializeApp(
-      options: DefaultFirebaseOptions.currentPlatform,
-    );
-  } catch (e) {
-    print("Firebase Init Error: $e");
-  }
-
-  // Init Remote Config
-  try {
-     await ConfigService().initialize();
-  } catch(e) {
-     print("Remote Config Init Error: $e");
-  }
-  
-  try {
-    await DatabaseService().init();
-  } catch (e) {
-    print("Database Init Error: $e");
-    // Fallback? If DB fails, app runs but history might be empty.
-  }
-
-  runApp(const MyApp());
+void main() {
+  runZonedGuarded(() async {
+    WidgetsFlutterBinding.ensureInitialized();
+    runApp(const MyApp());
+  }, (error, stack) {
+    debugPrint("Uncaught Error: $error");
+    debugPrint("Stack Trace: $stack");
+  });
 }
 
-class MyApp extends StatelessWidget {
+class MyApp extends StatefulWidget {
   const MyApp({super.key});
+
+  @override
+  State<MyApp> createState() => _MyAppState();
+}
+
+class _MyAppState extends State<MyApp> {
+  // Initialization Future
+  late Future<void> _initFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _initFuture = _initApp();
+  }
+
+  Future<void> _initApp() async {
+    try {
+      // 1. Firebase
+      await Firebase.initializeApp(
+        options: DefaultFirebaseOptions.currentPlatform,
+      );
+      
+      // 2. Config & DB
+      // We run them in parallel or sequence. Sequence is safer for dependencies.
+      await ConfigService().initialize();
+      await DatabaseService().init();
+      
+    } catch (e, stack) {
+      debugPrint("Initialization Failed: $e");
+      debugPrint(stack.toString());
+      // Re-throw to show error screen if crucial
+      rethrow; 
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Индивидуальная Диагностика Потенциала',
+      debugShowCheckedModeBanner: false,
       localizationsDelegates: const [
         GlobalMaterialLocalizations.delegate,
         GlobalWidgetsLocalizations.delegate,
@@ -54,7 +71,8 @@ class MyApp extends StatelessWidget {
       supportedLocales: const [
         Locale('ru', 'RU'), // Russian
       ],
-      theme: ThemeData(        fontFamily: 'DINPro',
+      theme: ThemeData(
+        fontFamily: 'DINPro',
         useMaterial3: true,
         brightness: Brightness.dark,
         scaffoldBackgroundColor: const Color(0xFF0F172A), // Slate 900
@@ -125,20 +143,78 @@ class MyApp extends StatelessWidget {
           elevation: 0,
         ),
       ),
-      home: StreamBuilder<User?>(
-        stream: FirebaseAuth.instance.authStateChanges(),
+      home: FutureBuilder(
+        future: _initFuture,
         builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-             return const Scaffold(
-               body: Center(child: CircularProgressIndicator()),
+          // 1. Error State
+          if (snapshot.hasError) {
+             return Scaffold(
+               body: Center(
+                 child: Padding(
+                   padding: const EdgeInsets.all(24.0),
+                   child: Column(
+                     mainAxisSize: MainAxisSize.min,
+                     children: [
+                       const Icon(Icons.error_outline, color: Colors.red, size: 48),
+                       const SizedBox(height: 16),
+                       const Text(
+                         "Ошибка инициализации", 
+                         style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)
+                       ),
+                       const SizedBox(height: 8),
+                       Text(
+                         snapshot.error.toString(), 
+                         textAlign: TextAlign.center,
+                         style: const TextStyle(color: Colors.white54)
+                       ),
+                       const SizedBox(height: 24),
+                       ElevatedButton(
+                         onPressed: () {
+                           setState(() {
+                             _initFuture = _initApp(); // Retry
+                           });
+                         },
+                         child: const Text("Повторить"),
+                       )
+                     ],
+                   ),
+                 ),
+               )
              );
           }
-          
-          if (snapshot.hasData) {
-            return const AppHome();
+
+          // 2. Done State -> App Content
+          if (snapshot.connectionState == ConnectionState.done) {
+             return StreamBuilder<User?>(
+                stream: FirebaseAuth.instance.authStateChanges(),
+                builder: (context, authSnap) {
+                  if (authSnap.connectionState == ConnectionState.waiting) {
+                     return const Scaffold(body: Center(child: CircularProgressIndicator()));
+                  }
+                  if (authSnap.hasData) {
+                    return const AppHome();
+                  }
+                  return const LoginScreen();
+                },
+             );
           }
-          
-          return const LoginScreen();
+
+          // 3. Loading State (Splash)
+          return Scaffold(
+            body: Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Logo if available, else just text
+                  Image.asset('assets/images/logo.png', width: 100, height: 100, errorBuilder: (_,__,___) => const SizedBox()),
+                  const SizedBox(height: 24),
+                  const CircularProgressIndicator(color: Color(0xFF3B82F6)),
+                  const SizedBox(height: 16),
+                  const Text("Загрузка...", style: TextStyle(color: Colors.white54))
+                ],
+              ),
+            ),
+          );
         },
       ),
     );
