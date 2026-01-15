@@ -483,6 +483,7 @@ class FirestoreService {
       List<String>? situationCategories,
       bool? isTestGame,
       String gameType = 'territory',
+      bool isOffline = false,
   }) async {
     final user = _auth.currentUser;
     if (user == null) throw Exception("User not logged in");
@@ -518,6 +519,7 @@ class FirestoreService {
       'situationPackId': situationPackId,
       'situationCategories': situationCategories,
       'isTestGame': isTestGame,
+      'isOffline': isOffline,
       'status': 'scheduled',
       'stage': 'selection', // Default stage
       'createdAt': FieldValue.serverTimestamp(),
@@ -535,6 +537,7 @@ class FirestoreService {
       List<String>? situationCategories,
       bool? isTestGame,
       String? gameType,
+      bool? isOffline,
   }) async {
     final Map<String, dynamic> data = {
       'title': title,
@@ -548,6 +551,7 @@ class FirestoreService {
     if (situationPackId != null) data['situationPackId'] = situationPackId;
     if (situationCategories != null) data['situationCategories'] = situationCategories;
     if (isTestGame != null) data['isTestGame'] = isTestGame;
+    if (isOffline != null) data['isOffline'] = isOffline;
     
     await _db.collection('games').doc(gameId).update(data);
   }

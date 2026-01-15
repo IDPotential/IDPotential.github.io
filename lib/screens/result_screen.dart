@@ -239,8 +239,23 @@ class _ResultScreenState extends State<ResultScreen> {
                   }).catchError((e) {
                      if (mounted) {
                         Navigator.pop(context);
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Ошибка копирования. Используйте выделение текста.'), backgroundColor: Colors.red),
+                        showDialog(
+                           context: context,
+                           builder: (context) => AlertDialog(
+                              title: const Text('Скопируйте текст вручную'),
+                              content: SizedBox(
+                                 width: double.maxFinite,
+                                 child: SingleChildScrollView(
+                                    child: SelectableText(text),
+                                 ),
+                              ),
+                              actions: [
+                                 TextButton(
+                                    onPressed: () => Navigator.pop(context),
+                                    child: const Text('Закрыть'),
+                                 ),
+                              ],
+                           ),
                         );
                      }
                   });

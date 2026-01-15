@@ -13,6 +13,12 @@ import '../models/calculation.dart';
 import 'package:intl/intl.dart';
 import 'dart:math';
 import 'dart:async';
+import 'package:record/record.dart';
+import 'package:record/record.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:universal_io/io.dart';
+import 'package:universal_html/html.dart' as html;
+import 'package:flutter/foundation.dart' show kIsWeb;
 import '../services/database_service.dart';
 // import '../utils/situations_data.dart'; // Removed after migration
 
@@ -66,6 +72,13 @@ class _ActiveGameScreenState extends State<ActiveGameScreen> {
   final TextEditingController _answerController = TextEditingController();
   Timer? _answerDebouncer;
 
+  // Offline / Recording State
+  final AudioRecorder _audioRecorder = AudioRecorder();
+  bool _isOfflineMode = false;
+  bool _isRecording = false;
+  int _recordDuration = 0;
+  Timer? _recordTimer;
+
   @override
   void initState() {
     super.initState();
@@ -101,6 +114,7 @@ class _ActiveGameScreenState extends State<ActiveGameScreen> {
               _zoomPassword = data['zoomPassword'];
               _targetGameTitle = data['title'];
               _situation = data['situation'] ?? {};
+              _isOfflineMode = data['isOffline'] ?? false;
             });
             
             // Allow Host/Controller to fetch situations once
@@ -204,7 +218,7 @@ class _ActiveGameScreenState extends State<ActiveGameScreen> {
                                     children: [
                                       _isVideoActive 
                                         ? _buildZoomPanel() 
-                                        : _buildVideoPlaceholder(),
+                                        : (_isOfflineMode ? _buildOfflineRecorder() : _buildVideoPlaceholder()),
                                     ]
                                   )
                                 ),
@@ -231,7 +245,7 @@ class _ActiveGameScreenState extends State<ActiveGameScreen> {
                                    children: [
                                      _isVideoActive 
                                        ? _buildZoomPanel() 
-                                       : _buildVideoPlaceholder(),
+                                       : (_isOfflineMode ? _buildOfflineRecorder() : _buildVideoPlaceholder()),
                                    ]
                                  )
                                ),
@@ -439,6 +453,157 @@ class _ActiveGameScreenState extends State<ActiveGameScreen> {
 
   void _onAnswerChanged(String value) {
     // Answer tracking logic
+  }
+
+  // --- OFFLINE RECORDER ---
+
+  Widget _buildOfflineRecorder() {
+      final String durationStr = _formatDuration(_recordDuration);
+      
+      return Center(
+          child: Column(
+             mainAxisAlignment: MainAxisAlignment.center,
+             children: [
+                 const Icon(Icons.mic, size: 60, color: Colors.white70),
+                 const SizedBox(height: 16),
+                 Text(
+                     _isRecording ? "Идет запись..." : "Запись остановлена",
+                     style: TextStyle(color: _isRecording ? Colors.redAccent : Colors.white54, fontSize: 16)
+                 ),
+                 const SizedBox(height: 8),
+                 Text(
+                     durationStr,
+                     style: const TextStyle(fontSize: 48, fontWeight: FontWeight.bold, color: Colors.white, fontFamily: 'monospace'),
+                 ),
+                 const SizedBox(height: 32),
+                 if (!_isRecording)
+                     ElevatedButton.icon(
+                         style: ElevatedButton.styleFrom(
+                             backgroundColor: Colors.red,
+                             padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+                         ),
+                         icon: const Icon(Icons.fiber_manual_record, size: 30),
+                         label: const Text("Начать запись", style: TextStyle(fontSize: 18)),
+                         onPressed: _startRecording,
+                     )
+                 else 
+                     ElevatedButton.icon(
+                         style: ElevatedButton.styleFrom(
+                             backgroundColor: Colors.grey[800],
+                             padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+                         ),
+                         icon: const Icon(Icons.stop, size: 30),
+                         label: const Text("Стоп", style: TextStyle(fontSize: 18)),
+                         onPressed: _stopAndSaveRecording,
+                     ),
+                 
+                 const SizedBox(height: 20),
+                 // Info about storage
+                 Padding(
+                     padding: const EdgeInsets.symmetric(horizontal: 32),
+                     child: Text(
+                        kIsWeb 
+                          ? "Записи скачиваются автоматически после завершения кона."
+                          : "Записи сохраняются локально в Документы/GameRecordings/${_targetGameId}.\nПри завершении кона запись сохраняется и начинается новая автоматически.",
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(color: Colors.white24, fontSize: 12),
+                     )
+                 ),
+                 
+                 if (!widget.isHost) ...[
+                     const SizedBox(height: 20),
+                     TextButton(
+                         onPressed: () => Navigator.pop(context),
+                         child: const Text("Выйти", style: TextStyle(color: Colors.white38)),
+                     )
+                 ]
+             ],
+          )
+      );
+  }
+
+  String _formatDuration(int totalSeconds) {
+      final int m = totalSeconds ~/ 60;
+      final int s = totalSeconds % 60;
+      return "${m.toString().padLeft(2, '0')}:${s.toString().padLeft(2, '0')}";
+  }
+
+  Future<void> _startRecording() async {
+    try {
+        if (await _audioRecorder.hasPermission()) {
+             final round = (_gameStats['roundCount'] as int? ?? 0) + 1;
+             final timestamp = DateFormat('yyyyMMdd_HHmmss').format(DateTime.now());
+             
+             String path = '';
+             
+             if (kIsWeb) {
+                // Web: Path is ignored or used as memory identifier
+                // We define stream/encoder in config if needed, but default is fine
+                await _audioRecorder.start(const RecordConfig(), path: ''); 
+             } else {
+                 final directory = await getApplicationDocumentsDirectory();
+                 final gameDir = Directory('${directory.path}/GameRecordings/${_targetGameId}');
+                 if (!await gameDir.exists()) {
+                     await gameDir.create(recursive: true);
+                 }
+                 path = '${gameDir.path}/Round${round}_$timestamp.m4a';
+                 await _audioRecorder.start(const RecordConfig(), path: path);
+             }
+             
+             if (mounted) {
+                 setState(() {
+                     _isRecording = true;
+                     _recordDuration = 0;
+                 });
+             }
+             
+             _recordTimer?.cancel();
+             _recordTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+                 if (mounted) setState(() => _recordDuration++);
+             });
+        }
+    } catch (e) {
+        debugPrint("Error starting recording: $e");
+        if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Ошибка записи: $e")));
+    }
+  }
+
+  Future<void> _stopAndSaveRecording() async {
+    if (!_isRecording) return;
+    try {
+        final path = await _audioRecorder.stop();
+        _recordTimer?.cancel();
+        if (mounted) {
+            setState(() {
+                _isRecording = false;
+            });
+            if (path != null) {
+                ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                    content: Text("Запись сохранена: ...${path.substring(max(0, path.length - 30))}"),
+                    duration: const Duration(seconds: 2),
+                    backgroundColor: Colors.green,
+                ));
+            }
+        }
+        debugPrint("Recording saved to $path");
+
+        if (kIsWeb && path != null) {
+            // Web: 'path' is actually a Blob URL or we need to convert logic depending on package version
+            // For record 5.x+, stop() returns the blob URL on web.
+            
+            final round = (_gameStats['roundCount'] as int? ?? 0);
+            final timestamp = DateFormat('yyyyMMdd_HHmmss').format(DateTime.now());
+            final filename = 'Game_${_targetGameTitle}_Round${round}_$timestamp.m4a';
+
+            final anchor = html.AnchorElement(href: path);
+            anchor.download = filename;
+            anchor.click();
+            anchor.remove();
+        }
+
+    } catch (e) {
+        debugPrint("Error stopping recording: $e");
+    }
   }
 
   // --- COMMON WIDGETS (Video, Grid, Voting) ---
@@ -1650,6 +1815,16 @@ class _ActiveGameScreenState extends State<ActiveGameScreen> {
                    style: ElevatedButton.styleFrom(backgroundColor: Colors.orange),
                    onPressed: () async {
                       Navigator.pop(ctx);
+                      
+                      // Offline Recording Logic: Stop and Restart
+                      if (_isOfflineMode && _isRecording) {
+                          await _stopAndSaveRecording();
+                          // Short delay before restart to ensure file separation
+                          Future.delayed(const Duration(milliseconds: 500), () {
+                              if (mounted) _startRecording(); // Start new recording for next round
+                          });
+                      }
+
                       try {
                          await _firestoreService.endRound(_targetGameId);
                       } catch (e) {
@@ -1678,6 +1853,12 @@ class _ActiveGameScreenState extends State<ActiveGameScreen> {
                    style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent),
                    onPressed: () async {
                       Navigator.pop(ctx);
+                      
+                      // Stop recording on finish
+                      if (_isOfflineMode && _isRecording) {
+                          await _stopAndSaveRecording();
+                      }
+
                       await _firestoreService.finishGame(_targetGameId);
                    },
                    child: const Text("Финиш", style: TextStyle(color: Colors.white))

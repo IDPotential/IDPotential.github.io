@@ -44,7 +44,8 @@ class _GamesListScreenState extends State<GamesListScreen> {
     String? currentPackId, 
     List<String>? currentCategories, 
     bool? currentIsTestGame,
-    String? currentGameType // territory, money_queue, mafia
+    String? currentGameType, // territory, money_queue, mafia
+    bool? currentIsOffline,
   }) {
     final titleController = TextEditingController(text: currentTitle);
     final zoomIdController = TextEditingController(text: currentZoomId);
@@ -58,6 +59,7 @@ class _GamesListScreenState extends State<GamesListScreen> {
     List<String> availableCategories = []; // Categories for the selected pack
     
     bool isTestGame = currentIsTestGame ?? false;
+    bool isOffline = currentIsOffline ?? false;
     bool isEditing = docId != null;
     String selectedGameType = currentGameType ?? 'territory';
     
@@ -153,19 +155,28 @@ class _GamesListScreenState extends State<GamesListScreen> {
                       }
                     },
                   ),
-                  TextField(
-                    controller: zoomIdController,
-                    decoration: const InputDecoration(labelText: 'Zoom Meeting ID'),
-                    keyboardType: TextInputType.number,
-                  ),
-                  TextField(
-                    controller: zoomPasswordController,
-                    decoration: const InputDecoration(labelText: 'Zoom Password'),
-                  ),
+                  if (!isOffline) ...[
+                      TextField(
+                        controller: zoomIdController,
+                        decoration: const InputDecoration(labelText: 'Zoom Meeting ID'),
+                        keyboardType: TextInputType.number,
+                      ),
+                      TextField(
+                        controller: zoomPasswordController,
+                        decoration: const InputDecoration(labelText: 'Zoom Password'),
+                      ),
+                  ],
                   CheckboxListTile(
                     title: const Text("Тестовая игра (только для тестеров)"),
                     value: isTestGame,
                     onChanged: (val) => setStateDialog(() => isTestGame = val ?? false),
+                    controlAffinity: ListTileControlAffinity.leading,
+                    contentPadding: EdgeInsets.zero,
+                  ),
+                  CheckboxListTile(
+                    title: const Text("Офлайн игра (без видео, с диктофоном)"),
+                    value: isOffline,
+                    onChanged: (val) => setStateDialog(() => isOffline = val ?? false),
                     controlAffinity: ListTileControlAffinity.leading,
                     contentPadding: EdgeInsets.zero,
                   ),
@@ -261,6 +272,7 @@ class _GamesListScreenState extends State<GamesListScreen> {
                           situationCategories: selectedCategories,
                           isTestGame: isTestGame,
                           gameType: selectedGameType,
+                          isOffline: isOffline,
                         );
                       } else {
                         await _firestoreService.createGame(
@@ -271,6 +283,7 @@ class _GamesListScreenState extends State<GamesListScreen> {
                           situationPackId: selectedPackId,
                           situationCategories: selectedCategories,
                           isTestGame: isTestGame,
+                          isOffline: isOffline,
                           gameType: selectedGameType,
                         );
                       }
@@ -389,6 +402,7 @@ class _GamesListScreenState extends State<GamesListScreen> {
                                       currentCategories: (game['situationCategories'] as List<dynamic>?)?.cast<String>(),
                                       currentIsTestGame: game['isTestGame'],
                                       currentGameType: game['gameType'],
+                                      currentIsOffline: game['isOffline'],
                                    );
                                 } else if (value == 'delete') {
                                    _deleteGame(docId, game['title'] ?? '');
