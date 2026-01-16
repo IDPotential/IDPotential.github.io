@@ -156,14 +156,35 @@ class _ActiveGameScreenState extends State<ActiveGameScreen> {
     }
   }
 
-  void _connectToZoom() {
+  void _connectToZoom() async {
       if (_zoomId == null || _zoomId!.isEmpty) return;
-      
-      setState(() => _isVideoActive = true);
       
       final user = FirebaseAuth.instance.currentUser;
       final userName = user?.displayName ?? widget.gameProfile?.name.split(' ')[0] ?? "Player";
 
+      // Mobile: Launch Zoom App externally
+      if (!kIsWeb) {
+         final Uri zoomUri = Uri.parse("https://zoom.us/j/$_zoomId?pwd=${_zoomPassword ?? ''}&uname=${Uri.encodeComponent(userName)}");
+         
+         try {
+            if (await canLaunchUrl(zoomUri)) {
+               await launchUrl(zoomUri, mode: LaunchMode.externalApplication);
+            } else {
+               // Fallback: Try generic link if specific scheme fails
+               await launchUrl(Uri.parse("https://zoom.us/j/$_zoomId"), mode: LaunchMode.externalApplication);
+            }
+         } catch (e) {
+            debugPrint("Could not launch Zoom: $e");
+            ScaffoldMessenger.of(context).showSnackBar(
+               SnackBar(content: Text("Ошибка запуска Zoom: $e"), backgroundColor: Colors.red),
+            );
+         }
+         return; 
+      }
+      
+      // Web: Internal Implementation
+      setState(() => _isVideoActive = true);
+      
       Future.delayed(const Duration(milliseconds: 500), () {
           // Customized View Settings based on Role
           Map<String, dynamic> customize = {
