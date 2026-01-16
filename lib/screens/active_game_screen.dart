@@ -1391,163 +1391,184 @@ class _ActiveGameScreenState extends State<ActiveGameScreen> {
            Expanded(
               child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
                  stream: _firestoreService.getGameParticipantsStream(_targetGameId),
+                 builder: (context, snapshot) {
+                    if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
+                    final docs = snapshot.data!.docs.toList();
+                    
+                    // Prioritize pending requests
+                    docs.sort((a, b) {
+                       final sA = a.data()['status'] ?? '';
+                       final sB = b.data()['status'] ?? '';
+                       if (sA == 'pending' && sB != 'pending') return -1;
+                       if (sA != 'pending' && sB == 'pending') return 1;
+                       return 0;
+                    });
+                    
+                    if (docs.isEmpty) return const Center(child: Text("Нет участников", style: TextStyle(color: Colors.white54)));
 
-         builder: (context, snapshot) {
-            if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
-            final docs = snapshot.data!.docs.toList();
-            
-            // Prioritize pending requests
-            docs.sort((a, b) {
-               final sA = a.data()['status'] ?? '';
-               final sB = b.data()['status'] ?? '';
-               if (sA == 'pending' && sB != 'pending') return -1;
-               if (sA != 'pending' && sB == 'pending') return 1;
-               return 0;
-            });
-            
-            if (docs.isEmpty) return const Center(child: Text("Нет участников", style: TextStyle(color: Colors.white54)));
+                    return LayoutBuilder(
+                       builder: (context, constraints) {
+                         final int crossAxisCount = constraints.maxWidth > 900 ? 10 : (constraints.maxWidth > 600 ? 7 : 5);
+                         final double aspectRatio = constraints.maxWidth > 600 ? 0.75 : 0.65;
 
-            if (docs.isEmpty) return const Center(child: Text("Нет участников", style: TextStyle(color: Colors.white54)));
+                         return GridView.builder(
+                           padding: const EdgeInsets.all(8),
+                           gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                             crossAxisCount: crossAxisCount, 
+                             childAspectRatio: aspectRatio,
+                             crossAxisSpacing: 8, mainAxisSpacing: 8
+                           ),
+                           itemCount: docs.length,
+                           itemBuilder: (context, index) {
+                              final data = docs[index].data();
+                              final docId = docs[index].id;
+                              final name = data['name'] ?? 'Unknown';
+                              final pNum = data['playerNumber'];
+                              final roleId = data['selectedRole'];
+                              final currentRoles = List<int>.from(data['roles'] ?? []);
 
-            return LayoutBuilder(
-               builder: (context, constraints) {
-                 final int crossAxisCount = constraints.maxWidth > 900 ? 10 : (constraints.maxWidth > 600 ? 7 : 5);
-                 final double aspectRatio = constraints.maxWidth > 600 ? 0.75 : 0.65;
-
-                 return GridView.builder(
-                padding: const EdgeInsets.all(8),
-                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: crossAxisCount, 
-                  childAspectRatio: aspectRatio,
-                  crossAxisSpacing: 8, mainAxisSpacing: 8
-                ),
-                itemCount: docs.length,
-                itemBuilder: (context, index) {
-                   final data = docs[index].data();
-                   final docId = docs[index].id;
-                   final name = data['name'] ?? 'Unknown';
-                   final pNum = data['playerNumber'];
-                   final roleId = data['selectedRole'];
-                   final currentRoles = List<int>.from(data['roles'] ?? []);
-
-                   return Card(
-                        clipBehavior: Clip.antiAlias,
-                        color: data['status'] == 'pending' ? Colors.orange.withOpacity(0.15) : Colors.white12,
-                        shape: data['status'] == 'pending' 
-                           ? RoundedRectangleBorder(borderRadius: BorderRadius.circular(8), side: const BorderSide(color: Colors.orangeAccent, width: 1))
-                           : null,
-                        child: Stack(
-                           children: [
-                              // Background Role Image
-                              if (roleId != null)
-                                 Positioned.fill(
-                                    child: Opacity(
-                                       opacity: 0.15,
-                                       child: Image.asset(
-                                          'assets/images/cards/role_$roleId.png',
-                                          fit: BoxFit.cover,
-                                          errorBuilder: (c, e, s) => Container(),
-                                       )
-                                    )
-                                 ),
-                              
-                              // Main Tap Area (Opens Diagnostic Card)
-                              Positioned.fill(
-                                 child: Material(
-                                    color: Colors.transparent,
-                                    child: InkWell(
-                                       onTap: () {
-                                          if (currentRoles.isNotEmpty) {
-                                             _showDiagnosticCard(currentRoles, name, userId: docId);
-                                          } else {
-                                             ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Нет карт для отображения")));
-                                          }
-                                       },
-                                       child: Container(),
-                                    ),
-                                                  } else {
-                                                      return const Text("Tg: нет", style: TextStyle(color: Colors.white30, fontSize: 10));
-                                                  }
-                                               }
+                              return Card(
+                                   clipBehavior: Clip.antiAlias,
+                                   color: data['status'] == 'pending' ? Colors.orange.withOpacity(0.15) : Colors.white12,
+                                   shape: data['status'] == 'pending' 
+                                      ? RoundedRectangleBorder(borderRadius: BorderRadius.circular(8), side: const BorderSide(color: Colors.orangeAccent, width: 1))
+                                      : null,
+                                   child: Stack(
+                                      children: [
+                                         // Background Role Image
+                                         if (roleId != null)
+                                            Positioned.fill(
+                                               child: Opacity(
+                                                  opacity: 0.15,
+                                                  child: Image.asset(
+                                                     'assets/images/cards/role_$roleId.png',
+                                                     fit: BoxFit.cover,
+                                                     errorBuilder: (c, e, s) => Container(),
+                                                  )
+                                               )
                                             ),
-                                            const SizedBox(height: 4),
-                                            Row(
+                                         
+                                         // Main Tap Area (Opens Diagnostic Card) - Exclude for Pending
+                                         if (data['status'] != 'pending')
+                                           Positioned.fill(
+                                              child: Material(
+                                                 color: Colors.transparent,
+                                                 child: InkWell(
+                                                    onTap: () {
+                                                       if (currentRoles.isNotEmpty) {
+                                                          _showDiagnosticCard(currentRoles, name, userId: docId);
+                                                       } else {
+                                                          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Нет карт для отображения")));
+                                                       }
+                                                    },
+                                                    child: Container(),
+                                                 ),
+                                              ),
+                                           ),
+
+                                         Center(
+                                           child: Padding(
+                                             padding: const EdgeInsets.symmetric(horizontal: 2),
+                                             child: Column(
                                                mainAxisAlignment: MainAxisAlignment.center,
                                                children: [
-                                                  ElevatedButton(
-                                                     style: ElevatedButton.styleFrom(
-                                                        minimumSize: const Size(0,24), 
-                                                        backgroundColor: Colors.green,
-                                                        padding: const EdgeInsets.symmetric(horizontal: 4)
-                                                     ),
-                                                     onPressed: () => _firestoreService.approveParticipant(_targetGameId, docId),
-                                                     child: const Text("Да", style: TextStyle(fontSize: 10))
-                                                  ),
-                                                  const SizedBox(width: 4),
-                                                  ElevatedButton(
-                                                     style: ElevatedButton.styleFrom(
-                                                        minimumSize: const Size(0,24), 
-                                                        backgroundColor: Colors.redAccent,
-                                                        padding: const EdgeInsets.symmetric(horizontal: 4)
-                                                     ),
-                                                     onPressed: () => _firestoreService.rejectParticipant(_targetGameId, docId),
-                                                     child: const Text("Нет", style: TextStyle(fontSize: 10))
-                                                  ),
-                                               ],
-                                            )
-                                        ] else ...[
-                                            // Active participant logic
-                                            if (List<int>.from(data['numbers'] ?? []).isNotEmpty)
-                                               TextButton(
-                                                  style: TextButton.styleFrom(minimumSize: const Size(0, 24), padding: EdgeInsets.zero),
-                                                  onPressed: () => _showDiagnosticCard(List<int>.from(data['numbers'] ?? []), name, userId: docId),
-                                                  child: const Text("Карта", style: TextStyle(color: Colors.blueAccent, fontSize: 10, decoration: TextDecoration.underline))
-                                               ),
-                                            const SizedBox(height: 2),
-                                            
-                                            // Role Management (Click here to set role)
-                                            InkWell(
-                                               onTap: () => _showHostRoleManagement(docId, name, roleId),
-                                               child: roleId != null 
-                                                  ? Row(
-                                                     mainAxisAlignment: MainAxisAlignment.center,
-                                                     children: [
-                                                        Container(
-                                                           padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
-                                                           decoration: BoxDecoration(color: Colors.orange, borderRadius: BorderRadius.circular(4)),
-                                                           child: Text("#$roleId", style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 10))
+                                                  // Player Number with Delete Action
+                                                  if (pNum != null)
+                                                     InkWell(
+                                                        onTap: () {
+                                                           if (widget.isHost) {
+                                                              _showRemovePlayerDialog(docId, name);
+                                                           }
+                                                        },
+                                                        child: CircleAvatar(
+                                                           radius: 12, 
+                                                           backgroundColor: Colors.white24, 
+                                                           child: Text("$pNum", style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
                                                         ),
-                                                        const SizedBox(width: 4),
-                                                        InkWell(
-                                                           onTap: () => _firestoreService.updateParticipantRole(_targetGameId, null, docId),
-                                                           child: const Icon(Icons.close, color: Colors.red, size: 14),
-                                                        )
-                                                     ],
-                                                  )
-                                                  : Container(
-                                                      padding: const EdgeInsets.all(4),
-                                                      color: Colors.white10,
-                                                      child: const Text("Нет роли", textAlign: TextAlign.center, style: TextStyle(color: Colors.white38, fontSize: 9))
-                                                  )
-                                            )
-                                        ],
-                                        const Spacer(),
-                                     ],
+                                                     ),
+                                                     
+                                                  const SizedBox(height: 4),
+                                                  
+                                                  // Player Name (Smaller Font)
+                                                  Text(
+                                                     name, 
+                                                     textAlign: TextAlign.center, 
+                                                     maxLines: 2, 
+                                                     overflow: TextOverflow.ellipsis, 
+                                                     style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold)
+                                                  ),
+                                                  
+                                                  // Pending Logic (Approve/Reject)
+                                                  if (data['status'] == 'pending') ...[
+                                                      const SizedBox(height: 8),
+                                                      Row(
+                                                         mainAxisAlignment: MainAxisAlignment.center,
+                                                         children: [
+                                                            InkWell(
+                                                               onTap: () => _firestoreService.approveParticipant(_targetGameId, docId),
+                                                               child: Container(
+                                                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                                                  decoration: BoxDecoration(color: Colors.green, borderRadius: BorderRadius.circular(4)),
+                                                                  child: const Text("Да", style: TextStyle(fontSize: 10)),
+                                                               ),
+                                                            ),
+                                                            const SizedBox(width: 8),
+                                                            InkWell(
+                                                               onTap: () => _firestoreService.rejectParticipant(_targetGameId, docId),
+                                                               child: Container(
+                                                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                                                  decoration: BoxDecoration(color: Colors.redAccent, borderRadius: BorderRadius.circular(4)),
+                                                                  child: const Text("Нет", style: TextStyle(fontSize: 10)),
+                                                               ),
+                                                            ),
+                                                         ],
+                                                      )
+                                                  ] else ...[
+                                                       const SizedBox(height: 4),
+                                                       
+                                                       // Role Management (Click here to set role)
+                                                       InkWell(
+                                                          onTap: () => _showHostRoleManagement(docId, name, roleId),
+                                                          child: roleId != null 
+                                                             ? Row(
+                                                                mainAxisAlignment: MainAxisAlignment.center,
+                                                                children: [
+                                                                   Container(
+                                                                      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                                                                      decoration: BoxDecoration(color: Colors.orange, borderRadius: BorderRadius.circular(4)),
+                                                                      child: Text("#$roleId", style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 10))
+                                                                   ),
+                                                                   const SizedBox(width: 4),
+                                                                   InkWell(
+                                                                      onTap: () => _firestoreService.updateParticipantRole(_targetGameId, null, docId),
+                                                                      child: const Icon(Icons.close, color: Colors.red, size: 14),
+                                                                   )
+                                                                ],
+                                                             )
+                                                             : Container(
+                                                                 padding: const EdgeInsets.all(4),
+                                                                 color: Colors.white10,
+                                                                 child: const Text("Нет роли", textAlign: TextAlign.center, style: TextStyle(color: Colors.white38, fontSize: 9))
+                                                             )
+                                                       )
+                                                  ]
+                                               ],
+                                             ),
+                                           ),
+                                         ),
+                                      ],
                                    ),
-                                 ),
-                              ],
-                           ),
-                      );
-                   },
-                 );
-               }
-            );
-            }
-         )
-      )
+                              );
+                           },
+                         );
+                       }
+                    );
+                 }
+              )
+           )
         ],
       );
- }
+   }
 
    void _showRemovePlayerDialog(String userId, String userName) {
       showDialog(
