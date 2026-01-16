@@ -1415,83 +1415,56 @@ class _ActiveGameScreenState extends State<ActiveGameScreen> {
                  final double aspectRatio = constraints.maxWidth > 600 ? 0.75 : 0.65;
 
                  return GridView.builder(
-                   padding: const EdgeInsets.all(8),
-                   gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                     crossAxisCount: crossAxisCount, 
-                     childAspectRatio: aspectRatio,
-                     crossAxisSpacing: 8, mainAxisSpacing: 8
-                   ),
-                   itemCount: docs.length,
-                   itemBuilder: (context, index) {
-                      final data = docs[index].data();
-                      final docId = docs[index].id;
-                      final name = data['name'] ?? 'Unknown';
-                      final pNum = data['playerNumber'];
-                      final roleId = data['selectedRole'];
-                      // ... rest of item builder logic (Needs to be passed back carefully or rewritten)
-                      // Since we are replacing lines 606-612, we need to ensure the itemBuilder continues correctly
-                      // Wait, I can't easily break inside the itemBuilder with multiReplace if I don't provide the full content.
-                      // I will replace the GridView.builder block entirely.
-                      
-                      return Card(
-                           clipBehavior: Clip.antiAlias,
-                           color: data['status'] == 'pending' ? Colors.orange.withOpacity(0.15) : Colors.white12,
-                           shape: data['status'] == 'pending' 
-                              ? RoundedRectangleBorder(borderRadius: BorderRadius.circular(8), side: const BorderSide(color: Colors.orangeAccent, width: 1))
-                              : null,
-                           child: Stack(
-                              children: [
-                                 if (roleId != null)
-                                    Positioned.fill(
-                                       child: Opacity(
-                                          opacity: 0.15,
-                                          child: Image.asset(
-                                             'assets/images/cards/role_$roleId.png',
-                                             fit: BoxFit.cover,
-                                             errorBuilder: (c, e, s) => Container(),
-                                          )
+                padding: const EdgeInsets.all(8),
+                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: crossAxisCount, 
+                  childAspectRatio: aspectRatio,
+                  crossAxisSpacing: 8, mainAxisSpacing: 8
+                ),
+                itemCount: docs.length,
+                itemBuilder: (context, index) {
+                   final data = docs[index].data();
+                   final docId = docs[index].id;
+                   final name = data['name'] ?? 'Unknown';
+                   final pNum = data['playerNumber'];
+                   final roleId = data['selectedRole'];
+                   final currentRoles = List<int>.from(data['roles'] ?? []);
+
+                   return Card(
+                        clipBehavior: Clip.antiAlias,
+                        color: data['status'] == 'pending' ? Colors.orange.withOpacity(0.15) : Colors.white12,
+                        shape: data['status'] == 'pending' 
+                           ? RoundedRectangleBorder(borderRadius: BorderRadius.circular(8), side: const BorderSide(color: Colors.orangeAccent, width: 1))
+                           : null,
+                        child: Stack(
+                           children: [
+                              // Background Role Image
+                              if (roleId != null)
+                                 Positioned.fill(
+                                    child: Opacity(
+                                       opacity: 0.15,
+                                       child: Image.asset(
+                                          'assets/images/cards/role_$roleId.png',
+                                          fit: BoxFit.cover,
+                                          errorBuilder: (c, e, s) => Container(),
                                        )
+                                    )
+                                 ),
+                              
+                              // Main Tap Area (Opens Diagnostic Card)
+                              Positioned.fill(
+                                 child: Material(
+                                    color: Colors.transparent,
+                                    child: InkWell(
+                                       onTap: () {
+                                          if (currentRoles.isNotEmpty) {
+                                             _showDiagnosticCard(currentRoles, name, userId: docId);
+                                          } else {
+                                             ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Нет карт для отображения")));
+                                          }
+                                       },
+                                       child: Container(),
                                     ),
-                                 
-                                 Center(
-                                   child: Column(
-                                     mainAxisAlignment: MainAxisAlignment.center,
-                                     children: [
-                                        if (pNum != null)
-                                           InkWell(
-                                              onTap: () {
-                                                 if (widget.isHost) {
-                                                    _showRemovePlayerDialog(docId, name);
-                                                 }
-                                              },
-                                              child: CircleAvatar(
-                                                 radius: 12, 
-                                                 backgroundColor: Colors.white24, 
-                                                 child: Text("$pNum", style: const TextStyle(fontSize: 12, color: Colors.white))
-                                              ),
-                                           ),
-                                        const SizedBox(height: 4),
-                                        Text(name, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold), textAlign: TextAlign.center),
-                                        const Spacer(),
-                                        if (data['status'] == 'pending') ...[
-                                            // Pending Logic (Keep existing)
-                                            FutureBuilder<DocumentSnapshot>(
-                                               future: FirebaseFirestore.instance.collection('users').doc(data['userId'] ?? 'unknown').get(),
-                                               builder: (context, snapshot) {
-                                                  if (!snapshot.hasData || snapshot.data == null) return const SizedBox.shrink();
-                                                  final userData = snapshot.data!.data() as Map<String, dynamic>?;
-                                                  final telegram = userData?['telegram'] as String?;
-                                                  
-                                                  if (telegram != null && telegram.isNotEmpty) {
-                                                      return TextButton.icon(
-                                                          style: TextButton.styleFrom(padding: EdgeInsets.zero, minimumSize: const Size(0, 20)),
-                                                          icon: const Icon(Icons.alternate_email, size: 10, color: Colors.blueAccent),
-                                                          label: const Text("Написать", style: TextStyle(color: Colors.blueAccent, fontSize: 10)),
-                                                          onPressed: () {
-                                                              String tg = telegram.replaceAll('@', '');
-                                                              launchUrl(Uri.parse("https://t.me/$tg"));
-                                                          },
-                                                      );
                                                   } else {
                                                       return const Text("Tg: нет", style: TextStyle(color: Colors.white30, fontSize: 10));
                                                   }
