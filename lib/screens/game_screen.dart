@@ -1700,8 +1700,8 @@ ToggleButtons(
                   final games = gamesRaw.where((g) {
                      final d = g.data();
                      final isTest = d['isTestGame'] ?? false;
-                     // Show if NOT test game, OR if user IS tester
-                     return !isTest || _isTester;
+                     // Show if NOT test game, OR if user IS tester, OR if user IS the host
+                  return !isTest || _isTester || (d['hostId'] == FirebaseAuth.instance.currentUser?.uid);
                   }).toList();
                   
                   // Client-side sorting

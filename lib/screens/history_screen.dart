@@ -374,13 +374,14 @@ class _HistoryScreenState extends State<HistoryScreen> {
             return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
                stream: _firestoreService.getHostGamesStream(), // Host Stream
                builder: (context, hostSnapshot) {
-                  if (partSnapshot.hasError || hostSnapshot.hasError) return const Center(child: Text('Ошибка загрузки'));
-                  
                   if (partSnapshot.connectionState == ConnectionState.waiting && hostSnapshot.connectionState == ConnectionState.waiting) {
                      return const Center(child: CircularProgressIndicator());
                   }
 
                   // 1. Process Participant Games
+                  if (partSnapshot.hasError) {
+                      debugPrint("Error loading participant history: ${partSnapshot.error}");
+                  }
                   final partDocs = partSnapshot.data?.docs ?? [];
                   final List<Map<String, dynamic>> combinedList = [];
 
@@ -411,6 +412,9 @@ class _HistoryScreenState extends State<HistoryScreen> {
                   }
 
                   // 2. Process Host Games
+                  if (hostSnapshot.hasError) {
+                      debugPrint("Error loading host history: ${hostSnapshot.error}");
+                  }
                   final hostDocs = hostSnapshot.data?.docs ?? [];
                   for (var doc in hostDocs) {
                       final data = doc.data();
