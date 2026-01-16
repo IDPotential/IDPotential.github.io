@@ -1425,7 +1425,7 @@ class _ActiveGameScreenState extends State<ActiveGameScreen> {
                               final name = data['name'] ?? 'Unknown';
                               final pNum = data['playerNumber'];
                               final roleId = data['selectedRole'];
-                              final currentRoles = List<int>.from(data['roles'] ?? []);
+                              final currentRoles = List<int>.from(data['numbers'] ?? []);
 
                               return Card(
                                    clipBehavior: Clip.antiAlias,
