@@ -923,7 +923,7 @@ class FirestoreService {
     if (user == null) return const Stream.empty();
     return _db.collection('games')
         .where('hostId', isEqualTo: user.uid)
-        .where('status', isEqualTo: 'archived')
+        .where('status', whereIn: ['finished', 'archived'])
         .orderBy('scheduledAt', descending: true)
         .snapshots();
   }
