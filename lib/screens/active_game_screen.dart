@@ -1498,6 +1498,29 @@ class _ActiveGameScreenState extends State<ActiveGameScreen> {
                                                      style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold)
                                                   ),
                                                   
+                                                  // 14.01.2025: Restore "Карта" button for explicit access
+                                                  if (data['status'] != 'pending') ...[
+                                                      const SizedBox(height: 2),
+                                                      InkWell(
+                                                          onTap: () {
+                                                            if (currentRoles.isNotEmpty) {
+                                                              _showDiagnosticCard(currentRoles, name, userId: docId);
+                                                            } else {
+                                                              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Нет карт для отображения")));
+                                                            }
+                                                          },
+                                                          child: Container(
+                                                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                                              decoration: BoxDecoration(
+                                                                  color: Colors.blueAccent.withOpacity(0.2),
+                                                                  borderRadius: BorderRadius.circular(4),
+                                                                  border: Border.all(color: Colors.blueAccent.withOpacity(0.5), width: 0.5)
+                                                              ),
+                                                              child: const Text("Карта", style: TextStyle(color: Colors.blueAccent, fontSize: 10, fontWeight: FontWeight.bold))
+                                                          ),
+                                                      ),
+                                                  ],
+
                                                   // Pending Logic (Approve/Reject)
                                                   if (data['status'] == 'pending') ...[
                                                       const SizedBox(height: 8),

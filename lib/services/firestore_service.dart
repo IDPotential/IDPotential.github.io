@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart' show kIsWeb, debugPrint;
 import 'package:universal_io/io.dart';
 import 'package:universal_html/html.dart' as html;
 import '../models/calculation.dart';
+import 'n8n_service.dart';
 
 class FirestoreService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
@@ -387,8 +388,34 @@ class FirestoreService {
       await _db.collection('games').doc(gameId).update({
           'status': 'finished'
       });
+      // Trigger n8n report
+      _triggerN8nReport(gameId);
+      
       // Optionally record history immediately or wait for "End Session"
       await recordGameHistory(gameId);
+  }
+
+  Future<void> _triggerN8nReport(String gameId) async {
+     try {
+        final gameDoc = await _db.collection('games').doc(gameId).get();
+        final data = gameDoc.data();
+        if (data == null) return;
+        
+        final zoomId = data['zoomId'];
+        if (zoomId == null || zoomId.isEmpty) return; // No zoom, no report
+        
+        final participants = await _db.collection('games').doc(gameId).collection('participants').get();
+        final names = participants.docs.map((d) => d.data()['name'] as String? ?? 'Unknown').toList();
+        
+        await N8nService().triggerGameReport(
+           gameId: gameId, 
+           meetingId: zoomId, 
+           playerNames: names, 
+           date: data['scheduledAt'] ?? DateTime.now().toIso8601String()
+        );
+     } catch (e) {
+        debugPrint("Error triggering n8n: $e");
+     }
   }
 
   Future<void> recordGameHistory(String gameId) async {
@@ -427,6 +454,8 @@ class FirestoreService {
       await _db.collection('games').doc(gameId).update({
           'status': 'archived'
       });
+      // Ensure report is triggered if not already
+      _triggerN8nReport(gameId);
   }
 
   Future<void> voteForPlayer(String gameId, String targetUserId, [String? voterId]) async {

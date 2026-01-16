@@ -1,0 +1,79 @@
+⚙️ Интеграция AI Companion с n8n
+Интеграция AI Companion (инструмента Zoom) с n8n возможна через использование API Zoom и стандартных HTTP-запросов. В документации Zoom Docs указано, что AI Companion работает внутри Zoom Docs и Meetings, создавая и редактируя документы, а также генерируя контент по командам пользователей [1].
+Ниже приведён общий порядок настройки подключения.
+
+🧩 1. Подготовка API-доступа Zoom
+
+
+Создайте приложение в Zoom App Marketplace:
+
+Перейдите в Zoom App Marketplace → Develop → Build App.
+Выберите тип приложения Server-to-Server OAuth.
+Укажите название и описание (например, AI Companion Integration).
+Сохраните Client ID, Client Secret и Account ID — они понадобятся для n8n.
+
+
+
+Настройте разрешения (Scopes):
+
+Для работы с AI Companion и Zoom Docs добавьте:
+
+zoomdocs:read, zoomdocs:write
+meeting:read, meeting:write
+user:read
+
+
+Эти разрешения позволят создавать и редактировать документы, а также использовать AI Companion в контексте встреч [1].
+
+
+
+
+🔗 2. Настройка узла (node) в n8n
+
+В n8n создайте новый HTTP Request Node.
+Укажите:
+
+Method: POST (или GET — в зависимости от задачи)
+URL: https://api.zoom.us/v2/...
+(например, https://api.zoom.us/v2/zoomdocs/documents для работы с Zoom Docs)
+
+
+В разделе Authentication выберите OAuth2 и введите:
+
+Client ID, Client Secret, Account ID
+Token URL: https://zoom.us/oauth/token
+Grant Type: Client Credentials
+
+
+Сохраните и протестируйте соединение.
+
+
+🧠 3. Пример запроса к AI Companion
+Чтобы использовать AI Companion для генерации текста или резюме встречи, можно отправить запрос:
+{
+  "prompt": "Summarize the last meeting notes",
+  "context": "meeting_id:123456789",
+  "language": "en-US"
+}
+
+В ответ Zoom вернёт сгенерированный текст, который можно обработать в n8n и, например, сохранить в Google Docs или Notion [1].
+
+🧰 4. Возможные сценарии автоматизации
+
+Автоматическое создание Zoom Docs после завершения встречи.
+Использование AI Companion для генерации резюме и списков задач.
+Интеграция с CRM (HubSpot, Pipedrive) через n8n для добавления заметок о встречах.
+Отправка уведомлений в Slack или Telegram с результатами анализа AI Companion.
+
+
+⚠️ 5. Важные замечания
+
+AI Companion доступен только в корпоративных аккаунтах Zoom с включённой функцией Zoom Docs [1].
+Для стабильной работы рекомендуется использовать Server-to-Server OAuth, а не JWT (устаревший метод).
+Проверяйте лимиты API Zoom (обычно 100 запросов/секунда на аккаунт).
+
+
+📎 Итог
+Интеграция AI Companion с n8n строится через Zoom API и OAuth2-аутентификацию. После настройки можно автоматизировать создание документов, анализ встреч и генерацию контента, используя HTTP-запросы из n8n к Zoom Docs и AI Companion [1].
+
+Источник: Руководство по Zoom Docs и AI Companion, описывающее функции совместного редактирования, генерации контента и интеграции с Zoom Meetings [1].

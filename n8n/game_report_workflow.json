@@ -1,0 +1,183 @@
+{
+    "name": "Game Report Automation (Transcript)",
+    "nodes": [
+        {
+            "parameters": {
+                "httpMethod": "POST",
+                "path": "game-report",
+                "options": {}
+            },
+            "id": "webhook-trigger",
+            "name": "Webhook",
+            "type": "n8n-nodes-base.webhook",
+            "typeVersion": 1,
+            "position": [
+                250,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "authentication": "oAuth2",
+                "resource": "cloudRecording",
+                "operation": "getAll",
+                "filters": {
+                    "meeting_id": "={{ $json.body.meetingId }}"
+                }
+            },
+            "id": "get-zoom-recording",
+            "name": "Zoom Get Recordings",
+            "type": "n8n-nodes-base.zoom",
+            "typeVersion": 1,
+            "position": [
+                450,
+                300
+            ],
+            "credentials": {
+                "zoomOAuth2Api": {
+                    "id": "YOUR_ZOOM_CREDENTIAL_ID",
+                    "name": "Zoom Account"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "jsCode": "const files = $input.all()[0].json.recording_files;\nconst transcript = files.find(f => f.file_type === 'TRANSCRIPT');\n\nif (!transcript) {\n  throw new Error('No transcript found for this meeting');\n}\n\nreturn {\n  json: {\n    download_url: transcript.download_url,\n    play_url: transcript.play_url,\n    meeting_topic: $input.all()[0].json.topic\n  }\n};\n"
+            },
+            "id": "filter-transcript",
+            "name": "Filter Transcript",
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 2,
+            "position": [
+                650,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "url": "={{ $json.download_url }}",
+                "authentication": "genericCredentialType",
+                "genericAuthType": "httpHeaderAuth",
+                "options": {
+                    "response": {
+                        "response": {
+                            "responseFormat": "text"
+                        }
+                    }
+                }
+            },
+            "id": "download-transcript",
+            "name": "Download Transcript",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4.1,
+            "position": [
+                850,
+                300
+            ],
+            "credentials": {
+                "httpHeaderAuth": {
+                    "id": "YOUR_ZOOM_HEADER_AUTH_ID",
+                    "name": "Zoom Token (Header)"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "model": "gpt-4o",
+                "messages": {
+                    "values": [
+                        {
+                            "content": "=Можешь показать все ответы на ситуации игрока {{ $('Webhook').item.json.body.playerName }} (озвученная ведущим ситуация и ответ Наталии) сделать общий анализ ответов и подготовить отчет. \n\nТранскрипт:\n{{ $json.data }}"
+                        }
+                    ]
+                }
+            },
+            "id": "ai-analysis",
+            "name": "AI Agent (Analysis)",
+            "type": "@n8n/n8n-nodes-langchain.openAi",
+            "typeVersion": 1,
+            "position": [
+                1050,
+                300
+            ],
+            "credentials": {
+                "openAiApi": {
+                    "id": "YOUR_OPENAI_CREDENTIAL_ID",
+                    "name": "OpenAI Account"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "content": "={{ $json.message.content }}",
+                "height": 400,
+                "width": 600
+            },
+            "id": "debug-output",
+            "name": "Debug Output",
+            "type": "n8n-nodes-base.stickyNote",
+            "typeVersion": 1,
+            "position": [
+                1250,
+                300
+            ]
+        }
+    ],
+    "connections": {
+        "Webhook": {
+            "main": [
+                [
+                    {
+                        "node": "Zoom Get Recordings",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Zoom Get Recordings": {
+            "main": [
+                [
+                    {
+                        "node": "Filter Transcript",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Filter Transcript": {
+            "main": [
+                [
+                    {
+                        "node": "Download Transcript",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Download Transcript": {
+            "main": [
+                [
+                    {
+                        "node": "AI Agent (Analysis)",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "AI Agent (Analysis)": {
+            "main": [
+                [
+                    {
+                        "node": "Debug Output",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        }
+    }
+}
