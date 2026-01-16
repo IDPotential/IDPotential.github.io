@@ -371,7 +371,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
          stream: _firestoreService.getGameHistoryStream(), // Participant Stream
          builder: (context, partSnapshot) {
             
-            return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+            return StreamBuilder<List<Map<String, dynamic>>>(
                stream: _firestoreService.getHostGamesStream(), // Host Stream
                builder: (context, hostSnapshot) {
                   if (partSnapshot.connectionState == ConnectionState.waiting && hostSnapshot.connectionState == ConnectionState.waiting) {
@@ -415,10 +415,9 @@ class _HistoryScreenState extends State<HistoryScreen> {
                   if (hostSnapshot.hasError) {
                       debugPrint("Error loading host history: ${hostSnapshot.error}");
                   }
-                  final hostDocs = hostSnapshot.data?.docs ?? [];
-                  for (var doc in hostDocs) {
-                      final data = doc.data();
-                      if (data['isTraining'] == true) continue; // Filter out training games if any match host criteria
+                  final hostGames = hostSnapshot.data ?? [];
+                  for (var data in hostGames) {
+                      if (data['isTraining'] == true) continue; // Filter out training games
                       
                       String dateStr = (data['scheduledAt'] ?? '').toString();
                       DateTime? dateObj;
@@ -431,7 +430,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                       
                       combinedList.add({
                          'type': 'host',
-                         'docId': doc.id,
+                         'docId': data['id'],
                          'title': data['title'] ?? 'Игра (Ведущий)',
                          'dateStr': dateStr,
                          'dateObj': dateObj ?? DateTime(2000),

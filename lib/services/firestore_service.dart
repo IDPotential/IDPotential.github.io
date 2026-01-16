@@ -918,14 +918,33 @@ class FirestoreService {
         .snapshots();
   }
 
-  Stream<QuerySnapshot<Map<String, dynamic>>> getHostGamesStream() {
+  Stream<List<Map<String, dynamic>>> getHostGamesStream() {
     final user = _auth.currentUser;
     if (user == null) return const Stream.empty();
+    
+    // Fetch ALL games for this host (simpler query, no index needed)
     return _db.collection('games')
         .where('hostId', isEqualTo: user.uid)
-        .where('status', whereIn: ['finished', 'archived'])
-        .orderBy('scheduledAt', descending: true)
-        .snapshots();
+        .snapshots()
+        .map((snapshot) {
+           final docs = snapshot.docs.map((d) {
+              final data = d.data();
+              data['id'] = d.id;
+              return data;
+           }).where((data) {
+              final status = data['status'];
+              return status == 'finished' || status == 'archived';
+           }).toList();
+           
+           // Sort client-side
+           docs.sort((a, b) {
+              final tA = a['scheduledAt'] ?? '';
+              final tB = b['scheduledAt'] ?? '';
+              return tB.compareTo(tA); // Descending
+           });
+           
+           return docs;
+        });
   }
 
   // --- Training Game Mode ---
