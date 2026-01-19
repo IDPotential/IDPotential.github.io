@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:auto_size_text/auto_size_text.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import '../utils/zoom_js.dart' as zoom_js;
@@ -511,7 +512,7 @@ class _ActiveGameScreenState extends State<ActiveGameScreen> {
                                 Center(
                                     child: Padding(
                                         padding: const EdgeInsets.symmetric(horizontal: 48, vertical: 80), // Increased vertical padding
-                                        child: Text(
+                                        child: AutoSizeText(
                                             _situation['text'] ?? "",
                                             textAlign: TextAlign.center,
                                             style: const TextStyle(
@@ -521,6 +522,9 @@ class _ActiveGameScreenState extends State<ActiveGameScreen> {
                                                 color: Colors.white,
                                                 shadows: [Shadow(color: Colors.black, blurRadius: 4, offset: Offset(1,1))]
                                             ),
+                                            minFontSize: 12,
+                                            maxLines: 15,
+                                            overflow: TextOverflow.ellipsis,
                                         ),
                                     )
                                 )
@@ -880,7 +884,7 @@ class _ActiveGameScreenState extends State<ActiveGameScreen> {
                        Center(
                           child: Padding(
                              padding: const EdgeInsets.symmetric(horizontal: 48, vertical: 80),
-                             child: Text(
+                             child: AutoSizeText(
                                 _situation['text'] ?? "",
                                 textAlign: TextAlign.center,
                                 style: const TextStyle(
@@ -890,6 +894,9 @@ class _ActiveGameScreenState extends State<ActiveGameScreen> {
                                    color: Colors.white,
                                    shadows: [Shadow(color: Colors.black, blurRadius: 4, offset: Offset(1,1))]
                                 ),
+                                minFontSize: 12,
+                                maxLines: 15,
+                                overflow: TextOverflow.ellipsis,
                              ),
                           )
                        ),
