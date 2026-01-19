@@ -126,15 +126,20 @@ class _GameDetailsScreenState extends State<GameDetailsScreen> {
             // Format: "X игрок - Y роль - голос за Z"
             // Or if role is missing: "X игрок - голос за Z"
             
+            // "8 игрок - 8 роль - голос за 8 игрока"
             if (action['votedFor'] != null) {
                if (role != null) {
-                  buffer.writeln("$pNumStr игрок - $role роль - голос за $targetDisplay");
+                  final roleInfo = KnowledgeService.getRoleInfo(role);
+                  final roleName = roleInfo['role_name'] ?? '';
+                  buffer.writeln("$pNumStr игрок - $role роль ($roleName) - голос за $targetDisplay");
                } else {
                   buffer.writeln("$pNumStr игрок - голос за $targetDisplay");
                }
             } else if (role != null) {
-               // Only role revealed, no vote? (Rare, but possible if revealed without voting)
-               buffer.writeln("$pNumStr игрок - $role роль");
+               final roleInfo = KnowledgeService.getRoleInfo(role);
+               final roleName = roleInfo['role_name'] ?? '';
+               // Only role revealed, no vote?
+               buffer.writeln("$pNumStr игрок - $role роль ($roleName)");
             }
          }
          buffer.writeln(); 
