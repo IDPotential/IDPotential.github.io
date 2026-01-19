@@ -5,6 +5,7 @@ import 'package:share_plus/share_plus.dart';
 import 'package:intl/intl.dart'; // For date formatting
 import '../services/knowledge_service.dart';
 import '../widgets/role_info_dialog.dart'; // Import Custom Dialog
+import '../utils/file_saver.dart'; // Import FileSaver
 
 class GameDetailsScreen extends StatefulWidget {
   final String gameId;
@@ -115,8 +116,17 @@ class _GameDetailsScreenState extends State<GameDetailsScreen> {
          buffer.writeln(); // Empty line between rounds
       }
 
-      // 4. Share
-      await Share.share(buffer.toString(), subject: "История игры ${widget.gameTitle}");
+      // 4. Save/Share
+      final dateStr = DateFormat('yyyy-MM-dd_HH-mm').format(DateTime.now());
+      try {
+          await FileSaver.saveText(buffer.toString(), "game_history_$dateStr.txt");
+          if (mounted) {
+             ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Файл сохранен (Проверьте загрузки)"), backgroundColor: Colors.green));
+          }
+      } catch (e) {
+          // Fallback
+          await Share.share(buffer.toString(), subject: "История игры ${widget.gameTitle}");
+      }
 
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Ошибка экспорта: $e"), backgroundColor: Colors.red));

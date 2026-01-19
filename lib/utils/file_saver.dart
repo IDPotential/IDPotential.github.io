@@ -13,8 +13,28 @@ class FileSaver {
     }
   }
 
+  static Future<String> saveText(String text, String fileName) async {
+    if (kIsWeb) {
+      _saveWebText(text, fileName);
+      return 'Файл сохранен в загрузки';
+    } else {
+      // Use existing _saveFile but convert string to bytes
+      return await _saveFile(Uint8List.fromList(text.codeUnits), fileName); // Basic UTF8
+    }
+  }
+
   static void _saveWeb(Uint8List bytes, String fileName) {
     final blob = html.Blob([bytes]);
+    final url = html.Url.createObjectUrlFromBlob(blob);
+    html.AnchorElement(href: url)
+      ..setAttribute("download", fileName)
+      ..click();
+    html.Url.revokeObjectUrl(url);
+  }
+
+  static void _saveWebText(String text, String fileName) {
+    // For text, assume UTF-8
+    final blob = html.Blob([text], 'text/plain;charset=utf-8');
     final url = html.Url.createObjectUrlFromBlob(blob);
     html.AnchorElement(href: url)
       ..setAttribute("download", fileName)
