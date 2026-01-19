@@ -510,7 +510,7 @@ class _ActiveGameScreenState extends State<ActiveGameScreen> {
                             if (_situation['text'] != null && _situation['text'].toString().isNotEmpty)
                                 Center(
                                     child: Padding(
-                                        padding: const EdgeInsets.symmetric(horizontal: 48), // Match ZoomPanel padding
+                                        padding: const EdgeInsets.symmetric(horizontal: 48, vertical: 80), // Increased vertical padding
                                         child: Text(
                                             _situation['text'] ?? "",
                                             textAlign: TextAlign.center,
@@ -879,7 +879,7 @@ class _ActiveGameScreenState extends State<ActiveGameScreen> {
                        // Center Text
                        Center(
                           child: Padding(
-                             padding: const EdgeInsets.symmetric(horizontal: 48),
+                             padding: const EdgeInsets.symmetric(horizontal: 48, vertical: 80),
                              child: Text(
                                 _situation['text'] ?? "",
                                 textAlign: TextAlign.center,
