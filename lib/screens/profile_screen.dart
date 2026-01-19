@@ -10,6 +10,8 @@ import 'game_details_screen.dart';
 import '../widgets/role_info_dialog.dart';
 import '../widgets/user_matrix_widget.dart'; // Import Matrix Widget
 
+import 'package:package_info_plus/package_info_plus.dart';
+
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
 
@@ -21,6 +23,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
   final FirestoreService _firestoreService = FirestoreService();
   final AuthService _authService = AuthService(); // Use AuthService wrapper
   final FirebaseAuth _auth = FirebaseAuth.instance;
+  String _appVersion = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadVersion();
+  }
+
+  Future<void> _loadVersion() async {
+    final info = await PackageInfo.fromPlatform();
+    if (mounted) {
+       setState(() {
+          _appVersion = "${info.version} (${info.buildNumber})";
+       });
+    }
+  }
 
   // --- User Actions ---
 
@@ -609,10 +627,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   const SizedBox(height: 10),
                   _buildGameHistoryList(),
                 ],
-              ],
-            ),
-          );
-        },
+                  const SizedBox(height: 20),
+                  Center(child: Text("Версия: $_appVersion", style: const TextStyle(color: Colors.grey, fontSize: 10))),
+                  const SizedBox(height: 10),
+                ],
+              ),
+            );
+          },
       ),
     );
   }

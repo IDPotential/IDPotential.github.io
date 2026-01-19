@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:share_plus/share_plus.dart';
+import 'package:intl/intl.dart'; // For date formatting
 import '../services/knowledge_service.dart';
 import '../widgets/role_info_dialog.dart'; // Import Custom Dialog
 
-class GameDetailsScreen extends StatelessWidget {
+class GameDetailsScreen extends StatefulWidget {
   final String gameId;
   final String gameTitle;
   final int? totalScore;
@@ -21,32 +23,145 @@ class GameDetailsScreen extends StatelessWidget {
   });
 
   @override
+  State<GameDetailsScreen> createState() => _GameDetailsScreenState();
+}
+
+class _GameDetailsScreenState extends State<GameDetailsScreen> {
+  bool _isExporting = false;
+
+  Future<void> _exportGameLog() async {
+    setState(() => _isExporting = true);
+    try {
+      final db = FirebaseFirestore.instance;
+      
+      // 1. Fetch Game Data (Participants)
+      final gameDoc = await db.collection('games').doc(widget.gameId).get();
+      if (!gameDoc.exists) throw Exception("Игра не найдена");
+      
+      final gameData = gameDoc.data()!;
+      final participants = List<Map<String, dynamic>>.from(gameData['participants'] ?? []);
+      
+      // Map for quick lookup: Name -> Player Number
+      final Map<String, int> playerNumbers = {};
+      for (var p in participants) {
+        final name = p['name'] ?? 'Неизвестный';
+        final num = p['number'] ?? 0;
+        playerNumbers[name] = num;
+      }
+
+      // 2. Fetch Rounds
+      final roundsSnapshot = await db.collection('games').doc(widget.gameId).collection('rounds').orderBy('timestamp').get();
+      final rounds = roundsSnapshot.docs;
+
+      // 3. Build Text
+      final StringBuffer buffer = StringBuffer();
+      
+      // --- PLAYERS SECTION ---
+      buffer.writeln("Игроки:");
+      for (var p in participants) {
+        final name = p['name'] ?? 'Без имени';
+        final bday = p['birthDate'] ?? ''; // Assuming birthDate is stored
+        final num = p['number'] ?? '?';
+        // Format: Анастасия (31.05.1988) игрок 6
+        if (bday.toString().isNotEmpty) {
+           buffer.writeln("$name ($bday) игрок $num");
+        } else {
+           buffer.writeln("$name игрок $num");
+        }
+      }
+      buffer.writeln();
+
+      // --- TIMELINE SECTION ---
+      buffer.writeln("Ход игры:");
+      
+      for (var r in rounds) {
+         final rData = r.data();
+         final ts = rData['timestamp'] as Timestamp?;
+         final timeStr = ts != null ? DateFormat('HH:mm').format(ts.toDate()) : '';
+         final situation = rData['situation'] ?? '';
+         
+         if (timeStr.isNotEmpty) buffer.writeln(timeStr);
+         buffer.writeln(situation);
+         
+         // Actions
+         final actions = List<Map<String, dynamic>>.from(rData['actions'] ?? []);
+         for (var action in actions) {
+            final name = action['name'] ?? 'Неизвестный';
+            final role = action['role'];
+            final targetKey = action['voteTarget'] ?? ''; // Might be name or ID strings
+            // Try to resolve target Name -> Number (if voteTarget is name) or just use logic if stored
+            // Usually 'voteTarget' stores the NAME of the person voted for, or ID.
+            // Let's assume it stores NAME based on previous viewing.
+            
+            // To be precise: "4 игрок - 8 роль - голос за 7 игрока"
+            final pNum = playerNumbers[name] ?? '?';
+            
+            // Try to find target number
+            String targetDisplay = targetKey;
+            // If targetKey matches a participant name, map to number
+            if (playerNumbers.containsKey(targetKey)) {
+               targetDisplay = "${playerNumbers[targetKey]} игрока";
+            } else {
+               targetDisplay = "$targetKey";
+            }
+            
+            // "8 игрок - 8 роль - голос за 8 игрока"
+            if (role != null) {
+               buffer.writeln("$pNum игрок - $role роль - голос за $targetDisplay");
+            } else {
+               buffer.writeln("$pNum игрок - голос за $targetDisplay");
+            }
+         }
+         buffer.writeln(); // Empty line between rounds
+      }
+
+      // 4. Share
+      await Share.share(buffer.toString(), subject: "История игры ${widget.gameTitle}");
+
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Ошибка экспорта: $e"), backgroundColor: Colors.red));
+    } finally {
+      if (mounted) setState(() => _isExporting = false);
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return const Scaffold(body: Center(child: Text("Ошибка авторизации")));
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(gameTitle),
+        title: Text(widget.gameTitle),
+        actions: [
+           if (widget.isHostView)
+             IconButton(
+               icon: _isExporting 
+                 ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                 : const Icon(Icons.share),
+               tooltip: "Экспорт истории",
+               onPressed: _isExporting ? null : _exportGameLog,
+             )
+        ],
       ),
       body: Column(
         children: [
            // Header Stats (Hide for Host if not relevant, or show generic info)
-           if (!isHostView) 
+           if (!widget.isHostView) 
              Container(
                padding: const EdgeInsets.all(16),
                color: Colors.blueAccent.withOpacity(0.1),
                child: Row(
                  mainAxisAlignment: MainAxisAlignment.spaceAround,
                  children: [
-                    _buildStat("Очки", "${totalScore ?? '-'}"),
-                    _buildStat("Место", "${rank ?? '-'}"),
+                    _buildStat("Очки", "${widget.totalScore ?? '-'}"),
+                    _buildStat("Место", "${widget.rank ?? '-'}"),
                  ],
                ),
              ),
            
            Expanded(
-             child: isHostView 
+             child: widget.isHostView 
                ? _buildHostStream() 
                : _buildParticipantStream(user.uid),
            )
@@ -59,7 +174,7 @@ class GameDetailsScreen extends StatelessWidget {
     return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
       stream: FirebaseFirestore.instance
           .collection('games')
-          .doc(gameId)
+          .doc(widget.gameId)
           .collection('rounds')
           .orderBy('timestamp', descending: false)
           .snapshots(),
@@ -107,6 +222,12 @@ class GameDetailsScreen extends StatelessWidget {
                                   final votes = action['receivedVotes'] ?? 0;
                                   final answer = action['answer'];
                                   
+                                  // Formatting Name with Rol
+                                  String nameDisplay = name;
+                                  if (role != null) {
+                                     nameDisplay = "$name - Роль $role";
+                                  }
+
                                   return Padding(
                                     padding: const EdgeInsets.symmetric(vertical: 4.0),
                                     child: Row(
@@ -119,7 +240,7 @@ class GameDetailsScreen extends StatelessWidget {
                                           child: Column(
                                             crossAxisAlignment: CrossAxisAlignment.start,
                                             children: [
-                                              Text(name, style: const TextStyle(fontWeight: FontWeight.bold)),
+                                              Text(nameDisplay, style: const TextStyle(fontWeight: FontWeight.bold)),
                                               if (answer != null) Text(answer.toString(), style: const TextStyle(fontSize: 12, fontStyle: FontStyle.italic, color: Colors.white70), maxLines: 1, overflow: TextOverflow.ellipsis),
                                             ],
                                           )
@@ -151,7 +272,7 @@ class GameDetailsScreen extends StatelessWidget {
           .collection('users')
           .doc(uid)
           .collection('game_history')
-          .doc(gameId)
+          .doc(widget.gameId)
           .collection('rounds')
           .orderBy('timestamp', descending: false) // Chronological order usually better for reading history
           .snapshots(),
@@ -227,7 +348,7 @@ class GameDetailsScreen extends StatelessWidget {
                             ],
                          ),
                        )
-                    ],
+                    ]
                  ),
                );
             },

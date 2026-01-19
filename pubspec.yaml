@@ -38,6 +38,7 @@ dependencies:
   flutter_localizations:
     sdk: flutter
   record: ^6.1.2
+  package_info_plus: ^9.0.0
 
 dev_dependencies:
   flutter_test:
