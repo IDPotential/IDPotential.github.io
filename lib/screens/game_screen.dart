@@ -765,17 +765,17 @@ ToggleButtons(
               child: Column(
                  mainAxisSize: MainAxisSize.min,
                  children: [
-                    const Text("Выберите свой номер игрока (1-10)", style: TextStyle(color: Colors.white, fontSize: 16)),
+                    Text("Выберите свой номер игрока (1-$_maxPlayers)", style: const TextStyle(color: Colors.white, fontSize: 16)),
                     const SizedBox(height: 20),
                     Container(
                       width: 350, // Constraint width to ensure good look or just let Grid take space
-                      height: 180,
+                      height: _maxPlayers > 10 ? 270 : 180,
                       child: GridView.builder(
                         physics: const NeverScrollableScrollPhysics(),
                         gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                           crossAxisCount: 5, childAspectRatio: 1.0, crossAxisSpacing: 10, mainAxisSpacing: 10,
                         ),
-                        itemCount: 10,
+                        itemCount: _maxPlayers,
                         itemBuilder: (context, index) {
                            final num = index + 1;
                            final isTaken = usedNumbers.contains(num);
