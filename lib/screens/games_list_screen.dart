@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import '../services/firestore_service.dart';
 import 'game_screen.dart';
 import 'game_report_screen.dart';
@@ -16,11 +17,22 @@ class GamesListScreen extends StatefulWidget {
 class _GamesListScreenState extends State<GamesListScreen> {
   final FirestoreService _firestoreService = FirestoreService();
   bool _isAdmin = false;
+  String _appVersion = '';
 
   @override
   void initState() {
     super.initState();
     _checkAdminStatus();
+    _loadVersion();
+  }
+
+  Future<void> _loadVersion() async {
+    final info = await PackageInfo.fromPlatform();
+    if (mounted) {
+       setState(() {
+          _appVersion = "${info.version} (${info.buildNumber})";
+       });
+    }
   }
 
   Future<void> _checkAdminStatus() async {
@@ -348,7 +360,7 @@ class _GamesListScreenState extends State<GamesListScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Игровые сессии v1.53', style: TextStyle(fontSize: 16))),
+      appBar: AppBar(title: Text('Игровые сессии v$_appVersion', style: const TextStyle(fontSize: 16))),
       floatingActionButton: _isAdmin ? FloatingActionButton(
         onPressed: () => _showGameDialog(),
         child: const Icon(Icons.add),

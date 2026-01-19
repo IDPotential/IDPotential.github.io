@@ -9,8 +9,32 @@ import '../services/firestore_service.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'profile_screen.dart';
 
-class HomeScreen extends StatelessWidget {
+import 'package:package_info_plus/package_info_plus.dart';
+
+class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
+
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  String _appVersion = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadVersion();
+  }
+
+  Future<void> _loadVersion() async {
+    final info = await PackageInfo.fromPlatform();
+    if (mounted) {
+       setState(() {
+          _appVersion = "${info.version} (${info.buildNumber})";
+       });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -135,9 +159,9 @@ class HomeScreen extends StatelessWidget {
                   ),
 
                   const SizedBox(height: 20),
-                  const Text(
-                    'v1.53 (Test Games)', 
-                    style: TextStyle(color: Colors.grey, fontSize: 10),
+                  Text(
+                    'v$_appVersion', 
+                    style: const TextStyle(color: Colors.grey, fontSize: 10),
                   ),
                   const SizedBox(height: 20),
                 ],

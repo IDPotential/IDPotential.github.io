@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import '../services/auth_service.dart';
 import '../app.dart';
 
@@ -16,9 +17,25 @@ class _LoginScreenState extends State<LoginScreen> {
   final _authService = AuthService();
   
   bool _isLoading = false;
-  bool _isRegistering = false; // Toggle between Login and Register
-  bool _isTokenLogin = false; // New Mode
+  bool _isRegistering = false; 
+  bool _isTokenLogin = false; 
   String? _errorMessage;
+  String _appVersion = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadVersion();
+  }
+
+  Future<void> _loadVersion() async {
+    final info = await PackageInfo.fromPlatform();
+    if (mounted) {
+       setState(() {
+          _appVersion = "${info.version} (${info.buildNumber})";
+       });
+    }
+  }
 
   Future<void> _loginToken() async {
      final token = _passwordController.text.trim(); // We reuse password field for token input
@@ -304,7 +321,7 @@ class _LoginScreenState extends State<LoginScreen> {
                              child: const Text("Забыли пароль?", style: TextStyle(color: Colors.white38, fontSize: 12)),
                           ),
                        const SizedBox(height: 20),
-                       const Text("v1.53", style: TextStyle(color: Colors.white24, fontSize: 10)),
+                       Text("v$_appVersion", style: const TextStyle(color: Colors.white24, fontSize: 10)),
                      ],
                    ),
                  ),
