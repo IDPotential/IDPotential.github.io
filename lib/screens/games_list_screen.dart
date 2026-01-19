@@ -46,6 +46,7 @@ class _GamesListScreenState extends State<GamesListScreen> {
     bool? currentIsTestGame,
     String? currentGameType, // territory, money_queue, mafia
     bool? currentIsOffline,
+    int? currentMaxPlayers,
   }) {
     final titleController = TextEditingController(text: currentTitle);
     final zoomIdController = TextEditingController(text: currentZoomId);
@@ -62,6 +63,7 @@ class _GamesListScreenState extends State<GamesListScreen> {
     bool isOffline = currentIsOffline ?? false;
     bool isEditing = docId != null;
     String selectedGameType = currentGameType ?? 'territory';
+    int selectedMaxPlayers = currentMaxPlayers ?? 10;
     
     final Map<String, String> gameTypes = {
        'territory': 'Территория Себя',
@@ -112,6 +114,22 @@ class _GamesListScreenState extends State<GamesListScreen> {
                      items: gameTypes.entries.map((e) => DropdownMenuItem(value: e.key, child: Text(e.value))).toList(),
                      onChanged: (val) {
                         if (val != null) setStateDialog(() => selectedGameType = val);
+                     },
+                  ),
+                  const SizedBox(height: 16),
+                  
+                  DropdownButtonFormField<int>(
+                     value: selectedMaxPlayers,
+                     decoration: const InputDecoration(labelText: 'Количество игроков'),
+                     dropdownColor: const Color(0xFF1E293B),
+                     style: const TextStyle(color: Colors.white),
+                     items: const [
+                        DropdownMenuItem(value: 5, child: Text("5 Игроков")),
+                        DropdownMenuItem(value: 10, child: Text("10 Игроков")),
+                        DropdownMenuItem(value: 15, child: Text("15 Игроков")),
+                     ],
+                     onChanged: (val) {
+                        if (val != null) setStateDialog(() => selectedMaxPlayers = val);
                      },
                   ),
                   const SizedBox(height: 16),
@@ -273,6 +291,7 @@ class _GamesListScreenState extends State<GamesListScreen> {
                           isTestGame: isTestGame,
                           gameType: selectedGameType,
                           isOffline: isOffline,
+                          maxPlayers: selectedMaxPlayers,
                         );
                       } else {
                         await _firestoreService.createGame(
@@ -285,6 +304,7 @@ class _GamesListScreenState extends State<GamesListScreen> {
                           isTestGame: isTestGame,
                           isOffline: isOffline,
                           gameType: selectedGameType,
+                          maxPlayers: selectedMaxPlayers,
                         );
                       }
                       if (context.mounted) Navigator.pop(context);
@@ -403,6 +423,7 @@ class _GamesListScreenState extends State<GamesListScreen> {
                                       currentIsTestGame: game['isTestGame'],
                                       currentGameType: game['gameType'],
                                       currentIsOffline: game['isOffline'],
+                                      currentMaxPlayers: game['maxPlayers'],
                                    );
                                 } else if (value == 'delete') {
                                    _deleteGame(docId, game['title'] ?? '');

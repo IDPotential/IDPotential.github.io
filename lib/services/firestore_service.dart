@@ -513,6 +513,7 @@ class FirestoreService {
       bool? isTestGame,
       String gameType = 'territory',
       bool isOffline = false,
+      int maxPlayers = 10,
   }) async {
     final user = _auth.currentUser;
     if (user == null) throw Exception("User not logged in");
@@ -542,6 +543,7 @@ class FirestoreService {
       'hostName': userName,
       'title': title,
       'gameType': gameType, // Storing game type
+      'maxPlayers': maxPlayers,
       'scheduledAt': date.toIso8601String(),
       'zoomId': zoomId,
       'zoomPassword': zoomPassword,
@@ -567,6 +569,7 @@ class FirestoreService {
       bool? isTestGame,
       String? gameType,
       bool? isOffline,
+      int? maxPlayers,
   }) async {
     final Map<String, dynamic> data = {
       'title': title,
@@ -574,6 +577,7 @@ class FirestoreService {
       'zoomId': zoomId,
       'zoomPassword': zoomPassword,
     };
+    if (maxPlayers != null) data['maxPlayers'] = maxPlayers;
 
     if (gameType != null) data['gameType'] = gameType;
 

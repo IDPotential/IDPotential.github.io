@@ -60,6 +60,7 @@ class _GameScreenState extends State<GameScreen> {
   String _roomName = '';
   int? _playerNumber; // 1-8
   bool _isCheckingStatus = false;
+  int _maxPlayers = 10; // Default limit
 
   @override
   void initState() {
@@ -232,6 +233,7 @@ class _GameScreenState extends State<GameScreen> {
              _gameStats = data['stats'] ?? {};
              _zoomId = data['zoomId'];
              _zoomPassword = data['zoomPassword'];
+             _maxPlayers = data['maxPlayers'] ?? 10;
            });
         }
      }, onError: (e) {
