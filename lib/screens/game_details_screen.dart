@@ -35,19 +35,26 @@ class _GameDetailsScreenState extends State<GameDetailsScreen> {
     try {
       final db = FirebaseFirestore.instance;
       
-      // 1. Fetch Game Data (Participants)
-      final gameDoc = await db.collection('games').doc(widget.gameId).get();
-      if (!gameDoc.exists) throw Exception("Игра не найдена");
+      // 1. Fetch Participants from Subcollection (More reliable than doc array)
+      final participantsSnapshot = await db.collection('games').doc(widget.gameId).collection('participants').get();
+      final participants = participantsSnapshot.docs.map((d) => d.data()).toList();
       
-      final gameData = gameDoc.data()!;
-      final participants = List<Map<String, dynamic>>.from(gameData['participants'] ?? []);
+      // Map for quick lookup: Name/ID -> Player Number
+      final Map<String, int> nameToNumber = {};
+      final Map<String, int> idToNumber = {};
       
-      // Map for quick lookup: Name -> Player Number
-      final Map<String, int> playerNumbers = {};
-      for (var p in participants) {
+      for (var doc in participantsSnapshot.docs) {
+        final p = doc.data();
+        final uid = doc.id; // UID is the doc ID
         final name = p['name'] ?? 'Неизвестный';
-        final num = p['number'] ?? 0;
-        playerNumbers[name] = num;
+        final num = p['playerNumber'] ?? 0;
+        
+        if (num > 0) {
+           nameToNumber[name] = num;
+           idToNumber[uid] = num;
+           // Also capture by userId field if present
+           if (p['userId'] != null) idToNumber[p['userId']] = num;
+        }
       }
 
       // 2. Fetch Rounds
@@ -59,10 +66,14 @@ class _GameDetailsScreenState extends State<GameDetailsScreen> {
       
       // --- PLAYERS SECTION ---
       buffer.writeln("Игроки:");
+      
+      // Sort participants by number
+      participants.sort((a, b) => (a['playerNumber'] ?? 99).compareTo(b['playerNumber'] ?? 99));
+      
       for (var p in participants) {
         final name = p['name'] ?? 'Без имени';
-        final bday = p['birthDate'] ?? ''; // Assuming birthDate is stored
-        final num = p['number'] ?? '?';
+        final bday = p['birthDate'] ?? ''; 
+        final num = p['playerNumber'] ?? '?';
         // Format: Анастасия (31.05.1988) игрок 6
         if (bday.toString().isNotEmpty) {
            buffer.writeln("$name ($bday) игрок $num");
@@ -89,31 +100,44 @@ class _GameDetailsScreenState extends State<GameDetailsScreen> {
          for (var action in actions) {
             final name = action['name'] ?? 'Неизвестный';
             final role = action['role'];
-            final targetKey = action['voteTarget'] ?? ''; // Might be name or ID strings
-            // Try to resolve target Name -> Number (if voteTarget is name) or just use logic if stored
-            // Usually 'voteTarget' stores the NAME of the person voted for, or ID.
-            // Let's assume it stores NAME based on previous viewing.
+            final votedForId = action['votedFor']; // UID of target
             
-            // To be precise: "4 игрок - 8 роль - голос за 7 игрока"
-            final pNum = playerNumbers[name] ?? '?';
+            // Resolve Player Number
+            // First check action itself, then lookup
+            int pNum = action['playerNumber'] ?? nameToNumber[name] ?? 0;
+            String pNumStr = pNum > 0 ? "$pNum" : "?";
             
-            // Try to find target number
-            String targetDisplay = targetKey;
-            // If targetKey matches a participant name, map to number
-            if (playerNumbers.containsKey(targetKey)) {
-               targetDisplay = "${playerNumbers[targetKey]} игрока";
-            } else {
-               targetDisplay = "$targetKey";
+            // Resolve Target
+            String targetDisplay = "";
+            if (votedForId != null) {
+                // Try ID first
+                int targetNum = idToNumber[votedForId] ?? 0;
+                // If not found by ID, maybe it was a name (legacy)
+                if (targetNum == 0) targetNum = nameToNumber[votedForId] ?? 0;
+                
+                if (targetNum > 0) {
+                    targetDisplay = "$targetNum"; 
+                } else {
+                     // Fallback, maybe just display "..."
+                    targetDisplay = "?";
+                }
             }
             
-            // "8 игрок - 8 роль - голос за 8 игрока"
-            if (role != null) {
-               buffer.writeln("$pNum игрок - $role роль - голос за $targetDisplay");
-            } else {
-               buffer.writeln("$pNum игрок - голос за $targetDisplay");
+            // Format: "X игрок - Y роль - голос за Z"
+            // Or if role is missing: "X игрок - голос за Z"
+            
+            if (action['votedFor'] != null) {
+               if (role != null) {
+                  buffer.writeln("$pNumStr игрок - $role роль - голос за $targetDisplay");
+               } else {
+                  buffer.writeln("$pNumStr игрок - голос за $targetDisplay");
+               }
+            } else if (role != null) {
+               // Only role revealed, no vote? (Rare, but possible if revealed without voting)
+               buffer.writeln("$pNumStr игрок - $role роль");
             }
          }
-         buffer.writeln(); // Empty line between rounds
+         buffer.writeln(); 
       }
 
       // 4. Save/Share
@@ -121,15 +145,15 @@ class _GameDetailsScreenState extends State<GameDetailsScreen> {
       try {
           await FileSaver.saveText(buffer.toString(), "game_history_$dateStr.txt");
           if (mounted) {
-             ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Файл сохранен (Проверьте загрузки)"), backgroundColor: Colors.green));
+             ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Файл сохранен"), backgroundColor: Colors.green));
           }
       } catch (e) {
-          // Fallback
           await Share.share(buffer.toString(), subject: "История игры ${widget.gameTitle}");
       }
 
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Ошибка экспорта: $e"), backgroundColor: Colors.red));
+      debugPrint("Export Error: $e");
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Ошибка экспорта"), backgroundColor: Colors.red));
     } finally {
       if (mounted) setState(() => _isExporting = false);
     }
