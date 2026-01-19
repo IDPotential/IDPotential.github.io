@@ -266,12 +266,20 @@ class _ResultScreenState extends State<ResultScreen> {
                 title: const Text('Telegram'),
                 onTap: () {
                   Navigator.pop(context);
-                  // For Telegram Web Share: https://t.me/share/url?url={url}&text={text}
-                  // If we only have text, we can try putting it all in text, or use a dummy URL.
-                  // BETTER: Use just text param if no URL.
-                  // BUT: t.me/share/url REQUIRES url param usually. 
-                  // Let's use the app URL as the shared URL and the result in text.
-                  _launchSocial('https://t.me/share/url?url=${Uri.encodeComponent("https://idpotential.github.io")}&text=${Uri.encodeComponent(text)}');
+                  // Copy full report to clipboard
+                  Clipboard.setData(ClipboardData(text: text)).then((_) {
+                       if (mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                                content: Text('Отчет скопирован! Выберите чат и нажмите Вставить.'), 
+                                duration: Duration(seconds: 4),
+                                backgroundColor: Colors.green
+                            ),
+                          );
+                       }
+                       // Open Telegram with just the link/subject
+                       _launchSocial('https://t.me/share/url?url=${Uri.encodeComponent("https://idpotential.github.io")}&text=${Uri.encodeComponent("Результат диагностики: ${widget.calculation.name}")}');
+                  });
                 },
               ),
               ListTile(
