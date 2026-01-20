@@ -3,7 +3,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:auto_size_text/auto_size_text.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/foundation.dart';
 import '../utils/zoom_js.dart' as zoom_js;
 import '../utils/registry.dart'; 
 import '../services/calculator_service.dart';
@@ -19,7 +19,7 @@ import 'package:record/record.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:universal_io/io.dart';
 import 'package:universal_html/html.dart' as html;
-import 'package:flutter/foundation.dart' show kIsWeb;
+
 import '../services/database_service.dart';
 // import '../utils/situations_data.dart'; // Removed after migration
 
