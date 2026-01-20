@@ -163,15 +163,45 @@ class _ActiveGameScreenState extends State<ActiveGameScreen> {
       final user = FirebaseAuth.instance.currentUser;
       final userName = user?.displayName ?? widget.gameProfile?.name.split(' ')[0] ?? "Player";
 
-      final bool isMobileWeb = kIsWeb && (defaultTargetPlatform == TargetPlatform.iOS || defaultTargetPlatform == TargetPlatform.android);
+      // Web: Check for Telegram User Agent
+      if (kIsWeb) {
+          final userAgent = html.window.navigator.userAgent;
+          if (userAgent.contains('Telegram')) {
+              showDialog(
+                 context: context,
+                 builder: (context) => AlertDialog(
+                    title: const Text("Видео недоступно в Telegram"),
+                    content: Column(
+                       mainAxisSize: MainAxisSize.min,
+                       children: [
+                          const Text("Откройте веб версию в другом браузере нажав на эту ссылку длинным нажатием и выбрав \"Open in...\""),
+                          const SizedBox(height: 16),
+                          SelectableText(
+                             Uri.base.toString(),
+                             style: const TextStyle(color: Colors.blueAccent, decoration: TextDecoration.underline),
+                             textAlign: TextAlign.center,
+                          )
+                       ],
+                    ),
+                    actions: [
+                       TextButton(onPressed: () => Navigator.pop(context), child: const Text("ОК"))
+                    ],
+                 )
+              );
+              return;
+          }
+      }
 
-      // Mobile (Native or Web): Launch Zoom App externally
-      if (!kIsWeb || isMobileWeb) {
+      // Mobile (Native App): Launch Zoom App externally
+      if (!kIsWeb) {
          final Uri zoomUri = Uri.parse("https://zoom.us/j/$_zoomId?pwd=${_zoomPassword ?? ''}&uname=${Uri.encodeComponent(userName)}");
          
          try {
-            // Force external application mode for mobile web to ensure it leaves the WebView (especially Telegram)
-            await launchUrl(zoomUri, mode: LaunchMode.externalApplication);
+             if (await canLaunchUrl(zoomUri)) {
+                await launchUrl(zoomUri, mode: LaunchMode.externalApplication);
+             } else {
+                await launchUrl(Uri.parse("https://zoom.us/j/$_zoomId"), mode: LaunchMode.externalApplication);
+             }
          } catch (e) {
             debugPrint("Could not launch Zoom: $e");
             if (mounted) {
