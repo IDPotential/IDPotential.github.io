@@ -163,22 +163,22 @@ class _ActiveGameScreenState extends State<ActiveGameScreen> {
       final user = FirebaseAuth.instance.currentUser;
       final userName = user?.displayName ?? widget.gameProfile?.name.split(' ')[0] ?? "Player";
 
-      // Mobile: Launch Zoom App externally
-      if (!kIsWeb) {
+      final bool isMobileWeb = kIsWeb && (defaultTargetPlatform == TargetPlatform.iOS || defaultTargetPlatform == TargetPlatform.android);
+
+      // Mobile (Native or Web): Launch Zoom App externally
+      if (!kIsWeb || isMobileWeb) {
          final Uri zoomUri = Uri.parse("https://zoom.us/j/$_zoomId?pwd=${_zoomPassword ?? ''}&uname=${Uri.encodeComponent(userName)}");
          
          try {
-            if (await canLaunchUrl(zoomUri)) {
-               await launchUrl(zoomUri, mode: LaunchMode.externalApplication);
-            } else {
-               // Fallback: Try generic link if specific scheme fails
-               await launchUrl(Uri.parse("https://zoom.us/j/$_zoomId"), mode: LaunchMode.externalApplication);
-            }
+            // Force external application mode for mobile web to ensure it leaves the WebView (especially Telegram)
+            await launchUrl(zoomUri, mode: LaunchMode.externalApplication);
          } catch (e) {
             debugPrint("Could not launch Zoom: $e");
-            ScaffoldMessenger.of(context).showSnackBar(
-               SnackBar(content: Text("Ошибка запуска Zoom: $e"), backgroundColor: Colors.red),
-            );
+            if (mounted) {
+               ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text("Ошибка запуска Zoom: $e"), backgroundColor: Colors.red),
+               );
+            }
          }
          return; 
       }
