@@ -11,6 +11,7 @@ import '../services/firestore_service.dart';
 import '../services/knowledge_service.dart';
 import '../services/config_service.dart';
 import '../models/calculation.dart';
+import '../widgets/mafia/mafia_game_panel.dart';
 import 'package:intl/intl.dart';
 import 'dart:math';
 import 'dart:async';
@@ -53,6 +54,7 @@ class _ActiveGameScreenState extends State<ActiveGameScreen> {
   Map<String, dynamic> _gameStats = {};
   String? _zoomId;
   String? _zoomPassword;
+  String _gameType = 'territory'; // Default
 
   // Player State
   String? _participantStatus;
@@ -116,6 +118,7 @@ class _ActiveGameScreenState extends State<ActiveGameScreen> {
               _targetGameTitle = data['title'];
               _situation = data['situation'] ?? {};
               _isOfflineMode = data['isOffline'] ?? false;
+              _gameType = data['gameType'] ?? 'territory';
             });
             
             // Allow Host/Controller to fetch situations once
@@ -257,6 +260,19 @@ class _ActiveGameScreenState extends State<ActiveGameScreen> {
                    builder: (context, constraints) {
                       bool isLandscape = constraints.maxWidth > constraints.maxHeight;
                       
+                      Widget dashboard;
+                      if (_gameType == 'mafia') {
+                          dashboard = MafiaGamePanel(
+                              gameId: _targetGameId,
+                              isHost: widget.isHost,
+                              currentUserId: FirebaseAuth.instance.currentUser?.uid ?? '',
+                          );
+                      } else {
+                          dashboard = widget.isHost && _gameStatus != 'archived'
+                                  ? _buildHostDashboard()
+                                  : _buildPlayerDashboard();
+                      }
+
                       if (isLandscape) {
                         return Row(
                            crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -279,9 +295,7 @@ class _ActiveGameScreenState extends State<ActiveGameScreen> {
                               // Right: Dashboard
                               Expanded(
                                 flex: 4,
-                                child: widget.isHost && _gameStatus != 'archived'
-                                  ? _buildHostDashboard()
-                                  : _buildPlayerDashboard(),
+                                child: dashboard,
                               ),
                            ],
                         );
@@ -305,10 +319,8 @@ class _ActiveGameScreenState extends State<ActiveGameScreen> {
                              const Divider(height: 1, thickness: 1, color: Colors.grey),
                              // Bottom Section: Dashboard
                              Expanded(
-                               flex: 5,
-                               child: widget.isHost && _gameStatus != 'archived'
-                                 ? _buildHostDashboard()
-                                 : _buildPlayerDashboard(),
+                                flex: 5,
+                                child: dashboard,
                              ),
                            ],
                          );

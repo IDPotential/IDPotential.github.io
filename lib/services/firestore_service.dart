@@ -554,6 +554,14 @@ class FirestoreService {
       'status': 'scheduled',
       'stage': 'selection', // Default stage
       'createdAt': FieldValue.serverTimestamp(),
+      if (gameType == 'mafia')
+        'mafiaState': {
+           'phase': 'lobby',
+           'turn': 0,
+           'isDay': true,
+           'roles': {}, // UID -> Role
+           'alivePlayers': [], // List of UIDs
+        }
     });
     
     return docRef.id;
