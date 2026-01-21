@@ -144,16 +144,45 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<void> _resetPassword() async {
-     final email = _emailController.text.trim();
-     if (email.isEmpty) {
-        setState(() => _errorMessage = "Введите email для сброса пароля");
-        return;
-     }
-     try {
-        await _authService.sendPasswordResetEmail(email);
-        _showSuccess("Письмо для сброса отправлено на $email");
-     } catch (e) {
-        _handleError(e);
+     String email = _emailController.text.trim();
+     
+     // Show dialog to confirm or enter email
+     final result = await showDialog<String>(
+        context: context,
+        builder: (ctx) {
+           final ctrl = TextEditingController(text: email);
+           return AlertDialog(
+              title: const Text("Сброс пароля"),
+              content: Column(
+                 mainAxisSize: MainAxisSize.min,
+                 children: [
+                    const Text("Введите ваш email, и мы отправим вам ссылку для сброса пароля."),
+                    const SizedBox(height: 16),
+                    TextField(
+                       controller: ctrl,
+                       keyboardType: TextInputType.emailAddress,
+                       decoration: const InputDecoration(labelText: "Email", border: OutlineInputBorder()),
+                    )
+                 ],
+              ),
+              actions: [
+                 TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("Отмена")),
+                 ElevatedButton(
+                    onPressed: () => Navigator.pop(ctx, ctrl.text.trim()),
+                    child: const Text("Отправить")
+                 )
+              ],
+           );
+        }
+     );
+
+     if (result != null && result.isNotEmpty) {
+        try {
+           await _authService.sendPasswordResetEmail(result);
+           _showSuccess("Письмо для сброса отправлено на $result");
+        } catch (e) {
+           _handleError(e);
+        }
      }
   }
 
@@ -318,7 +347,7 @@ class _LoginScreenState extends State<LoginScreen> {
                        if (!_isRegistering && !_isTokenLogin)
                           TextButton(
                              onPressed: _resetPassword,
-                             child: const Text("Забыли пароль?", style: TextStyle(color: Colors.white38, fontSize: 12)),
+                             child: const Text("Забыли пароль?", style: TextStyle(color: Colors.white70, fontSize: 14)),
                           ),
                        const SizedBox(height: 20),
                        Text("v$_appVersion", style: const TextStyle(color: Colors.white24, fontSize: 10)),
