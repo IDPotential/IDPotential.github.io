@@ -46,6 +46,8 @@ class _MyAppState extends State<MyApp> {
       await Firebase.initializeApp(
         options: DefaultFirebaseOptions.currentPlatform,
       );
+      // Set localization for Auth (Emails, SMS)
+      FirebaseAuth.instance.setLanguageCode('ru');
       
       // 2. Config
       _loadingStatus.value = "Загрузка конфигурации...";
