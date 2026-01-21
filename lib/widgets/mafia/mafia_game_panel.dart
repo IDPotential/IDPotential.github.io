@@ -4,6 +4,7 @@ import 'mafia_host_controls.dart';
 import 'night_phase_widget.dart';
 import 'day_phase_widget.dart';
 import 'voting_widget.dart';
+import 'mafia_lobby_widget.dart';
 
 class MafiaGamePanel extends StatelessWidget {
   final String gameId;
@@ -86,7 +87,7 @@ class MafiaGamePanel extends StatelessWidget {
       case 'voting':
          return VotingWidget(gameId: gameId, participants: participants, isHost: isHost);
       default: // lobby
-        return Center(child: Text("Ожидание начала игры... (Распределение ролей)", style: TextStyle(color: Colors.white54)));
+        return MafiaLobbyWidget(gameId: gameId, participants: participants, isHost: isHost);
     }
   }
 }
