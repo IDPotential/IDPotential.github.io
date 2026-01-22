@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import '../../services/firestore_service.dart';
 
 class MafiaHostControls extends StatefulWidget {
   final String gameId;
@@ -19,8 +18,6 @@ class MafiaHostControls extends StatefulWidget {
 }
 
 class _MafiaHostControlsState extends State<MafiaHostControls> {
-  final FirestoreService _firestoreService = FirestoreService();
-
   // Roles configuration
   final Map<String, int> _roleCounts = {
     'mafia': 2,
