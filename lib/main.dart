@@ -2,6 +2,7 @@ import 'dart:async'; // Imported for runZonedGuarded
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'screens/festival_screen.dart'; // Import
 import 'app.dart';
 import 'screens/login_screen.dart';
 import 'services/database_service.dart';
@@ -150,6 +151,9 @@ class _MyAppState extends State<MyApp> {
           unselectedItemColor: Colors.white54,
           elevation: 0,
         ),
+        routes: {
+          '/festival': (context) => const FestivalScreen(),
+        },
       ),
       home: FutureBuilder(
         future: _initFuture,
