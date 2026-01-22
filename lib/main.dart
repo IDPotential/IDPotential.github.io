@@ -151,10 +151,10 @@ class _MyAppState extends State<MyApp> {
           unselectedItemColor: Colors.white54,
           elevation: 0,
         ),
-        routes: {
-          '/festival': (context) => const FestivalScreen(),
-        },
       ),
+      routes: {
+        '/festival': (context) => const FestivalScreen(),
+      },
       home: FutureBuilder(
         future: _initFuture,
         builder: (context, snapshot) {
