@@ -45,11 +45,23 @@ class MafiaGamePanel extends StatelessWidget {
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                   color: Colors.black54,
                   child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
+                      // Home Button (New)
+                      IconButton(
+                        icon: const Icon(Icons.home, color: Colors.white70),
+                        tooltip: 'В меню',
+                        onPressed: () => Navigator.pop(context),
+                      ),
+                      const SizedBox(width: 8),
+                      // Phase Info
                       Text("Фаза: $phase", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                      if (isHost)
+                      
+                      const Spacer(),
+                      
+                      if (isHost) ...[
                         const Text("Ведущий", style: TextStyle(color: Colors.amber, fontSize: 12)),
+                        const SizedBox(width: 8),
+                      ]
                     ],
                   ),
                 ),
