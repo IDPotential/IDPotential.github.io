@@ -166,3 +166,4 @@ class _MafiaHostControlsState extends State<MafiaHostControls> {
           'mafiaState.current_role_turn': role
        });
   }
+}
