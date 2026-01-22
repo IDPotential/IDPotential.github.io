@@ -73,10 +73,10 @@ class FestivalScreen extends StatelessWidget {
                             colors: [Color(0xFFE0C3FC), Color(0xFF8EC5FC)],
                           ).createShader(bounds),
                           child: const Text(
-                            "ФЕСТИВАЛЬ\nИГРОПРАКТИК",
+                            "ТЕРРИТОРИЯ\nИГРЫ",
                             textAlign: TextAlign.center,
                             style: TextStyle(
-                              fontSize: 42, // Adjusted for longer text
+                              fontSize: 48,
                               height: 0.9,
                               fontWeight: FontWeight.w900,
                               color: Colors.white, // Masked
@@ -93,7 +93,7 @@ class FestivalScreen extends StatelessWidget {
                             color: Colors.white.withOpacity(0.05),
                           ),
                           child: const Text(
-                            "ТЕРРИТОРИЯ ВАШЕГО МАСШТАБА",
+                            "СИСТЕМНАЯ ПЛОЩАДКА ДЛЯ РОСТА",
                             textAlign: TextAlign.center,
                             style: TextStyle(color: Colors.white70, fontSize: 12, letterSpacing: 1.5, fontWeight: FontWeight.bold),
                           ),
@@ -106,16 +106,29 @@ class FestivalScreen extends StatelessWidget {
 
                   // LOCATION
                   Center(
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Icon(Icons.location_on, color: Colors.redAccent, size: 20),
-                        const SizedBox(width: 8),
-                        Text(
-                          "Пространство АТС, Ул.Некрасова, 3-5",
-                          style: TextStyle(color: Colors.white.withOpacity(0.9), fontSize: 14),
-                        ),
-                      ],
+                    child: Column(
+                       children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const Icon(Icons.location_on, color: Colors.redAccent, size: 20),
+                              const SizedBox(width: 8),
+                              Text(
+                                "Пространство АТС, Ул.Некрасова, 3-5",
+                                style: TextStyle(color: Colors.white.withOpacity(0.9), fontSize: 14),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          const Padding(
+                             padding: EdgeInsets.symmetric(horizontal: 32),
+                             child: Text(
+                               "Историческое место, где соединялись линии связи. Мы превратим его в центр коммуникации смыслов.",
+                               textAlign: TextAlign.center,
+                               style: TextStyle(color: Colors.white54, fontSize: 12),
+                             ),
+                          ),
+                       ],
                     ),
                   ),
 
@@ -127,18 +140,38 @@ class FestivalScreen extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         const Text(
-                          "О ФЕСТИВАЛЕ",
+                          "ТЕХНОЛОГИИ ПРОРЫВА",
                           style: TextStyle(color: Colors.white54, fontSize: 12, letterSpacing: 2),
                         ),
                         const SizedBox(height: 16),
                         const Text(
-                          "Миссия: Создание единой экосистемы, где внутренняя готовность эксперта встречается с передовыми технологиями и мощным сообществом.",
-                          style: TextStyle(color: Colors.white, fontSize: 16, height: 1.5),
+                          "1. ДИАГНОСТИКА И КОД",
+                          style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+                        ),
+                        const SizedBox(height: 4),
+                        const Text(
+                          "Система 22 архетипов (ИДП) и функциональные задачи мозга. Переход от описания личности к пониманию движущих сил.",
+                          style: TextStyle(color: Colors.white70, fontSize: 14),
                         ),
                          const SizedBox(height: 16),
                         const Text(
-                          "Это не просто конференция, а «точка сборки» и главный праздник года для практиков. Мы объединили Психологию, Технологии и Среду для вашего роста.",
-                          style: TextStyle(color: Colors.white70, fontSize: 14, height: 1.5),
+                          "2. ВНУТРЕННИЕ ОПОРЫ",
+                          style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+                        ),
+                        const SizedBox(height: 4),
+                        const Text(
+                          "Синтез стратегий подсознания и телесный интеллект. Технология «5х5» для движения сквозь страх масштаба.",
+                          style: TextStyle(color: Colors.white70, fontSize: 14),
+                        ),
+                         const SizedBox(height: 16),
+                        const Text(
+                          "3. СИНЕРГИЯ И ВЫХОД В СВЕТ",
+                          style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+                        ),
+                        const SizedBox(height: 4),
+                        const Text(
+                          "Магия перекрестного роста и живые демо-сеты. Единая афиша и круг доверия профессионального сообщества.",
+                          style: TextStyle(color: Colors.white70, fontSize: 14),
                         ),
                       ],
                     ),

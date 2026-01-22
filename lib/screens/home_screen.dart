@@ -255,11 +255,11 @@ class _HomeScreenState extends State<HomeScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        "ФЕСТИВАЛЬ ИГРОПРАКТИК",
+                        "ТЕРРИТОРИЯ ИГРЫ",
                         style: TextStyle(
                           color: Colors.white,
                           fontWeight: FontWeight.w900,
-                          fontSize: 18, // Reduced slightly to fit
+                          fontSize: 18,
                           letterSpacing: 1,
                         ),
                       ),
