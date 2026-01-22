@@ -14,6 +14,7 @@ class AppHome extends StatefulWidget {
 
 class _AppHomeState extends State<AppHome> {
   int _selectedIndex = 0;
+  late PageController _pageController;
   
   final List<Widget> _screens = [
     const HomeScreen(),
@@ -30,6 +31,32 @@ class _AppHomeState extends State<AppHome> {
   ];
 
   @override
+  void initState() {
+    super.initState();
+    _pageController = PageController(initialPage: _selectedIndex);
+  }
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
+
+  void _onPageChanged(int index) {
+    setState(() {
+      _selectedIndex = index;
+    });
+  }
+
+  void _onItemTapped(int index) {
+    _pageController.animateToPage(
+      index,
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeInOut,
+    );
+  }
+
+  @override
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -43,18 +70,18 @@ class _AppHomeState extends State<AppHome> {
                  children: [
                    // Main Content
                    Expanded(
-                     child: _screens[_selectedIndex],
+                     child: PageView(
+                       controller: _pageController,
+                       onPageChanged: _onPageChanged,
+                       children: _screens,
+                     ),
                    ),
                    // Vertical Divider
                    const VerticalDivider(width: 1, thickness: 1, color: Colors.white12),
                    // Navigation Rail (Right Side)
                    NavigationRail(
                      selectedIndex: _selectedIndex,
-                     onDestinationSelected: (index) {
-                       setState(() {
-                         _selectedIndex = index;
-                       });
-                     },
+                     onDestinationSelected: _onItemTapped,
                      labelType: NavigationRailLabelType.all,
                      backgroundColor: const Color(0xFF0F172A),
                      selectedIconTheme: const IconThemeData(color: Color(0xFF3B82F6)),
@@ -87,15 +114,15 @@ class _AppHomeState extends State<AppHome> {
         } else {
           return Scaffold(
             appBar: null,
-            body: _screens[_selectedIndex],
+            body: PageView(
+              controller: _pageController,
+              onPageChanged: _onPageChanged,
+              children: _screens,
+            ),
             bottomNavigationBar: SafeArea(
               child: BottomNavigationBar(
                 currentIndex: _selectedIndex,
-                onTap: (index) {
-                  setState(() {
-                    _selectedIndex = index;
-                  });
-                },
+                onTap: _onItemTapped,
                 type: BottomNavigationBarType.fixed,
                 items: const [
                   BottomNavigationBarItem(

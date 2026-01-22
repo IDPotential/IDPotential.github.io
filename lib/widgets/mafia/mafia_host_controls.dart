@@ -86,34 +86,86 @@ class _MafiaHostControlsState extends State<MafiaHostControls> {
         padding: const EdgeInsets.all(8.0),
         child: Column(
            crossAxisAlignment: CrossAxisAlignment.start,
+           mainAxisSize: MainAxisSize.min,
            children: [
               const Text("Панель Ведущего", style: TextStyle(color: Colors.amber, fontWeight: FontWeight.bold)),
               const SizedBox(height: 8),
-              Wrap(
-                 spacing: 8,
+              // Main Phase Controls (Icons)
+              Row(
+                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                  children: [
+                    IconButton(
+                       icon: const Icon(Icons.wb_sunny),
+                       color: widget.mafiaState['phase'] == 'day' ? Colors.orange : Colors.grey,
+                       tooltip: "День",
+                       onPressed: () => _nextPhase('day'),
+                    ),
+                    IconButton(
+                       icon: const Icon(Icons.how_to_vote),
+                       color: widget.mafiaState['phase'] == 'voting' ? Colors.blue : Colors.grey,
+                       tooltip: "Голосование",
+                       onPressed: () => _nextPhase('voting'),
+                    ),
+                    IconButton(
+                       icon: const Icon(Icons.nightlight_round),
+                       color: widget.mafiaState['phase'] == 'night' ? Colors.indigoAccent : Colors.grey,
+                       tooltip: "Ночь",
+                       onPressed: () => _nextPhase('night'),
+                    ),
+                    const SizedBox(width: 16),
                     ElevatedButton(
                        onPressed: _distributeRoles, 
-                       style: ElevatedButton.styleFrom(backgroundColor: Colors.purple),
-                       child: const Text("Раздать роли и Начать")
-                    ),
-                    ElevatedButton(
-                       onPressed: () => _nextPhase('day'), 
-                       child: const Text("День")
-                    ),
-                    ElevatedButton(
-                       onPressed: () => _nextPhase('voting'), 
-                       child: const Text("Голосование")
-                    ),
-                    ElevatedButton(
-                       onPressed: () => _nextPhase('night'), 
-                       child: const Text("Ночь")
+                       style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.purple.withOpacity(0.5),
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8)
+                       ),
+                       child: const Text("Рестарт/Роли", style: TextStyle(fontSize: 12))
                     ),
                  ],
-              )
+              ),
+              
+              // Night Controls (Only visible at Night)
+              if (widget.mafiaState['phase'] == 'night') ...[
+                 const Divider(color: Colors.white24),
+                 SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                       mainAxisAlignment: MainAxisAlignment.start,
+                       children: [
+                          _buildNightRoleButton('mafia', Icons.groups, Colors.red),
+                          _buildNightRoleButton('don', Icons.star, Colors.redAccent),
+                          _buildNightRoleButton('sheriff', Icons.local_police, Colors.blue),
+                          _buildNightRoleButton('doctor', Icons.medical_services, Colors.green),
+                          _buildNightRoleButton('mirror', Icons.remove_red_eye, Colors.teal), // Mirror icon
+                          // Add more as needed
+                       ],
+                    ),
+                 ),
+              ],
            ],
         ),
       ),
     );
   }
-}
+
+  Widget _buildNightRoleButton(String role, IconData icon, Color color) {
+     final currentTurn = widget.mafiaState['current_role_turn'];
+     final isActive = currentTurn == role;
+     
+     return Padding(
+       padding: const EdgeInsets.symmetric(horizontal: 4.0),
+       child: IconButton(
+          icon: Icon(icon),
+          color: isActive ? color : Colors.grey[700],
+          iconSize: 32,
+          tooltip: role.toUpperCase(),
+          onPressed: () => _setNightTurn(role),
+       ),
+     );
+  }
+
+  Future<void> _setNightTurn(String role) async {
+       await FirebaseFirestore.instance.collection('games').doc(widget.gameId).update({
+          'mafiaState.current_role_turn': role
+       });
+  }
