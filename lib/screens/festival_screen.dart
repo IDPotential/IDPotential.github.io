@@ -54,16 +54,17 @@ class FestivalScreen extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // HERO SECTION
+                   // --- HERO SECTION ---
                   Center(
                     child: Column(
                       children: [
                         Text(
-                          "21 ФЕВРАЛЯ 2026",
+                          "21 ФЕВРАЛЯ 2026 • 12:00 – 18:00",
+                          textAlign: TextAlign.center,
                           style: TextStyle(
                             color: Colors.white.withOpacity(0.8),
-                            fontSize: 16,
-                            letterSpacing: 4,
+                            fontSize: 14,
+                            letterSpacing: 2,
                             fontWeight: FontWeight.w600,
                           ),
                         ),
@@ -80,7 +81,6 @@ class FestivalScreen extends StatelessWidget {
                               height: 0.9,
                               fontWeight: FontWeight.w900,
                               color: Colors.white, // Masked
-                              fontFamily: 'Roboto', 
                             ),
                           ),
                         ),
@@ -121,7 +121,7 @@ class FestivalScreen extends StatelessWidget {
                           ),
                           const SizedBox(height: 8),
                           const Padding(
-                             padding: EdgeInsets.symmetric(horizontal: 32),
+                             padding: EdgeInsets.symmetric(horizontal: 16),
                              child: Text(
                                "Историческое место, где соединялись линии связи. Мы превратим его в центр коммуникации смыслов.",
                                textAlign: TextAlign.center,
@@ -132,108 +132,159 @@ class FestivalScreen extends StatelessWidget {
                     ),
                   ),
 
-                  const SizedBox(height: 40),
+                  const SizedBox(height: 50),
 
-                  // ABOUT SECTION (Glassmorphism)
+                  // --- VISITOR SECTION ---
+                  const Text(
+                    "ДЛЯ ПОСЕТИТЕЛЕЙ",
+                    style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 16),
                   _buildGlassCard(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(
-                          "ТЕХНОЛОГИИ ПРОРЫВА",
-                          style: TextStyle(color: Colors.white54, fontSize: 12, letterSpacing: 2),
+                        _buildFeatureRow(
+                           Icons.verified, 
+                           "ВЫГОДА", 
+                           "Участие в играх на сумму ~10 000₽ всего за 1 000₽ (входной билет)."
                         ),
                         const SizedBox(height: 16),
-                        const Text(
-                          "1. ДИАГНОСТИКА И КОД",
-                          style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+                        _buildFeatureRow(
+                           Icons.timer, 
+                           "МАРАФОН ИГР", 
+                           "Пройдите до 5 различных трансформационных игр за один день (6 часов)."
                         ),
-                        const SizedBox(height: 4),
-                        const Text(
-                          "Система 22 архетипов (ИДП) и функциональные задачи мозга. Переход от описания личности к пониманию движущих сил.",
-                          style: TextStyle(color: Colors.white70, fontSize: 14),
-                        ),
-                         const SizedBox(height: 16),
-                        const Text(
-                          "2. ВНУТРЕННИЕ ОПОРЫ",
-                          style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
-                        ),
-                        const SizedBox(height: 4),
-                        const Text(
-                          "Синтез стратегий подсознания и телесный интеллект. Технология «5х5» для движения сквозь страх масштаба.",
-                          style: TextStyle(color: Colors.white70, fontSize: 14),
-                        ),
-                         const SizedBox(height: 16),
-                        const Text(
-                          "3. СИНЕРГИЯ И ВЫХОД В СВЕТ",
-                          style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
-                        ),
-                        const SizedBox(height: 4),
-                        const Text(
-                          "Магия перекрестного роста и живые демо-сеты. Единая афиша и круг доверия профессионального сообщества.",
-                          style: TextStyle(color: Colors.white70, fontSize: 14),
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  const SizedBox(height: 40),
-
-                  // SPEAKERS PREVIEW
-                  const Text(
-                    "ОРГАНИЗАТОРЫ",
-                    style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 20),
-                  SizedBox(
-                    height: 160, // Increased height for descriptions
-                    child: ListView(
-                      scrollDirection: Axis.horizontal,
-                      physics: const BouncingScrollPhysics(),
-                      children: [
-                        _buildSpeakerAvatar("Олег Баранец", "ИДП & Технологии", Colors.blue),
-                        _buildSpeakerAvatar("Наталия Баранец", "Психология Масштаба", Colors.pinkAccent),
-                        _buildSpeakerAvatar("Info Cards Club", "Сообщество", Colors.amber),
-                      ],
-                    ),
-                  ),
-
-                  const SizedBox(height: 60),
-
-                  // CALL TO ACTION
-                  _buildGlassCard(
-                    padding: const EdgeInsets.all(30),
-                    child: Column(
-                      children: [
-                        const Text(
-                          "ВЫБИРАЙТЕ ДИАЛОГ С РОСТОМ",
-                          style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
-                        ),
-                        const SizedBox(height: 20),
-                        SizedBox(
-                          width: double.infinity,
-                          height: 55,
-                          child: ElevatedButton(
-                            onPressed: () {},
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.white,
-                              foregroundColor: Colors.black,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              elevation: 10,
-                              shadowColor: Colors.purple.withOpacity(0.5),
-                            ),
-                            child: const Text(
-                              "КУПИТЬ БИЛЕТ",
-                              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, letterSpacing: 1),
-                            ),
-                          ),
+                        const SizedBox(height: 16),
+                        _buildFeatureRow(
+                           Icons.mic, 
+                           "СЦЕНА СМЫСЛОВ", 
+                           "Выступления авторов методик. Найдите «своего» эксперта."
                         ),
                       ],
                     ),
                   ),
                   
+                  const SizedBox(height: 24),
+                  // VISITOR CTA
+                  SizedBox(
+                    width: double.infinity,
+                    height: 55,
+                    child: ElevatedButton(
+                      onPressed: () {},
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF3B82F6),
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        elevation: 5,
+                      ),
+                      child: const Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text("СТАТЬ УЧАСТНИКОМ", style: TextStyle(fontWeight: FontWeight.bold)),
+                          Text("Стоимость билета — 1000 ₽", style: TextStyle(fontSize: 10,  color: Colors.white70)),
+                        ],
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 50),
+
+                  // --- PARTNER SECTION ---
+                  const Text(
+                    "ДЛЯ ЭКСПЕРТОВ",
+                    style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 8),
+                  const Text(
+                    "Масштабируйте свою практику. Выберите свой тариф:",
+                    style: TextStyle(color: Colors.white70, fontSize: 14),
+                  ),
+                  const SizedBox(height: 16),
+                  
+                  // PRICING CARDS
+                  SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    physics: const BouncingScrollPhysics(),
+                    child: Row(
+                      children: [
+                        _buildPricingCard("МАСТЕР", "5 000 ₽", [
+                          "Игровой стол",
+                          "Представление на сайте",
+                          "Включение в расписание",
+                        ], Colors.blue),
+                        const SizedBox(width: 16),
+                        _buildPricingCard("МАЭСТРО", "10 000 ₽", [
+                          "Всё, что в Мастер",
+                          "Выступление на сцене",
+                          "Видеовизитка",
+                          "Реклама на 2026 год"
+                        ], Colors.purpleAccent, isHighlighted: true),
+                        const SizedBox(width: 16),
+                        _buildPricingCard("ПАРТНЕР", "20 000 ₽", [
+                          "Всё, что в Маэстро",
+                          "Логотип партнера",
+                          "Розыгрыш ваших призов",
+                          "Интервью"
+                        ], Colors.amber),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(height: 24),
+                  // PARTNER CTA
+                  _buildGlassCard(
+                     padding: const EdgeInsets.all(20),
+                     child: Column(
+                       children: [
+                          const Text("Подать заявку как Мастер", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                          const SizedBox(height: 16),
+                           SizedBox(
+                            width: double.infinity,
+                            child: OutlinedButton(
+                              onPressed: () {},
+                              style: OutlinedButton.styleFrom(
+                                side: const BorderSide(color: Colors.white54),
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(vertical: 16)
+                              ),
+                              child: const Text("СФОРМИРОВАТЬ ЗАЯВКУ"),
+                            ),
+                          ),
+                       ],
+                     )
+                  ),
+
+                  const SizedBox(height: 50),
+
+                  // --- ORGANIZERS ---
+                  const Text(
+                    "ОРГАНИЗАТОРЫ",
+                    style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 20),
+                  _buildOrganizerCard(
+                    "Олег Баранец", 
+                    "Психолог, бизнес-аналитик", 
+                    "Автор системы «ИДП» (22 архетипа). Помогает превратить хаос в ясную структуру развития.",
+                    Colors.blue
+                  ),
+                  const SizedBox(height: 16),
+                  _buildOrganizerCard(
+                    "Наталия Баранец", 
+                    "Психотерапевт", 
+                    "Эксперт по психологии масштаба. Помогает преодолеть внутренние барьеры и подготовить психику к росту.",
+                    Colors.pinkAccent
+                  ),
+
+                  const SizedBox(height: 60),
+
+                  Center(
+                    child: Text(
+                      "Санкт-Петербург • 21 Февраля",
+                      style: TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 12),
+                    ),
+                  ),
                   const SizedBox(height: 40),
                 ],
               ),
@@ -244,7 +295,93 @@ class FestivalScreen extends StatelessWidget {
     );
   }
 
-  // ... (Glow and Glass helpers remain same)
+  // --- HELPERS ---
+
+  Widget _buildFeatureRow(IconData icon, String title, String desc) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(icon, color: Colors.amberAccent, size: 24),
+        const SizedBox(width: 16),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
+              const SizedBox(height: 4),
+              Text(desc, style: const TextStyle(color: Colors.white70, fontSize: 13, height: 1.4)),
+            ],
+          ),
+        )
+      ],
+    );
+  }
+
+  Widget _buildPricingCard(String title, String price, List<String> features, Color color, {bool isHighlighted = false}) {
+    return Container(
+      width: 200,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: isHighlighted ? color.withOpacity(0.2) : Colors.white.withOpacity(0.05),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: isHighlighted ? color : Colors.white10, width: isHighlighted ? 2 : 1),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(title, style: TextStyle(color: color, fontWeight: FontWeight.bold, fontSize: 12)),
+          const SizedBox(height: 8),
+          Text(price, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 20)),
+          const SizedBox(height: 16),
+          ...features.map((f) => Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                 const Icon(Icons.check, color: Colors.white54, size: 14),
+                 const SizedBox(width: 8),
+                 Expanded(child: Text(f, style: const TextStyle(color: Colors.white70, fontSize: 11))),
+              ],
+            ),
+          )),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildOrganizerCard(String name, String role, String desc, Color color) {
+    return _buildGlassCard(
+      padding: const EdgeInsets.all(16),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+           Container(
+             width: 60,
+             height: 60,
+             decoration: BoxDecoration(
+               shape: BoxShape.circle,
+               color: color.withOpacity(0.2),
+               border: Border.all(color: color),
+             ),
+             child: Icon(Icons.person, color: color, size: 30),
+           ),
+           const SizedBox(width: 16),
+           Expanded(
+             child: Column(
+               crossAxisAlignment: CrossAxisAlignment.start,
+               children: [
+                 Text(name, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+                 Text(role, style: const TextStyle(color: Colors.white54, fontSize: 12)),
+                 const SizedBox(height: 8),
+                 Text(desc, style: const TextStyle(color: Colors.white70, fontSize: 12, height: 1.4)),
+               ],
+             ),
+           )
+        ],
+      ),
+    );
+  }
+
   Widget _buildGlowCircle(Color color, double size) {
     return Container(
       width: size,
@@ -275,33 +412,6 @@ class FestivalScreen extends StatelessWidget {
           ),
           child: child,
         ),
-      ),
-    );
-  }
-
-  Widget _buildSpeakerAvatar(String name, String role, Color color) {
-    return Container(
-      margin: const EdgeInsets.only(right: 24),
-      child: Column(
-        children: [
-          Container(
-            width: 90,
-            height: 90,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: color.withOpacity(0.2),
-              border: Border.all(color: color.withOpacity(0.5), width: 2),
-              boxShadow: [
-                 BoxShadow(color: color.withOpacity(0.3), blurRadius: 10, spreadRadius: 2)
-              ]
-            ),
-            child: Icon(Icons.person, color: color, size: 45),
-          ),
-          const SizedBox(height: 12),
-          Text(name, style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 4),
-          Text(role, style: const TextStyle(color: Colors.white70, fontSize: 11)),
-        ],
       ),
     );
   }
