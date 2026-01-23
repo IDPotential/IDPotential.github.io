@@ -48,11 +48,13 @@ class FestivalScreen extends StatelessWidget {
           ),
 
           // 3. Content Scroll
-          SingleChildScrollView(
             physics: const BouncingScrollPhysics(),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 80),
-              child: Column(
+            child: Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 800),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 80),
+                  child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                    // --- HERO SECTION ---
