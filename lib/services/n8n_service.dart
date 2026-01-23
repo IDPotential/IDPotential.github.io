@@ -8,6 +8,10 @@ class N8nService {
   // For physical device, you need the actual local IP of your machine (e.g., 192.168.1.x)
   static const String _festivalWebhook = 'http://10.0.2.2:5678/webhook/festival-application';
   static const String _gameWebhook = 'http://10.0.2.2:5678/webhook/game-application';
+  
+  // Base URLs for reports
+  static const String _baseUrl = 'http://10.0.2.2:5678/webhook/game-report';
+  static const String _baseUrlWeb = 'http://localhost:5678/webhook/game-report';
 
   // Helper to get correct URL based on platform
   String _getUrl(String endpoint) {

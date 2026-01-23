@@ -1,6 +1,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:flutter/gestures.dart';
 import '../services/firestore_service.dart';
 
 class FestivalApplicationForm extends StatefulWidget {
@@ -14,8 +15,6 @@ class FestivalApplicationForm extends StatefulWidget {
   @override
   State<FestivalApplicationForm> createState() => _FestivalApplicationFormState();
 }
-
-import 'package:flutter/gestures.dart'; // Add this
 
 class _FestivalApplicationFormState extends State<FestivalApplicationForm> {
   static const String _policyText = """
@@ -144,12 +143,18 @@ class _FestivalApplicationFormState extends State<FestivalApplicationForm> {
   void initState() {
     super.initState();
     _selectedType = widget.initialType;
-    // Normalize if passed type matches one of our options
     if (!_types.contains(_selectedType)) {
-       // If it's "Uchastnik", map to 'Посетитель'
        if (_selectedType == 'Uchastnik') _selectedType = 'Посетитель';
        else _selectedType = 'Посетитель';
     }
+  }
+
+  InputDecoration _inputDecoration(String label) {
+    return InputDecoration(
+      labelText: label,
+      border: const OutlineInputBorder(),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+    );
   }
 
   @override
@@ -260,7 +265,6 @@ class _FestivalApplicationFormState extends State<FestivalApplicationForm> {
                             style: const TextStyle(fontSize: 12, color: Colors.grey),
                             children: [
                               const TextSpan(text: "Я соглашаюсь с "),
-                              ),
                               TextSpan(
                                 text: "политикой конфиденциальности",
                                 style: const TextStyle(color: Colors.blue, decoration: TextDecoration.underline),
@@ -274,12 +278,35 @@ class _FestivalApplicationFormState extends State<FestivalApplicationForm> {
                   ),
                 ),
 
+                const SizedBox(height: 24),
+
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: _isLoading || !_consentGiven ? null : _submit,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF2E0249),
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                    ),
+                    child: _isLoading 
+                      ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                      : const Text("Отправить заявку"),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   void _showPolicyDialog() {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text("Политика конфиденциальности"),
-        content: SizedBox( // Constrained height for scroll
+        content: SizedBox(
           width: double.maxFinite,
           child: Column(
              mainAxisSize: MainAxisSize.min,

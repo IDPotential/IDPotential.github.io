@@ -905,25 +905,7 @@ class FirestoreService {
     }
   }
   
-  Future<void> setPlayerNumber(String gameId, int number) async {
-    final user = _auth.currentUser;
-    if (user == null) return;
-    
-    // Transaction to ensure uniqueness? For MVP just update, UI filters used ones.
-    await _db.collection('games').doc(gameId).collection('participants').doc(user.uid).update({
-      'playerNumber': number,
-    });
-  }
-  
-  Future<void> approveParticipant(String gameId, String userId) async {
-    await _db.collection('games').doc(gameId).collection('participants').doc(userId).update({
-      'status': 'approved',
-    });
-  }
 
-  Future<void> rejectParticipant(String gameId, String userId) async {
-    await _db.collection('games').doc(gameId).collection('participants').doc(userId).delete();
-  }
 
 
   
