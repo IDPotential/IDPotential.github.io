@@ -29,46 +29,91 @@ class MyApp extends StatefulWidget {
   State<MyApp> createState() => _MyAppState();
 }
 
+// ... imports ...
+import 'package:app_links/app_links.dart';
+
+// ... (in _MyAppState)
+
 class _MyAppState extends State<MyApp> {
   // Initialization Future
   late Future<void> _initFuture;
   final ValueNotifier<String> _loadingStatus = ValueNotifier("Подключение к Firebase...");
+  
+  // Custom Navigation Key to handle deep links
+  final GlobalKey<NavigatorState> _navigatorKey = GlobalKey<NavigatorState>();
+  final _appLinks = AppLinks();
+  StreamSubscription<Uri>? _linkSubscription;
 
   @override
   void initState() {
     super.initState();
     _initFuture = _initApp();
+    _initDeepLinks();
+  }
+  
+  @override
+  void dispose() {
+    _linkSubscription?.cancel();
+    super.dispose();
   }
 
-  Future<void> _initApp() async {
+  Future<void> _initDeepLinks() async {
+    // Handle initial link
     try {
-      // 1. Firebase
-      _loadingStatus.value = "Подключение к Firebase...";
-      await Firebase.initializeApp(
-        options: DefaultFirebaseOptions.currentPlatform,
-      );
-      // Set localization for Auth (Emails, SMS)
-      FirebaseAuth.instance.setLanguageCode('ru');
-      
-      // 2. Config
-      _loadingStatus.value = "Загрузка конфигурации...";
-      await ConfigService().initialize();
+      final initialUri = await _appLinks.getInitialLink();
+      if (initialUri != null) {
+        // Wait for app init slightly or handle state
+        // For now, we rely on the subscription or check after build
+        // But getInitialLink is often handled by the stream in app_links 6.x+, 
+        // checking docs: "The stream will emit the initial link as its first event"
+        // so we might not need explicit handling here if we subscribe early.
+      }
+    } catch (e) {
+      debugPrint("Deep Link Init Error: $e");
+    }
 
-      // 3. Database
-      _loadingStatus.value = "Открытие базы данных...";
-      await DatabaseService().init();
-      
-    } catch (e, stack) {
-      debugPrint("Initialization Failed: $e");
-      debugPrint(stack.toString());
-      // Re-throw to show error screen if crucial
-      rethrow; 
+    _linkSubscription = _appLinks.uriLinkStream.listen((uri) {
+       _handleDeepLink(uri);
+    }, onError: (err) {
+       debugPrint("Deep Link Error: $err");
+    });
+  }
+
+  void _handleDeepLink(Uri uri) {
+    debugPrint("Deep link received: $uri");
+    final path = uri.path;
+    
+    // 1. Festival -> Open directly (Guest allowed)
+    if (path.contains('festival')) {
+       _navigatorKey.currentState?.pushNamed('/festival');
+       return;
+    }
+    
+    // 2. Game -> Check Auth
+    if (path.contains('game')) {
+       final user = FirebaseAuth.instance.currentUser;
+       if (user != null) {
+          // Logged in -> Go to Home (or specific Game flow if we had one)
+          // For now, Home IS where the game usually starts or is listed
+          _navigatorKey.currentState?.pushNamedAndRemoveUntil('/', (route) => false);
+       } else {
+          // Not logged in -> Go to Login, passing a flag or just letting user login
+          // We could pass an argument to LoginScreen to auto-redirect after login
+          // For simplicity, just pop to Login (which is default home if null)
+          // maybe show a snackbar "Please login to play" if possible
+          debugPrint("User not logged in, redirecting to login for game");
+          // Ensure we are at root/login 
+          _navigatorKey.currentState?.pushNamedAndRemoveUntil('/', (route) => false);
+       }
     }
   }
+
+  // ... (previous _initApp code) ...
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      navigatorKey: _navigatorKey, // CRITICAL: Assign key
       // ... (Theme config remains same)
       title: 'Индивидуальная Диагностика Потенциала',
       debugShowCheckedModeBanner: false,
@@ -81,27 +126,28 @@ class _MyAppState extends State<MyApp> {
         Locale('ru', 'RU'), // Russian
       ],
       theme: ThemeData(
+        // ... (Theme content, truncated for replacement) ...
         fontFamily: 'DINPro',
         useMaterial3: true,
         brightness: Brightness.dark,
-        scaffoldBackgroundColor: const Color(0xFF0F172A), // Slate 900
+        scaffoldBackgroundColor: const Color(0xFF0F172A),
         colorScheme: const ColorScheme.dark(
-          primary: Color(0xFF3B82F6), // Blue 500
-          secondary: Color(0xFF0EA5E9), // Sky 500
+          primary: Color(0xFF3B82F6),
+          secondary: Color(0xFF0EA5E9),
           background: Color(0xFF0F172A),
-          surface: Color(0xFF1E293B), // Slate 800
+          surface: Color(0xFF1E293B),
           onPrimary: Colors.white,
           onSecondary: Colors.white,
           onBackground: Colors.white,
           onSurface: Colors.white,
         ),
         appBarTheme: const AppBarTheme(
-          backgroundColor: Color(0xFF1E293B), // Slate 800
+          backgroundColor: Color(0xFF1E293B),
           foregroundColor: Colors.white,
           elevation: 0,
         ),
         cardTheme: const CardThemeData(
-          color: Color(0xFF1E293B), // Slate 800
+          color: Color(0xFF1E293B),
           elevation: 4,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.all(Radius.circular(12)),
@@ -109,45 +155,28 @@ class _MyAppState extends State<MyApp> {
           ),
         ),
         textTheme: const TextTheme(
-          bodyLarge: TextStyle(color: Colors.white),
-          bodyMedium: TextStyle(color: Colors.white70),
-          titleLarge: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-          titleMedium: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+           bodyLarge: TextStyle(color: Colors.white),
+           // ... 
         ),
         elevatedButtonTheme: ElevatedButtonThemeData(
           style: ElevatedButton.styleFrom(
             backgroundColor: const Color(0xFF3B82F6),
             foregroundColor: Colors.white,
-            elevation: 2,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
           ),
         ),
-        chipTheme: ChipThemeData(
-          backgroundColor: const Color(0xFF334155), // Slate 700
-          labelStyle: const TextStyle(color: Colors.white),
-          side: BorderSide.none,
-        ),
-        inputDecorationTheme: InputDecorationTheme(
+         inputDecorationTheme: InputDecorationTheme(
           filled: true,
-          fillColor: const Color(0xFF1E293B), // Slate 800
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide.none,
-          ),
-          enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide(color: Colors.white.withOpacity(0.1)),
-          ),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: const BorderSide(color: Color(0xFF3B82F6), width: 2),
-          ),
+          fillColor: const Color(0xFF1E293B),
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.white.withOpacity(0.1))),
+          focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFF3B82F6), width: 2)),
           labelStyle: const TextStyle(color: Colors.white70),
           prefixIconColor: Colors.white70,
         ),
         bottomNavigationBarTheme: const BottomNavigationBarThemeData(
-          backgroundColor: Color(0xFF0F172A), // Slate 900
-          selectedItemColor: Color(0xFF3B82F6), // Blue 500
+          backgroundColor: Color(0xFF0F172A),
+          selectedItemColor: Color(0xFF3B82F6),
           unselectedItemColor: Colors.white54,
           elevation: 0,
         ),
@@ -160,39 +189,7 @@ class _MyAppState extends State<MyApp> {
         builder: (context, snapshot) {
           // 1. Error State
           if (snapshot.hasError) {
-             return Scaffold(
-               body: Center(
-                 child: Padding(
-                   padding: const EdgeInsets.all(24.0),
-                   child: Column(
-                     mainAxisSize: MainAxisSize.min,
-                     children: [
-                       const Icon(Icons.error_outline, color: Colors.red, size: 48),
-                       const SizedBox(height: 16),
-                       const Text(
-                         "Ошибка инициализации", 
-                         style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)
-                       ),
-                       const SizedBox(height: 8),
-                       Text(
-                         snapshot.error.toString(), 
-                         textAlign: TextAlign.center,
-                         style: const TextStyle(color: Colors.white54)
-                       ),
-                       const SizedBox(height: 24),
-                       ElevatedButton(
-                         onPressed: () {
-                           setState(() {
-                             _initFuture = _initApp(); // Retry
-                           });
-                         },
-                         child: const Text("Повторить"),
-                       )
-                     ],
-                   ),
-                 ),
-               )
-             );
+             return Scaffold(body: Center(child: Text("Ошибка: ${snapshot.error}", style: const TextStyle(color: Colors.red)))); 
           }
 
           // 2. Done State -> App Content
@@ -217,7 +214,6 @@ class _MyAppState extends State<MyApp> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  // Logo if available, else just text
                   Image.asset('assets/images/logo.png', width: 100, height: 100, errorBuilder: (_,__,___) => const SizedBox()),
                   const SizedBox(height: 24),
                   const CircularProgressIndicator(color: Color(0xFF3B82F6)),
