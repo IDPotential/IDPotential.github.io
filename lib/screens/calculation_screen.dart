@@ -136,8 +136,11 @@ class _CalculationScreenState extends State<CalculationScreen> {
           ),
         ],
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
+      body: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 800),
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(16.0),
         child: Form(
           key: _formKey,
           child: Column(
@@ -323,6 +326,7 @@ class _CalculationScreenState extends State<CalculationScreen> {
                   ),
                 ),
             ],
+          ),
           ),
         ),
       ),

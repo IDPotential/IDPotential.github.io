@@ -264,11 +264,16 @@ class _HistoryScreenState extends State<HistoryScreen> {
                IconButton(icon: const Icon(Icons.refresh), onPressed: _loadCalculations, tooltip: 'Обновить'),
             ],
           ),
-          body: TabBarView(
-            children: [
-               _buildDiagnosticsTab(),
-               _buildGamesTab(),
-            ],
+          body: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 800),
+              child: TabBarView(
+                children: [
+                   _buildDiagnosticsTab(),
+                   _buildGamesTab(),
+                ],
+              ),
+            ),
           ),
         ),
       ),

@@ -464,6 +464,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           final isAdmin = role == 'admin' || pgmd == 100;
           
           final String statusName;
+          // ... (status logic) ...
           if (pgmd == 1) statusName = "Гость (1)";
           else if (pgmd == 2) statusName = "Исследователь (2)";
           else if (pgmd == 3) statusName = "Опытный (3)";
@@ -471,9 +472,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
           else if (pgmd == 100) statusName = "Администратор";
           else statusName = "Уровень $pgmd";
 
-          return SingleChildScrollView(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
+          return Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 800),
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 // User Stats Card
@@ -632,8 +636,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   const SizedBox(height: 10),
                 ],
               ),
-            );
-          },
+            ),
+            ),
+          );
+        },
       ),
     );
   }
@@ -675,21 +681,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
             final userContact = data['userContact'];
             final date = (data['createdAt'] as Timestamp?)?.toDate().toString() ?? '';
 
-            Color cardColor = const Color(0xFF1E293B); // Default dark
+            Color cardColor = Colors.white; // Default light
             Color borderColor = Colors.grey;
             IconData icon = Icons.info;
             
             if (type == 'deposit' || type == 'subscription' || type == 'credits' || type == 'bonus') {
-              cardColor = Colors.green.withOpacity(0.1);
-              borderColor = Colors.green.withOpacity(0.5);
+              cardColor = Colors.green.shade50;
+              borderColor = Colors.green.shade300;
               icon = Icons.attach_money;
             } else if (type == 'upgrade') {
-              cardColor = Colors.orange.withOpacity(0.1);
-              borderColor = Colors.orange.withOpacity(0.5);
+              cardColor = Colors.orange.shade50;
+              borderColor = Colors.orange.shade300;
               icon = Icons.upgrade;
             } else if (type == 'question') {
-              cardColor = Colors.blue.withOpacity(0.1);
-              borderColor = Colors.blue.withOpacity(0.5);
+              cardColor = Colors.blue.shade50;
+              borderColor = Colors.blue.shade300;
               icon = Icons.question_answer;
             }
 
@@ -701,14 +707,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
               margin: const EdgeInsets.only(bottom: 8),
               child: ListTile(
-                leading: Icon(icon, color: borderColor.withOpacity(1.0)),
-                title: Text("$userName ($type)", style: const TextStyle(fontWeight: FontWeight.bold)),
+                leading: Icon(icon, color: borderColor),
+                title: Text("$userName ($type)", style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.black87)),
                 subtitle: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    if (text.isNotEmpty) Text(text),
-                    if (value != null && value > 0) Text("Сумма: $value"),
-                    Text(date, style: const TextStyle(fontSize: 10, color: Colors.grey)),
+                    if (text.isNotEmpty) Text(text, style: const TextStyle(color: Colors.black87)),
+                    if (value != null && value > 0) Text("Сумма: $value", style: const TextStyle(color: Colors.black87)),
+                    Text(date, style: TextStyle(fontSize: 10, color: Colors.grey.shade700)),
                   ],
                 ),
                 trailing: Row(
@@ -778,14 +784,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
                final type = data['type'];
                final date = (data['createdAt'] as Timestamp?)?.toDate().toString().split('.')[0] ?? '';
 
-               Color cardColor = const Color(0xFF1E293B); // Dark Blue (Slate 800) by default
+               Color cardColor = Colors.white; // White by default
                IconData icon = Icons.help_outline;
                
                if (type == 'deposit' || type == 'bonus' || type == 'subscription') {
-                   cardColor = Colors.green.withOpacity(0.05);
+                   cardColor = Colors.green.shade50;
                    icon = Icons.account_balance_wallet;
                } else if (type == 'upgrade') {
-                   cardColor = Colors.orange.withOpacity(0.05);
+                   cardColor = Colors.orange.shade50;
                    icon = Icons.trending_up;
                }
 
@@ -799,13 +805,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                      children: [
                        Row(
                          children: [
-                           Icon(icon, size: 16, color: Colors.grey),
+                           Icon(icon, size: 16, color: Colors.grey.shade700),
                            const SizedBox(width: 8),
-                           Expanded(child: Text(question, style: const TextStyle(fontWeight: FontWeight.bold))),
+                           Expanded(child: Text(question, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.black87))),
                          ],
                        ),
                        const SizedBox(height: 4),
-                       Text(date, style: const TextStyle(fontSize: 10, color: Colors.grey)),
+                       Text(date, style: TextStyle(fontSize: 10, color: Colors.grey.shade600)),
                        
                        const Divider(),
                        
@@ -820,26 +826,26 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                   child: Text(
                                     answer, 
                                     style: TextStyle(
-                                      color: (type == 'bonus' || type == 'deposit') ? Colors.greenAccent : Colors.white70
+                                      color: (type == 'bonus' || type == 'deposit') ? Colors.green.shade800 : Colors.black87
                                     )
                                   )
                                 ),
                               ],
                             )
                           else
-                             const Row(
+                             Row(
                                children: [
-                                 Icon(Icons.check_circle, size: 20, color: Colors.green),
-                                 SizedBox(width: 4),
-                                 Text("Выполнено", style: TextStyle(color: Colors.greenAccent, fontSize: 14)),
+                                 const Icon(Icons.check_circle, size: 20, color: Colors.green),
+                                 const SizedBox(width: 4),
+                                 Text("Выполнено", style: TextStyle(color: Colors.green.shade700, fontSize: 14)),
                                ],
                              )
                        else
-                          const Row(
+                          Row(
                             children: [
-                              Icon(Icons.hourglass_empty, size: 16, color: Colors.orange),
-                              SizedBox(width: 4),
-                              Text("Ожидает обработки...", style: TextStyle(color: Colors.orange, fontSize: 12)),
+                              const Icon(Icons.hourglass_empty, size: 16, color: Colors.orange),
+                              const SizedBox(width: 4),
+                              Text("Ожидает обработки...", style: TextStyle(color: Colors.orange.shade900, fontSize: 12)),
                             ],
                           )
                      ],

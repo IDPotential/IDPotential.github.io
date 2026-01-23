@@ -329,201 +329,206 @@ class _ResultScreenState extends State<ResultScreen> {
       appBar: AppBar(
         title: Text('Результат для ${widget.calculation.name}'),
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Center(
-              child: Container(
-                constraints: const BoxConstraints(maxWidth: 500),
-                child: Card(
-                  elevation: 4,
-                  child: Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                        Text(
-                          'Схема диагностики',
-                          style: Theme.of(context).textTheme.titleLarge,
-                        ),
-                        const SizedBox(height: 16),
-                        Container(
-                          constraints: const BoxConstraints(maxHeight: 400, maxWidth: 400),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.05), // Subtle background
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: AspectRatio(
-                            aspectRatio: 1,
-                            child: RepaintBoundary(
-                              key: _globalKey,
-                              child: DiagnosticSchemeWidget(
-                                numbers: widget.calculation.numbers,
-                                gender: widget.calculation.gender,
-                                name: widget.calculation.name,
-                                birthDate: widget.calculation.birthDate,
-                              ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 15),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
+      body: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 800),
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Container(
+                    constraints: const BoxConstraints(maxWidth: 500),
+                    child: Card(
+                      elevation: 4,
+                      child: Padding(
+                        padding: const EdgeInsets.all(16.0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.center,
                           children: [
-                            ElevatedButton.icon(
-                              onPressed: _isSaving ? null : _saveImage,
-                              icon: const Icon(Icons.download),
-                              label: const Text('Сохранить'),
+                            Text(
+                              'Схема диагностики',
+                              style: Theme.of(context).textTheme.titleLarge,
                             ),
-                            const SizedBox(width: 12),
-                            ElevatedButton.icon(
-                              onPressed: _isSaving ? null : _shareImage,
-                              icon: _isSaving 
-                                  ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)) 
-                                  : const Icon(Icons.share),
-                              label: const Text('Поделиться'),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.blueAccent,
-                                foregroundColor: Colors.white,
+                            const SizedBox(height: 16),
+                            Container(
+                              constraints: const BoxConstraints(maxHeight: 400, maxWidth: 400),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withOpacity(0.05), // Subtle background
+                                borderRadius: BorderRadius.circular(8),
                               ),
+                              child: AspectRatio(
+                                aspectRatio: 1,
+                                child: RepaintBoundary(
+                                  key: _globalKey,
+                                  child: DiagnosticSchemeWidget(
+                                    numbers: widget.calculation.numbers,
+                                    gender: widget.calculation.gender,
+                                    name: widget.calculation.name,
+                                    birthDate: widget.calculation.birthDate,
+                                  ),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 15),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                ElevatedButton.icon(
+                                  onPressed: _isSaving ? null : _saveImage,
+                                  icon: const Icon(Icons.download),
+                                  label: const Text('Сохранить'),
+                                ),
+                                const SizedBox(width: 12),
+                                ElevatedButton.icon(
+                                  onPressed: _isSaving ? null : _shareImage,
+                                  icon: _isSaving 
+                                      ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)) 
+                                      : const Icon(Icons.share),
+                                  label: const Text('Поделиться'),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.blueAccent,
+                                    foregroundColor: Colors.white,
+                                  ),
+                                ),
+                              ],
                             ),
                           ],
                         ),
-                      ],
+                      ),
                     ),
                   ),
                 ),
-              ),
-            ),
-            
-            const SizedBox(height: 20),
-            
-            // Кнопки переключения режима просмотра
-            Row(
-              children: [
-                Expanded(
-                  child: ElevatedButton(
-                    onPressed: () {
-                      setState(() {
-                        _viewMode = ResultViewMode.text;
-                      });
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: _viewMode == ResultViewMode.text ? Theme.of(context).primaryColor : null,
-                      foregroundColor: _viewMode == ResultViewMode.text ? Colors.white : null,
+                
+                const SizedBox(height: 20),
+                
+                // Кнопки переключения режима просмотра
+                Row(
+                  children: [
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: () {
+                          setState(() {
+                            _viewMode = ResultViewMode.text;
+                          });
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: _viewMode == ResultViewMode.text ? Theme.of(context).primaryColor : null,
+                          foregroundColor: _viewMode == ResultViewMode.text ? Colors.white : null,
+                        ),
+                        child: const Text('Текстовый вариант'),
+                      ),
                     ),
-                    child: const Text('Текстовый вариант'),
-                  ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: () {
+                             if (_viewMode == ResultViewMode.detailed) return;
+                             _handleDetailedView();
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: _viewMode == ResultViewMode.detailed ? Theme.of(context).primaryColor : null,
+                          foregroundColor: _viewMode == ResultViewMode.detailed ? Colors.white : null,
+                        ),
+                        child: Row(
+                           mainAxisAlignment: MainAxisAlignment.center,
+                           children: [
+                             const Text('Подробнее'),
+                             if (!_isDecrypted) ...[
+                                const SizedBox(width: 4),
+                                const Icon(Icons.lock, size: 14),
+                             ]
+                           ],
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: ElevatedButton(
-                    onPressed: () {
-                         if (_viewMode == ResultViewMode.detailed) return;
-                         _handleDetailedView();
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: _viewMode == ResultViewMode.detailed ? Theme.of(context).primaryColor : null,
-                      foregroundColor: _viewMode == ResultViewMode.detailed ? Colors.white : null,
-                    ),
-                    child: Row(
-                       mainAxisAlignment: MainAxisAlignment.center,
-                       children: [
-                         const Text('Подробнее'),
-                         if (!_isDecrypted) ...[
-                            const SizedBox(width: 4),
-                            const Icon(Icons.lock, size: 14),
-                         ]
-                       ],
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-
-            // Контент в зависимости от выбора
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                  child: MarkdownBody(
-                    data: _viewMode == ResultViewMode.text 
-                        ? _decryptionText 
-                        : _veryDetailedText.replaceAllMapped(
-                            RegExp(r'\[(.*?)\]\(.*?\)'), 
-                            (match) => match.group(1) ?? ''
-                          ),
-                    selectable: true,
-                    styleSheet: MarkdownStyleSheet(
-                      h1: Theme.of(context).textTheme.headlineMedium,
-                      h2: Theme.of(context).textTheme.headlineSmall,
-                      p: Theme.of(context).textTheme.bodyLarge,
-                      listBullet: Theme.of(context).textTheme.bodyLarge,
-                      a: const TextStyle(color: Colors.blueAccent, decoration: TextDecoration.none),
-                    ),
-                    onTapLink: (text, href, title) {
-                      if (href != null) {
-                        if (href.startsWith('role:')) {
-                          final roleNum = int.tryParse(href.substring(5));
-                          if (roleNum != null) {
-                            showDialog(
-                              context: context,
-                              builder: (context) => RoleInfoDialog(roleNumber: roleNum),
-                            );
-                          }
-                        } else if (href.startsWith('aspect:')) {
-                          // Format: aspect:8-14
-                          final parts = href.substring(7).split('-');
-                          if (parts.isNotEmpty) {
-                            final aspectNum = int.tryParse(parts[0]);
-                             if (aspectNum != null) {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => RoleDetailScreen(
-                                    number: aspectNum,
-                                    isAspect: true,
-                                  ),
-                                ),
-                              );
+                const SizedBox(height: 16),
+    
+                // Контент в зависимости от выбора
+                Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16.0),
+                      child: MarkdownBody(
+                        data: _viewMode == ResultViewMode.text 
+                            ? _decryptionText 
+                            : _veryDetailedText.replaceAllMapped(
+                                RegExp(r'\[(.*?)\]\(.*?\)'), 
+                                (match) => match.group(1) ?? ''
+                              ),
+                        selectable: true,
+                        styleSheet: MarkdownStyleSheet(
+                          h1: Theme.of(context).textTheme.headlineMedium,
+                          h2: Theme.of(context).textTheme.headlineSmall,
+                          p: Theme.of(context).textTheme.bodyLarge,
+                          listBullet: Theme.of(context).textTheme.bodyLarge,
+                          a: const TextStyle(color: Colors.blueAccent, decoration: TextDecoration.none),
+                        ),
+                        onTapLink: (text, href, title) {
+                          if (href != null) {
+                            if (href.startsWith('role:')) {
+                              final roleNum = int.tryParse(href.substring(5));
+                              if (roleNum != null) {
+                                showDialog(
+                                  context: context,
+                                  builder: (context) => RoleInfoDialog(roleNumber: roleNum),
+                                );
+                              }
+                            } else if (href.startsWith('aspect:')) {
+                              // Format: aspect:8-14
+                              final parts = href.substring(7).split('-');
+                              if (parts.isNotEmpty) {
+                                final aspectNum = int.tryParse(parts[0]);
+                                 if (aspectNum != null) {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => RoleDetailScreen(
+                                        number: aspectNum,
+                                        isAspect: true,
+                                      ),
+                                    ),
+                                  );
+                                }
+                              }
                             }
                           }
-                        }
-                      }
-                    },
+                        },
+                      ),
                   ),
-              ),
-            ),
-            
-            const SizedBox(height: 16),
-            Center(
-              child: ElevatedButton.icon(
-                onPressed: _shareResult,
-                icon: const Icon(Icons.share),
-                label: const Text('Поделиться'),
-                style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
                 ),
-              ),
-            ),
-            
-            const SizedBox(height: 20),
-             Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: () {
-                      Navigator.pop(context);
-                    },
-                    icon: const Icon(Icons.arrow_back),
-                    label: const Text('Назад'),
+                
+                const SizedBox(height: 16),
+                Center(
+                  child: ElevatedButton.icon(
+                    onPressed: _shareResult,
+                    icon: const Icon(Icons.share),
+                    label: const Text('Поделиться'),
+                    style: ElevatedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+                    ),
                   ),
+                ),
+                
+                const SizedBox(height: 20),
+                 Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: () {
+                          Navigator.pop(context);
+                        },
+                        icon: const Icon(Icons.arrow_back),
+                        label: const Text('Назад'),
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
-          ],
+          ),
         ),
       ),
     );

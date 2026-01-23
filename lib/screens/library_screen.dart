@@ -21,12 +21,17 @@ class LibraryScreen extends StatelessWidget {
             ],
           ),
         ),
-        body: TabBarView(
-          children: [
-            _buildGrid(context, isAspects: false),
-            _buildGrid(context, isAspects: true),
-            _buildDecryptionsList(context),
-          ],
+        body: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 800),
+            child: TabBarView(
+              children: [
+                _buildGrid(context, isAspects: false),
+                _buildGrid(context, isAspects: true),
+                _buildDecryptionsList(context),
+              ],
+            ),
+          ),
         ),
       ),
     );

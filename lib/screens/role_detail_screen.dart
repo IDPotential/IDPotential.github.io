@@ -141,36 +141,41 @@ class _RoleDetailScreenState extends State<RoleDetailScreen> {
       appBar: AppBar(
         title: Text(title),
       ),
-      body: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            if (!widget.isAspect) ...[
-              AspectRatio(
-                aspectRatio: 16 / 9,
-                child: Container(
-                  color: Colors.black,
-                  child: _isLoadingVideo
-                      ? const Center(child: CircularProgressIndicator())
-                      : _errorMessage != null
-                          ? Center(child: Text(_errorMessage!))
-                          : Chewie(controller: _chewieController!),
+      body: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 800),
+          child: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                if (!widget.isAspect) ...[
+                  AspectRatio(
+                    aspectRatio: 16 / 9,
+                    child: Container(
+                      color: Colors.black,
+                      child: _isLoadingVideo
+                          ? const Center(child: CircularProgressIndicator())
+                          : _errorMessage != null
+                              ? Center(child: Text(_errorMessage!))
+                              : Chewie(controller: _chewieController!),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                ],
+                Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: MarkdownBody(
+                    data: content,
+                    styleSheet: MarkdownStyleSheet(
+                      p: const TextStyle(fontSize: 16, color: Colors.white),
+                      strong: const TextStyle(fontWeight: FontWeight.bold, color: Colors.blueAccent),
+                      blockSpacing: 16,
+                    ),
+                  ),
                 ),
-              ),
-              const SizedBox(height: 16),
-            ],
-            Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: MarkdownBody(
-                data: content,
-                styleSheet: MarkdownStyleSheet(
-                  p: const TextStyle(fontSize: 16, color: Colors.white),
-                  strong: const TextStyle(fontWeight: FontWeight.bold, color: Colors.blueAccent),
-                  blockSpacing: 16,
-                ),
-              ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );

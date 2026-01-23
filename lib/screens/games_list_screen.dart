@@ -365,111 +365,116 @@ class _GamesListScreenState extends State<GamesListScreen> {
         onPressed: () => _showGameDialog(),
         child: const Icon(Icons.add),
       ) : null,
-      body: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-        stream: _firestoreService.getGamesStream(),
-        builder: (context, snapshot) {
-          if (snapshot.hasError) return Center(child: Text('Ошибка: ${snapshot.error}'));
-          if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
-
-          final games = snapshot.data!.docs;
-
-          if (games.isEmpty) {
-            return const Center(child: Text("Нет активных игр."));
-          }
-          
-          // Client-side sorting because we removed Firestore orderBy to avoid index issues
-          games.sort((a, b) {
-             final dA = a.data()['scheduledAt'] ?? '';
-             final dB = b.data()['scheduledAt'] ?? '';
-             // Compare strings directly works checking ISO8601, but parsing is safer
-             DateTime? dateA, dateB;
-             try { dateA = DateTime.parse(dA); } catch (_) {}
-             try { dateB = DateTime.parse(dB); } catch (_) {}
-             
-             if (dateA == null && dateB == null) return 0;
-             if (dateA == null) return 1;
-             if (dateB == null) return -1;
-             return dateA.compareTo(dateB);
-          });
-          
-          // Filter out very old games (older than 24h) to avoid clutter
-          // games.removeWhere((g) => ...); // Optional, maybe safe to keep them visible but at top/bottom
-
-          return ListView.builder(
-            itemCount: games.length,
-            itemBuilder: (context, index) {
-              final game = games[index].data();
-              final docId = games[index].id;
-              final dateStr = game['scheduledAt'] ?? '';
-              DateTime? date;
-              try { date = DateTime.parse(dateStr); } catch (_) {}
+      body: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 800),
+          child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+            stream: _firestoreService.getGamesStream(),
+            builder: (context, snapshot) {
+              if (snapshot.hasError) return Center(child: Text('Ошибка: ${snapshot.error}'));
+              if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
+    
+              final games = snapshot.data!.docs;
+    
+              if (games.isEmpty) {
+                return const Center(child: Text("Нет активных игр."));
+              }
               
-              final displayDate = date != null 
-                  ? DateFormat('dd.MM.yyyy').format(date)
-                  : "Дата не указана";
+              // Client-side sorting because we removed Firestore orderBy to avoid index issues
+              games.sort((a, b) {
+                 final dA = a.data()['scheduledAt'] ?? '';
+                 final dB = b.data()['scheduledAt'] ?? '';
+                 // Compare strings directly works checking ISO8601, but parsing is safer
+                 DateTime? dateA, dateB;
+                 try { dateA = DateTime.parse(dA); } catch (_) {}
+                 try { dateB = DateTime.parse(dB); } catch (_) {}
+                 
+                 if (dateA == null && dateB == null) return 0;
+                 if (dateA == null) return 1;
+                 if (dateB == null) return -1;
+                 return dateA.compareTo(dateB);
+              });
               
-              final isFinished = date != null && date.isBefore(DateTime.now().subtract(const Duration(hours: 4))); // Crude finish check
-
-              return Card(
-                color: isFinished ? Colors.white10 : null,
-                margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                child: ListTile(
-                  title: Text(game['title'] ?? 'Без названия', style: TextStyle(color: isFinished ? Colors.grey : Colors.white)),
-                  subtitle: Text(displayDate, style: TextStyle(color: isFinished ? Colors.grey : Colors.white70)),
-                  trailing: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                       if (_isAdmin)
-                          PopupMenuButton(
-                             icon: const Icon(Icons.more_vert),
-                             onSelected: (value) {
-                                if (value == 'edit') {
-                                   _showGameDialog(
-                                      docId: docId, 
-                                      currentTitle: game['title'], 
-                                      currentDate: date,
-                                      currentZoomId: game['zoomId'],
-                                      currentZoomPassword: game['zoomPassword'],
-                                      currentPackId: game['situationPackId'],
-                                      currentCategories: (game['situationCategories'] as List<dynamic>?)?.cast<String>(),
-                                      currentIsTestGame: game['isTestGame'],
-                                      currentGameType: game['gameType'],
-                                      currentIsOffline: game['isOffline'],
-                                      currentMaxPlayers: game['maxPlayers'],
-                                   );
-                                } else if (value == 'delete') {
-                                   _deleteGame(docId, game['title'] ?? '');
-                                } else if (value == 'report') {
-                                   Navigator.push(
-                                      context, 
-                                      MaterialPageRoute(builder: (context) => GameReportScreen(
-                                         gameId: docId, 
-                                         gameTitle: game['title'] ?? 'Game',
-                                         gameDate: date,
-                                      ))
-                                   );
-                                }
-                             },
-                             itemBuilder: (context) => [
-                                const PopupMenuItem(value: 'edit', child: Text("Изменить")),
-                                const PopupMenuItem(value: 'report', child: Text("Отчет")),
-                                const PopupMenuItem(value: 'delete', child: Text("Удалить", style: TextStyle(color: Colors.red))),
-                             ],
-                          ),
-                       const Icon(Icons.arrow_forward_ios, size: 16),
-                    ],
-                  ),
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => GameScreen(gameId: docId)),
-                    );
-                  },
-                ),
+              // Filter out very old games (older than 24h) to avoid clutter
+              // games.removeWhere((g) => ...); // Optional, maybe safe to keep them visible but at top/bottom
+    
+              return ListView.builder(
+                itemCount: games.length,
+                itemBuilder: (context, index) {
+                  final game = games[index].data();
+                  final docId = games[index].id;
+                  final dateStr = game['scheduledAt'] ?? '';
+                  DateTime? date;
+                  try { date = DateTime.parse(dateStr); } catch (_) {}
+                  
+                  final displayDate = date != null 
+                      ? DateFormat('dd.MM.yyyy').format(date)
+                      : "Дата не указана";
+                  
+                  final isFinished = date != null && date.isBefore(DateTime.now().subtract(const Duration(hours: 4))); // Crude finish check
+    
+                  return Card(
+                    color: isFinished ? Colors.white10 : null,
+                    margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    child: ListTile(
+                      title: Text(game['title'] ?? 'Без названия', style: TextStyle(color: isFinished ? Colors.grey : Colors.white)),
+                      subtitle: Text(displayDate, style: TextStyle(color: isFinished ? Colors.grey : Colors.white70)),
+                      trailing: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                           if (_isAdmin)
+                              PopupMenuButton(
+                                 icon: const Icon(Icons.more_vert),
+                                 onSelected: (value) {
+                                    if (value == 'edit') {
+                                       _showGameDialog(
+                                          docId: docId, 
+                                          currentTitle: game['title'], 
+                                          currentDate: date,
+                                          currentZoomId: game['zoomId'],
+                                          currentZoomPassword: game['zoomPassword'],
+                                          currentPackId: game['situationPackId'],
+                                          currentCategories: (game['situationCategories'] as List<dynamic>?)?.cast<String>(),
+                                          currentIsTestGame: game['isTestGame'],
+                                          currentGameType: game['gameType'],
+                                          currentIsOffline: game['isOffline'],
+                                          currentMaxPlayers: game['maxPlayers'],
+                                       );
+                                    } else if (value == 'delete') {
+                                       _deleteGame(docId, game['title'] ?? '');
+                                    } else if (value == 'report') {
+                                       Navigator.push(
+                                          context, 
+                                          MaterialPageRoute(builder: (context) => GameReportScreen(
+                                             gameId: docId, 
+                                             gameTitle: game['title'] ?? 'Game',
+                                             gameDate: date,
+                                          ))
+                                       );
+                                    }
+                                 },
+                                 itemBuilder: (context) => [
+                                    const PopupMenuItem(value: 'edit', child: Text("Изменить")),
+                                    const PopupMenuItem(value: 'report', child: Text("Отчет")),
+                                    const PopupMenuItem(value: 'delete', child: Text("Удалить", style: TextStyle(color: Colors.red))),
+                                 ],
+                              ),
+                           const Icon(Icons.arrow_forward_ios, size: 16),
+                        ],
+                      ),
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (context) => GameScreen(gameId: docId)),
+                        );
+                      },
+                    ),
+                  );
+                },
               );
             },
-          );
-        },
+          ),
+        ),
       ),
     );
   }

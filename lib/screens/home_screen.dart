@@ -54,8 +54,11 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ],
       ),
-      body: SingleChildScrollView(
-        child: Column(
+      body: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 800),
+          child: SingleChildScrollView(
+            child: Column(
 
           children: [
              // Festival Banner
@@ -171,8 +174,10 @@ class _HomeScreenState extends State<HomeScreen> {
                 ],
               ),
             ),
-          ],
+            ],
+          ),
         ),
+      ),
       ),
     );
   }

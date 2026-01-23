@@ -36,41 +36,46 @@ class _GameReportScreenState extends State<GameReportScreen> {
           )
         ],
       ),
-      body: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-        stream: FirebaseFirestore.instance
-            .collection('games')
-            .doc(widget.gameId)
-            .collection('rounds')
-            .orderBy('roundIndex')
-            .snapshots(),
-        builder: (context, snapshot) {
-          if (snapshot.hasError) {
-            return Center(child: Text("Ошибка: ${snapshot.error}"));
-          }
-          if (!snapshot.hasData) {
-            return const Center(child: CircularProgressIndicator());
-          }
-
-          final rounds = snapshot.data!.docs;
-
-          if (rounds.isEmpty) {
-            return const Center(
-              child: Text("История игры пуста (нет сохраненных раундов)."),
-            );
-          }
-
-          return ListView.builder(
-            padding: const EdgeInsets.all(16),
-            itemCount: rounds.length + 1, // +1 for Header/Footer info
-            itemBuilder: (context, index) {
-              if (index == 0) {
-                 return _buildHeader();
+      body: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 800),
+          child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+            stream: FirebaseFirestore.instance
+                .collection('games')
+                .doc(widget.gameId)
+                .collection('rounds')
+                .orderBy('roundIndex')
+                .snapshots(),
+            builder: (context, snapshot) {
+              if (snapshot.hasError) {
+                return Center(child: Text("Ошибка: ${snapshot.error}"));
               }
-              final roundData = rounds[index - 1].data();
-              return _buildRoundCard(roundData);
+              if (!snapshot.hasData) {
+                return const Center(child: CircularProgressIndicator());
+              }
+    
+              final rounds = snapshot.data!.docs;
+    
+              if (rounds.isEmpty) {
+                return const Center(
+                  child: Text("История игры пуста (нет сохраненных раундов)."),
+                );
+              }
+    
+              return ListView.builder(
+                padding: const EdgeInsets.all(16),
+                itemCount: rounds.length + 1, // +1 for Header/Footer info
+                itemBuilder: (context, index) {
+                  if (index == 0) {
+                     return _buildHeader();
+                  }
+                  final roundData = rounds[index - 1].data();
+                  return _buildRoundCard(roundData);
+                },
+              );
             },
-          );
-        },
+          ),
+        ),
       ),
     );
   }

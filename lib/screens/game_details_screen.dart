@@ -183,28 +183,33 @@ class _GameDetailsScreenState extends State<GameDetailsScreen> {
              )
         ],
       ),
-      body: Column(
-        children: [
-           // Header Stats (Hide for Host if not relevant, or show generic info)
-           if (!widget.isHostView) 
-             Container(
-               padding: const EdgeInsets.all(16),
-               color: Colors.blueAccent.withOpacity(0.1),
-               child: Row(
-                 mainAxisAlignment: MainAxisAlignment.spaceAround,
-                 children: [
-                    _buildStat("Очки", "${widget.totalScore ?? '-'}"),
-                    _buildStat("Место", "${widget.rank ?? '-'}"),
-                 ],
-               ),
-             ),
-           
-           Expanded(
-             child: widget.isHostView 
-               ? _buildHostStream() 
-               : _buildParticipantStream(user.uid),
-           )
-        ],
+      body: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 800),
+          child: Column(
+            children: [
+               // Header Stats (Hide for Host if not relevant, or show generic info)
+               if (!widget.isHostView) 
+                 Container(
+                   padding: const EdgeInsets.all(16),
+                   color: Colors.blueAccent.withOpacity(0.1),
+                   child: Row(
+                     mainAxisAlignment: MainAxisAlignment.spaceAround,
+                     children: [
+                        _buildStat("Очки", "${widget.totalScore ?? '-'}"),
+                        _buildStat("Место", "${widget.rank ?? '-'}"),
+                     ],
+                   ),
+                 ),
+               
+               Expanded(
+                 child: widget.isHostView 
+                   ? _buildHostStream() 
+                   : _buildParticipantStream(user.uid),
+               )
+            ],
+          ),
+        ),
       ),
     );
   }
