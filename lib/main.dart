@@ -11,6 +11,7 @@ import 'services/config_service.dart';
 
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
+import 'package:app_links/app_links.dart';
 
 void main() {
   runZonedGuarded(() async {
@@ -30,7 +31,7 @@ class MyApp extends StatefulWidget {
 }
 
 // ... imports ...
-import 'package:app_links/app_links.dart';
+
 
 // ... (in _MyAppState)
 
@@ -108,7 +109,31 @@ class _MyAppState extends State<MyApp> {
     }
   }
 
-  // ... (previous _initApp code) ...
+  Future<void> _initApp() async {
+    try {
+      // 1. Firebase
+      _loadingStatus.value = "Подключение к Firebase...";
+      await Firebase.initializeApp(
+        options: DefaultFirebaseOptions.currentPlatform,
+      );
+      // Set localization for Auth (Emails, SMS)
+      FirebaseAuth.instance.setLanguageCode('ru');
+      
+      // 2. Config
+      _loadingStatus.value = "Загрузка конфигурации...";
+      await ConfigService().initialize();
+
+      // 3. Database
+      _loadingStatus.value = "Открытие базы данных...";
+      await DatabaseService().init();
+      
+    } catch (e, stack) {
+      debugPrint("Initialization Failed: $e");
+      debugPrint(stack.toString());
+      // Re-throw to show error screen if crucial
+      rethrow; 
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
