@@ -1,6 +1,7 @@
 
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import '../widgets/festival_application_form.dart';
 
 class FestivalScreen extends StatelessWidget {
   const FestivalScreen({super.key});
@@ -172,11 +173,12 @@ class FestivalScreen extends StatelessWidget {
                     height: 55,
                     child: ElevatedButton(
                       onPressed: () {},
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF3B82F6),
-                        foregroundColor: Colors.white,
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                         elevation: 5,
+                      ),
+                      onPressed: () => showDialog(
+                        context: context,
+                        builder: (_) => const FestivalApplicationForm(initialType: 'Посетитель'),
                       ),
                       child: const Column(
                         mainAxisAlignment: MainAxisAlignment.center,
@@ -247,6 +249,10 @@ class FestivalScreen extends StatelessWidget {
                                 side: const BorderSide(color: Colors.white54),
                                 foregroundColor: Colors.white,
                                 padding: const EdgeInsets.symmetric(vertical: 16)
+                              ),
+                              onPressed: () => showDialog(
+                                context: context,
+                                builder: (_) => const FestivalApplicationForm(initialType: 'Мастер'),
                               ),
                               child: const Text("СФОРМИРОВАТЬ ЗАЯВКУ"),
                             ),

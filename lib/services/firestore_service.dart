@@ -748,14 +748,14 @@ class FirestoreService {
        'votes': [],
      }, SetOptions(merge: true));
 
-  // Notify Admin via Telegram
-     _notifyAdminOfJoinRequest(
-        name: userName, 
-        tg: telegram, 
-        email: email, 
-        gameId: gameId, 
-        gameTitle: gameTitle, 
-        gameDate: gameDate
+     }, SetOptions(merge: true));
+
+     // Notify Admin via N8n
+     await N8nService().sendGameApplication(
+       gameTitle: gameTitle,
+       clientName: userName,
+       contact: telegram ?? email ?? "Не указан",
+       time: gameDate,
      );
   }
 
