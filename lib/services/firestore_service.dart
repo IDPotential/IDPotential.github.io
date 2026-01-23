@@ -748,8 +748,6 @@ class FirestoreService {
        'votes': [],
      }, SetOptions(merge: true));
 
-     }, SetOptions(merge: true));
-
      // Notify Admin via N8n
      await N8nService().sendGameApplication(
        gameTitle: gameTitle,
@@ -765,6 +763,59 @@ class FirestoreService {
      await _db.collection('games').doc(gameId).collection('participants').doc(user.uid).update({
         'currentAnswer': answer
      });
+  }
+
+  Future<void> approveParticipant(String gameId, String userId) async {
+    await _db.collection('games').doc(gameId).collection('participants').doc(userId).update({
+      'status': 'approved'
+    });
+  }
+
+  Future<void> rejectParticipant(String gameId, String userId) async {
+    await _db.collection('games').doc(gameId).collection('participants').doc(userId).update({
+      'status': 'rejected'
+    });
+  }
+  
+  Future<void> setPlayerNumber(String gameId, int number) async {
+     final user = _auth.currentUser;
+     if (user == null) return;
+     
+     // Optional: Check if number is taken logic could be here or UI side.
+     // For now just set it.
+     await _db.collection('games').doc(gameId).collection('participants').doc(user.uid).update({
+         'playerNumber': number
+     });
+  }
+  
+  Future<void> saveFestivalApplication({
+    required String name,
+    required String phone,
+    required String promo,
+    required String type,
+  }) async {
+    final user = _auth.currentUser;
+    await _db.collection('festival_applications').add({
+      'userId': user?.uid, // nullable
+      'name': name,
+      'phone': phone,
+      'promo': promo,
+      'type': type,
+      'createdAt': FieldValue.serverTimestamp(),
+      'status': 'new',
+    });
+    
+    // N8n trigger
+    try {
+      await N8nService().sendFestivalApplication(
+        name: name,
+        phone: phone,
+        promo: promo,
+        type: type,
+      );
+    } catch (e) {
+      debugPrint("N8n Festival Error: $e");
+    }
   }
 
   Future<void> addVirtualParticipant(String gameId, String name, List<int> numbers, int? playerNumber) async {
