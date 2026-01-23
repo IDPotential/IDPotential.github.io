@@ -113,7 +113,7 @@ class _MafiaHostControlsState extends State<MafiaHostControls> {
                     ElevatedButton(
                        onPressed: _distributeRoles, 
                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.purple.withOpacity(0.5),
+                          backgroundColor: Colors.purple.withValues(alpha: 0.5),
                           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8)
                        ),
                        child: const Text("Рестарт/Роли", style: TextStyle(fontSize: 12))
