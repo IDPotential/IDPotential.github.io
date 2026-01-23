@@ -48,7 +48,7 @@ dev_dependencies:
   flutter_lints: ^3.0.1
   
   # Для генерации адаптеров Hive
-  hive_generator: ^1.1.3
+  hive_generator: ^2.0.1
   build_runner: ^2.4.6
   flutter_launcher_icons: ^0.14.4
 

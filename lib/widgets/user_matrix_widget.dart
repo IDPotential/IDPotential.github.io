@@ -83,7 +83,8 @@ class UserMatrixWidget extends StatelessWidget {
                 decoration: BoxDecoration(
                   border: isSelected ? Border.all(color: Colors.orange, width: 3) : null,
                   borderRadius: BorderRadius.circular(8),
-                  boxShadow: isSelected ? [BoxShadow(color: Colors.orange.withValues(alpha: 0.5), blurRadius: 8)] : null,
+                  // ignore: deprecated_member_use
+                  boxShadow: isSelected ? [BoxShadow(color: Colors.orange.withOpacity(0.5), blurRadius: 8)] : null,
                 ),
                 child: Card(
                   clipBehavior: Clip.antiAlias, 
