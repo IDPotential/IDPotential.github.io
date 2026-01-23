@@ -152,6 +152,8 @@ class _FestivalApplicationFormState extends State<FestivalApplicationForm> {
   InputDecoration _inputDecoration(String label) {
     return InputDecoration(
       labelText: label,
+      filled: true,
+      fillColor: Colors.white,
       border: const OutlineInputBorder(),
       contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
     );
@@ -224,6 +226,7 @@ class _FestivalApplicationFormState extends State<FestivalApplicationForm> {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12),
                   decoration: BoxDecoration(
+                    color: Colors.white,
                     border: Border.all(color: Colors.grey.shade300),
                     borderRadius: BorderRadius.circular(4),
                   ),
