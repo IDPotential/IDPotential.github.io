@@ -274,15 +274,17 @@ class FestivalScreen extends StatelessWidget {
                   _buildOrganizerCard(
                     "Олег Баранец", 
                     "Психолог, бизнес-аналитик", 
-                    "Автор системы «ИДП» (22 архетипа). Помогает превратить хаос в ясную структуру развития.",
-                    Colors.blue
+                    "Автор игры Территория Себя и платформы для игропрактик. Помогает превратить хаос в ясную структуру развития.",
+                    Colors.blue,
+                    "assets/images/olegbaranets.jpg"
                   ),
                   const SizedBox(height: 16),
                   _buildOrganizerCard(
                     "Наталия Баранец", 
                     "Психотерапевт", 
                     "Эксперт по психологии масштаба. Помогает преодолеть внутренние барьеры и подготовить психику к росту.",
-                    Colors.pinkAccent
+                    Colors.pinkAccent,
+                    "assets/images/nataliabaranets.jpg"
                   ),
 
                   const SizedBox(height: 60),
@@ -357,7 +359,7 @@ class FestivalScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildOrganizerCard(String name, String role, String desc, Color color) {
+  Widget _buildOrganizerCard(String name, String role, String desc, Color color, [String? imagePath]) {
     return _buildGlassCard(
       padding: const EdgeInsets.all(16),
       child: Row(
@@ -371,7 +373,11 @@ class FestivalScreen extends StatelessWidget {
                color: color.withOpacity(0.2),
                border: Border.all(color: color),
              ),
-             child: Icon(Icons.person, color: color, size: 30),
+             child: ClipOval(
+               child: imagePath != null 
+                ? Image.asset(imagePath, fit: BoxFit.cover, errorBuilder: (_,__,___) => Icon(Icons.person, color: color, size: 30))
+                : Icon(Icons.person, color: color, size: 30),
+             ),
            ),
            const SizedBox(width: 16),
            Expanded(
