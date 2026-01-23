@@ -90,21 +90,21 @@ class _MyAppState extends State<MyApp> {
        return;
     }
     
-    // 2. Game -> Check Auth
+    // 2. Games List -> AppHome(3)
+    // Supports both /game and /games
     if (path.contains('game')) {
        final user = FirebaseAuth.instance.currentUser;
        if (user != null) {
-          // Logged in -> Go to Home (or specific Game flow if we had one)
-          // For now, Home IS where the game usually starts or is listed
-          _navigatorKey.currentState?.pushNamedAndRemoveUntil('/', (route) => false);
+          // Logged in -> Go to Games Tab
+          // We use pushNamedAndRemoveUntil to reset stack but keep bottom nav logic if possible
+          // But since AppHome handles tabs, pushing '/games' works as a new route or replacement.
+          // Better: pushRepalcement or pushNamedAndRemoveUntil
+          _navigatorKey.currentState?.pushNamedAndRemoveUntil('/games', (route) => false);
        } else {
-          // Not logged in -> Go to Login, passing a flag or just letting user login
-          // We could pass an argument to LoginScreen to auto-redirect after login
-          // For simplicity, just pop to Login (which is default home if null)
-          // maybe show a snackbar "Please login to play" if possible
+          // Not logged in -> Go to Login
           debugPrint("User not logged in, redirecting to login for game");
-          // Ensure we are at root/login 
           _navigatorKey.currentState?.pushNamedAndRemoveUntil('/', (route) => false);
+           // Ideally we should pass 'redirect: /games' to login screen to handle post-login nav
        }
     }
   }
@@ -208,6 +208,7 @@ class _MyAppState extends State<MyApp> {
       ),
       routes: {
         '/festival': (context) => const FestivalScreen(),
+        '/games': (context) => const AppHome(initialIndex: 3),
       },
       home: FutureBuilder(
         future: _initFuture,

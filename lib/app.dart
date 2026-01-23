@@ -6,7 +6,8 @@ import 'screens/library_screen.dart';
 import 'screens/game_screen.dart';
 
 class AppHome extends StatefulWidget {
-  const AppHome({super.key});
+  final int initialIndex;
+  const AppHome({super.key, this.initialIndex = 0});
 
   @override
   State<AppHome> createState() => _AppHomeState();
@@ -33,6 +34,7 @@ class _AppHomeState extends State<AppHome> {
   @override
   void initState() {
     super.initState();
+    _selectedIndex = widget.initialIndex;
     _pageController = PageController(initialPage: _selectedIndex);
   }
 
