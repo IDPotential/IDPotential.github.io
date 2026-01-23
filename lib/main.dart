@@ -60,20 +60,23 @@ class _MyAppState extends State<MyApp> {
 
   Future<void> _initDeepLinks() async {
     // Handle initial link
+    Uri? initialUri;
     try {
-      final initialUri = await _appLinks.getInitialLink();
-      if (initialUri != null) {
-        // Wait for app init slightly or handle state
-        // For now, we rely on the subscription or check after build
-        // But getInitialLink is often handled by the stream in app_links 6.x+, 
-        // checking docs: "The stream will emit the initial link as its first event"
-        // so we might not need explicit handling here if we subscribe early.
-      }
+      initialUri = await _appLinks.getInitialLink();
+      // Note: MaterialApp handles the initial route automatically via 'routes'.
+      // We only need to listen to the stream for subsequent links,
+      // but the stream often emits the initial link too.
     } catch (e) {
       debugPrint("Deep Link Init Error: $e");
     }
 
     _linkSubscription = _appLinks.uriLinkStream.listen((uri) {
+       // Check if this is the generic initial link event to avoid double-push
+       if (initialUri != null && uri.path == initialUri.path) {
+          debugPrint("Skipping initial link handled by framework: $uri");
+          initialUri = null; // Consume it so future clicks work
+          return;
+       }
        _handleDeepLink(uri);
     }, onError: (err) {
        debugPrint("Deep Link Error: $err");
