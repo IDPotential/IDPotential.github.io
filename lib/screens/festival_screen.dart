@@ -2,6 +2,9 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import '../app.dart';
+import 'login_screen.dart';
 import '../widgets/festival_application_form.dart';
 
 class FestivalScreen extends StatelessWidget {
@@ -16,7 +19,19 @@ class FestivalScreen extends StatelessWidget {
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white),
-          onPressed: () => Navigator.of(context).pop(),
+          onPressed: () {
+             if (Navigator.of(context).canPop()) {
+                Navigator.of(context).pop();
+             } else {
+                // Handle Deep Link root case
+                final user = FirebaseAuth.instance.currentUser;
+                if (user != null) {
+                   Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (_) => const AppHome()));
+                } else {
+                   Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (_) => const LoginScreen()));
+                }
+             }
+          },
         ),
       ),
       body: Stack(
