@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../services/firestore_service.dart';
 import 'package:intl/intl.dart';
+import '../utils/file_saver.dart';
 
 class FestivalApplicationsScreen extends StatefulWidget {
   const FestivalApplicationsScreen({super.key});
@@ -31,9 +32,22 @@ class _FestivalApplicationsScreenState extends State<FestivalApplicationsScreen>
     'rejected': Colors.red,
   };
 
-  void _updateStatus(String docId, String? newStatus) {
+  Future<void> _updateStatus(String docId, String? newStatus) async {
     if (newStatus != null) {
-      _firestoreService.updateApplicationStatus(docId, newStatus);
+      try {
+        await _firestoreService.updateApplicationStatus(docId, newStatus);
+        if (mounted) {
+           ScaffoldMessenger.of(context).showSnackBar(
+             SnackBar(content: Text('Статус изменен на: ${_statusLabels[newStatus]}'), backgroundColor: Colors.green, duration: const Duration(seconds: 1)),
+           );
+        }
+      } catch (e) {
+        if (mounted) {
+           ScaffoldMessenger.of(context).showSnackBar(
+             SnackBar(content: Text('Ошибка обновления: $e'), backgroundColor: Colors.red),
+           );
+        }
+      }
     }
   }
 
@@ -44,26 +58,47 @@ class _FestivalApplicationsScreenState extends State<FestivalApplicationsScreen>
     );
   }
 
-  void _exportToClipboard(List<QueryDocumentSnapshot<Map<String, dynamic>>> docs) {
+  Future<void> _exportToFile(List<QueryDocumentSnapshot<Map<String, dynamic>>> docs) async {
     StringBuffer sb = StringBuffer();
-    sb.writeln("Дата;Имя;Телефон;Тип;Статус;Промокод");
+    sb.writeln("СПИСОК ЗАЯВОК НА ФЕСТИВАЛЬ");
+    sb.writeln("Дата экспорта: ${DateFormat('dd.MM.yyyy HH:mm').format(DateTime.now())}");
+    sb.writeln("-" * 30);
+    sb.writeln();
 
     for (var doc in docs) {
       final data = doc.data();
-      final date = (data['createdAt'] as Timestamp?)?.toDate().toString() ?? '';
-      final name = data['name'] ?? '';
-      final phone = data['phone'] ?? '';
-      final type = data['type'] ?? '';
-      final status = _statusLabels[data['status']] ?? data['status'] ?? '';
+      final date = (data['createdAt'] as Timestamp?)?.toDate();
+      final dateStr = date != null ? DateFormat('dd.MM.yyyy HH:mm').format(date) : 'Нет даты';
+      final name = data['name'] ?? 'Без имени';
+      final phone = data['phone'] ?? 'Нет телефона';
+      final type = data['type'] ?? 'Не указан';
+      final status = _statusLabels[data['status']] ?? data['status'] ?? 'new';
       final promo = data['promo'] ?? '';
       
-      sb.writeln("$date;$name;$phone;$type;$status;$promo");
+      sb.writeln("Дата: $dateStr");
+      sb.writeln("Имя: $name");
+      sb.writeln("Телефон: $phone");
+      sb.writeln("Билет: $type");
+      sb.writeln("Статус: $status");
+      if (promo.isNotEmpty) sb.writeln("Промокод: $promo");
+      sb.writeln("-" * 20);
     }
 
-    Clipboard.setData(ClipboardData(text: sb.toString()));
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Все заявки скопированы в буфер (CSV формат)'), backgroundColor: Colors.green),
-    );
+    try {
+      final dateStr = DateFormat('yyyy-MM-dd_HH-mm').format(DateTime.now());
+      final result = await FileSaver.saveText(sb.toString(), "festival_applications_$dateStr.txt");
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(result), backgroundColor: Colors.green),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Ошибка сохранения: $e'), backgroundColor: Colors.red),
+        );
+      }
+    }
   }
 
   @override
@@ -77,9 +112,9 @@ class _FestivalApplicationsScreenState extends State<FestivalApplicationsScreen>
              builder: (context, snapshot) {
                  if (!snapshot.hasData || snapshot.data!.docs.isEmpty) return const SizedBox.shrink();
                  return IconButton(
-                    icon: const Icon(Icons.copy_all),
-                    tooltip: 'Экспорт всех заявок',
-                    onPressed: () => _exportToClipboard(snapshot.data!.docs)
+                    icon: const Icon(Icons.download),
+                    tooltip: 'Скачать список (.txt)',
+                    onPressed: () => _exportToFile(snapshot.data!.docs)
                  );
              }
           )

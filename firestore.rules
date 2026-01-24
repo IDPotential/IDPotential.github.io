@@ -146,7 +146,7 @@ service cloud.firestore {
     // 4. Festival Applications
     match /festival_applications/{appId} {
       allow create: if true; // Allow public applications (userId can be null)
-      allow read: if isAdmin();
+      allow read, update: if isAdmin();
     }
   }
 }
