@@ -12,7 +12,8 @@ import 'profile_screen.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key});
+  final VoidCallback? onMenuTap;
+  const HomeScreen({super.key, this.onMenuTap});
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -40,6 +41,9 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        leading: widget.onMenuTap != null 
+          ? IconButton(icon: const Icon(Icons.menu), onPressed: widget.onMenuTap)
+          : null,
         title: const Text('Главная'),
         actions: [
           IconButton(

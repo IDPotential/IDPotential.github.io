@@ -14,11 +14,14 @@ import '../widgets/role_info_dialog.dart';
 import 'training_history_screen.dart';
 
 class HistoryScreen extends StatefulWidget {
-  const HistoryScreen({super.key});
+  final VoidCallback? onMenuTap;
+  const HistoryScreen({super.key, this.onMenuTap});
 
   @override
   State<HistoryScreen> createState() => _HistoryScreenState();
 }
+
+
 
 class _HistoryScreenState extends State<HistoryScreen> {
   final FirestoreService _firestoreService = FirestoreService();
@@ -250,8 +253,10 @@ class _HistoryScreenState extends State<HistoryScreen> {
                   return IconButton(icon: const Icon(Icons.arrow_back), onPressed: _goBack);
                 } else if (Navigator.canPop(context)) {
                   return IconButton(icon: const Icon(Icons.arrow_back), onPressed: () => Navigator.pop(context));
+                } else if (widget.onMenuTap != null) {
+                   return IconButton(icon: const Icon(Icons.menu), onPressed: widget.onMenuTap);
                 }
-                return const SizedBox.shrink(); // No leading icon if not in folder and cannot pop
+                return const SizedBox.shrink(); 
               },
             ),
             bottom: const TabBar(

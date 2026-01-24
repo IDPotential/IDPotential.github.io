@@ -16,13 +16,10 @@ class AppHome extends StatefulWidget {
 class _AppHomeState extends State<AppHome> {
   int _selectedIndex = 0;
   late PageController _pageController;
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   
-  final List<Widget> _screens = [
-    const HomeScreen(),
-    const HistoryScreen(),
-    const LibraryScreen(),
-    const GameScreen(),
-  ];
+  // Screens will be initialized in initState or getter to access _scaffoldKey
+  late List<Widget> _screens;
   
   final List<String> _titles = [
     'Диагностика',
@@ -36,6 +33,20 @@ class _AppHomeState extends State<AppHome> {
     super.initState();
     _selectedIndex = widget.initialIndex;
     _pageController = PageController(initialPage: _selectedIndex);
+  }
+  
+  // Using getter to lazily initialize screens with callbacks
+  List<Widget> get screens {
+      return [
+        HomeScreen(onMenuTap: _openDrawer),
+        HistoryScreen(onMenuTap: _openDrawer),
+        LibraryScreen(onMenuTap: _openDrawer),
+        GameScreen(onMenuTap: _openDrawer),
+      ];
+  }
+
+  void _openDrawer() {
+     _scaffoldKey.currentState?.openDrawer();
   }
 
   @override
@@ -58,6 +69,11 @@ class _AppHomeState extends State<AppHome> {
     );
   }
 
+  void _navigateTo(int index) {
+     Navigator.pop(context); // Close drawer
+     _onItemTapped(index);
+  }
+
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(
@@ -66,7 +82,9 @@ class _AppHomeState extends State<AppHome> {
 
         if (isLandscape) {
           return Scaffold(
+             key: _scaffoldKey,
              appBar: null,
+             drawer: _buildDrawer(),
              body: SafeArea(
                child: Row(
                  children: [
@@ -75,7 +93,7 @@ class _AppHomeState extends State<AppHome> {
                      child: PageView(
                        controller: _pageController,
                        onPageChanged: _onPageChanged,
-                       children: _screens,
+                       children: screens, // Use getter
                      ),
                    ),
                    // Vertical Divider
@@ -115,11 +133,13 @@ class _AppHomeState extends State<AppHome> {
           );
         } else {
           return Scaffold(
+            key: _scaffoldKey,
             appBar: null,
+            drawer: _buildDrawer(),
             body: PageView(
               controller: _pageController,
               onPageChanged: _onPageChanged,
-              children: _screens,
+              children: screens, // Use getter
             ),
             bottomNavigationBar: SafeArea(
               child: BottomNavigationBar(
@@ -150,5 +170,71 @@ class _AppHomeState extends State<AppHome> {
         }
       },
     );
+  }
+
+  Widget _buildDrawer() {
+     return Drawer(
+        backgroundColor: const Color(0xFF0F172A),
+        child: Column(
+           children: [
+              DrawerHeader(
+                 decoration: const BoxDecoration(
+                    gradient: LinearGradient(
+                       colors: [Color(0xFF2E0249), Color(0xFF1E293B)],
+                       begin: Alignment.topLeft,
+                       end: Alignment.bottomRight
+                    )
+                 ),
+                 child: Center(
+                    child: Column(
+                       mainAxisAlignment: MainAxisAlignment.center,
+                       children: [
+                          Image.asset('assets/images/logo.jpg', height: 60, width: 60, errorBuilder: (_,__,___)=>const Icon(Icons.account_circle, size: 60, color: Colors.white)),
+                          const SizedBox(height: 12),
+                          const Text("ID Potential", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18)),
+                       ],
+                    ),
+                 ),
+              ),
+              ListTile(
+                 leading: const Icon(Icons.home, color: Colors.white70),
+                 title: const Text('Главная', style: TextStyle(color: Colors.white)),
+                 selected: _selectedIndex == 0,
+                 selectedTileColor: Colors.blue.withOpacity(0.1),
+                 onTap: () => _navigateTo(0),
+              ),
+              ListTile(
+                 leading: const Icon(Icons.history, color: Colors.white70),
+                 title: const Text('История', style: TextStyle(color: Colors.white)),
+                 selected: _selectedIndex == 1,
+                 selectedTileColor: Colors.blue.withOpacity(0.1),
+                 onTap: () => _navigateTo(1),
+              ),
+              ListTile(
+                 leading: const Icon(Icons.menu_book, color: Colors.white70),
+                 title: const Text('Библиотека', style: TextStyle(color: Colors.white)),
+                 selected: _selectedIndex == 2,
+                 selectedTileColor: Colors.blue.withOpacity(0.1),
+                 onTap: () => _navigateTo(2),
+              ),
+              ListTile(
+                 leading: const Icon(Icons.casino, color: Colors.white70),
+                 title: const Text('Игра', style: TextStyle(color: Colors.white)),
+                 selected: _selectedIndex == 3,
+                 selectedTileColor: Colors.blue.withOpacity(0.1),
+                 onTap: () => _navigateTo(3),
+              ),
+              const Divider(color: Colors.white24),
+              ListTile(
+                 leading: const Icon(Icons.star, color: Colors.amber),
+                 title: const Text('Фестиваль', style: TextStyle(color: Colors.amberAccent, fontWeight: FontWeight.bold)),
+                 onTap: () {
+                    Navigator.pop(context);
+                    Navigator.pushNamed(context, '/festival');
+                 },
+              ),
+           ],
+        ),
+     );
   }
 }

@@ -4,7 +4,8 @@ import 'role_detail_screen.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class LibraryScreen extends StatelessWidget {
-  const LibraryScreen({super.key});
+  final VoidCallback? onMenuTap;
+  const LibraryScreen({super.key, this.onMenuTap});
 
   @override
   Widget build(BuildContext context) {
@@ -12,6 +13,9 @@ class LibraryScreen extends StatelessWidget {
       length: 3,
       child: Scaffold(
         appBar: AppBar(
+          leading: onMenuTap != null 
+             ? IconButton(icon: const Icon(Icons.menu), onPressed: onMenuTap)
+             : null,
           title: const Text('Библиотека знаний'),
           bottom: const TabBar(
             tabs: [

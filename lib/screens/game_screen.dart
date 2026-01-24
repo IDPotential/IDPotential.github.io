@@ -20,7 +20,8 @@ import '../widgets/role_info_dialog.dart';
 
 class GameScreen extends StatefulWidget {
   final String? gameId;
-  const GameScreen({super.key, this.gameId});
+  final VoidCallback? onMenuTap;
+  const GameScreen({super.key, this.gameId, this.onMenuTap});
 
   @override
   State<GameScreen> createState() => _GameScreenState();
@@ -305,9 +306,14 @@ class _GameScreenState extends State<GameScreen> {
       // Main Lobby View
       return Scaffold(
         extendBodyBehindAppBar: true, 
-        appBar: _gameProfile == null 
-          ? AppBar(title: const Text('Загрузка...'), backgroundColor: Colors.transparent, elevation: 0) 
-          : null,
+        appBar: AppBar(
+          title: _gameProfile == null ? const Text('Загрузка...') : null,
+          backgroundColor: Colors.transparent, 
+          elevation: 0,
+          leading: widget.onMenuTap != null 
+             ? IconButton(icon: const Icon(Icons.menu, color: Colors.white), onPressed: widget.onMenuTap)
+             : null,
+        ),
         body: Container(
           decoration: const BoxDecoration(
             gradient: LinearGradient(
@@ -1683,7 +1689,13 @@ ToggleButtons(
 
    Widget _buildGameSelectionScreen() {
       return Scaffold(
-         appBar: AppBar(title: const Text("Выберите игру"), backgroundColor: const Color(0xFF0F172A)),
+         appBar: AppBar(
+            title: const Text("Выберите игру"), 
+            backgroundColor: const Color(0xFF0F172A),
+            leading: widget.onMenuTap != null 
+               ? IconButton(icon: const Icon(Icons.menu), onPressed: widget.onMenuTap)
+               : null,
+         ),
          floatingActionButton: FloatingActionButton.extended(
             onPressed: _showProfileDialog,
             backgroundColor: Colors.blueAccent,
