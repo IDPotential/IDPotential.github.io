@@ -72,7 +72,7 @@ class _MyAppState extends State<MyApp> {
 
     _linkSubscription = _appLinks.uriLinkStream.listen((uri) {
        // Check if this is the generic initial link event to avoid double-push
-       if (initialUri != null && uri.path == initialUri.path) {
+       if (initialUri != null && uri.path == initialUri!.path) {
           debugPrint("Skipping initial link handled by framework: $uri");
           initialUri = null; // Consume it so future clicks work
           return;

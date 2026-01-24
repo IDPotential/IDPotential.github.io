@@ -330,6 +330,7 @@ class _CalculationScreenState extends State<CalculationScreen> {
           ),
         ),
       ),
+      ),
     );
   }
 }
