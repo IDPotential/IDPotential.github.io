@@ -148,14 +148,7 @@ class FestivalScreen extends StatelessWidget {
 
                         const SizedBox(height: 50),
                         
-                        // --- PROGRAM SECTION ---
-                        const Text(
-                          "ПРОГРАММА",
-                          style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold),
-                        ),
-                        const SizedBox(height: 16),
-                        _buildProgramSection(),
-                        const SizedBox(height: 50),
+
 
                         // --- VISITOR SECTION ---
                         const Text(
@@ -288,6 +281,16 @@ class FestivalScreen extends StatelessWidget {
                            )
                         ),
 
+
+                        // --- PROGRAM SECTION ---
+                        const Text(
+                          "ПРОГРАММА",
+                          style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold),
+                        ),
+                        const SizedBox(height: 16),
+                        _buildProgramSection(),
+                        const SizedBox(height: 50),
+
                         const SizedBox(height: 50),
 
                         // --- ORGANIZERS ---
@@ -296,14 +299,7 @@ class FestivalScreen extends StatelessWidget {
                           style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold),
                         ),
                         const SizedBox(height: 20),
-                        _buildOrganizerCard(
-                          "Олег Баранец", 
-                          "Психолог, бизнес-аналитик", 
-                          "Автор игры Территория Себя и платформы для игропрактик. Помогает превратить хаос в ясную структуру развития.",
-                          Colors.blue,
-                          "assets/images/olegbaranets.jpg"
-                        ),
-                        const SizedBox(height: 16),
+
                         _buildOrganizerCard(
                           "Олег Баранец", 
                           "Психолог, бизнес-аналитик", 
