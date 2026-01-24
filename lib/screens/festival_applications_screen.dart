@@ -14,6 +14,8 @@ class FestivalApplicationsScreen extends StatefulWidget {
 
 class _FestivalApplicationsScreenState extends State<FestivalApplicationsScreen> {
   final FirestoreService _firestoreService = FirestoreService();
+  String _searchQuery = '';
+  final Set<String> _selectedStatuses = {'new', 'called', 'accepted', 'paid', 'rejected'};
 
   // Status mapping
   final Map<String, String> _statusLabels = {
@@ -126,14 +128,87 @@ class _FestivalApplicationsScreenState extends State<FestivalApplicationsScreen>
           if (snapshot.hasError) return Center(child: Text('Ошибка: ${snapshot.error}'));
           if (snapshot.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator());
 
-          final docs = snapshot.data!.docs;
-          if (docs.isEmpty) return const Center(child: Text('Заявок пока нет'));
+          final allDocs = snapshot.data!.docs;
+          if (allDocs.isEmpty) return const Center(child: Text('Заявок пока нет'));
 
-          return ListView.builder(
-            padding: const EdgeInsets.all(16),
-            itemCount: docs.length,
-            itemBuilder: (context, index) {
-              final doc = docs[index];
+          // Filtering logic
+          final filteredDocs = allDocs.where((doc) {
+            final data = doc.data();
+            final name = (data['name'] ?? '').toString().toLowerCase();
+            final type = (data['type'] ?? '').toString().toLowerCase();
+            final promo = (data['promo'] ?? '').toString().toLowerCase();
+            final status = data['status'] ?? 'new';
+
+            // Filter by status
+            if (!_selectedStatuses.contains(status)) return false;
+
+            // Filter by search query
+            if (_searchQuery.isNotEmpty) {
+               final query = _searchQuery.toLowerCase();
+               return name.contains(query) || type.contains(query) || promo.contains(query);
+            }
+
+            return true;
+          }).toList();
+
+          return Column(
+            children: [
+              // Search and Filter UI
+              Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  children: [
+                    TextField(
+                      onChanged: (val) => setState(() => _searchQuery = val),
+                      decoration: InputDecoration(
+                        hintText: 'Поиск по имени, категории или промокоду',
+                        prefixIcon: const Icon(Icons.search),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: Row(
+                        children: _statusLabels.entries.map((e) {
+                          return Padding(
+                            padding: const EdgeInsets.only(right: 8.0),
+                            child: FilterChip(
+                              label: Text(e.value, style: TextStyle(
+                                fontSize: 12,
+                                color: _selectedStatuses.contains(e.key) ? Colors.white : _statusColors[e.key],
+                              )),
+                              selected: _selectedStatuses.contains(e.key),
+                              selectedColor: _statusColors[e.key],
+                              onSelected: (selected) {
+                                setState(() {
+                                  if (selected) {
+                                    _selectedStatuses.add(e.key);
+                                  } else {
+                                    _selectedStatuses.remove(e.key);
+                                  }
+                                });
+                              },
+                            ),
+                          );
+                        }).toList(),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              
+              if (filteredDocs.isEmpty)
+                const Expanded(child: Center(child: Text('Заявки не найдены')))
+              else
+                Expanded(
+                  child: ListView.builder(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    itemCount: filteredDocs.length,
+                    itemBuilder: (context, index) {
+                      final doc = filteredDocs[index];
+                      // ... rest of the card continues below ...
               final data = doc.data();
               final date = (data['createdAt'] as Timestamp?)?.toDate();
               final dateStr = date != null ? DateFormat('dd.MM.yyyy HH:mm').format(date) : 'Нет даты';
@@ -213,6 +288,9 @@ class _FestivalApplicationsScreenState extends State<FestivalApplicationsScreen>
                 ),
               );
             },
+          ),
+        ),
+            ],
           );
         },
       ),
