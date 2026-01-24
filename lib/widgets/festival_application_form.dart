@@ -152,10 +152,14 @@ class _FestivalApplicationFormState extends State<FestivalApplicationForm> {
   InputDecoration _inputDecoration(String label) {
     return InputDecoration(
       labelText: label,
+      labelStyle: TextStyle(color: Colors.grey[800]), // Dark label for visibility
       filled: true,
       fillColor: Colors.white,
       border: const OutlineInputBorder(),
+      enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: Colors.grey.shade400)),
+      focusedBorder: const OutlineInputBorder(borderSide: BorderSide(color: Color(0xFF2E0249), width: 2)),
       contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      hintStyle: TextStyle(color: Colors.grey[500]),
     );
   }
 
@@ -234,6 +238,9 @@ class _FestivalApplicationFormState extends State<FestivalApplicationForm> {
                     child: DropdownButton<String>(
                       value: _selectedType,
                       isExpanded: true,
+                      dropdownColor: Colors.white, // Ensure popup is white
+                      style: const TextStyle(color: Colors.black87, fontSize: 16), // Dark text
+                      iconEnabledColor: const Color(0xFF2E0249),
                       items: _types.map((t) => DropdownMenuItem(
                         value: t,
                         child: Text(t, style: const TextStyle(color: Colors.black87)),

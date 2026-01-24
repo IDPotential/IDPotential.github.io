@@ -189,9 +189,24 @@ class _AppHomeState extends State<AppHome> {
                     child: Column(
                        mainAxisAlignment: MainAxisAlignment.center,
                        children: [
-                          Image.asset('assets/images/logo.jpg', height: 60, width: 60, errorBuilder: (_,__,___)=>const Icon(Icons.account_circle, size: 60, color: Colors.white)),
+                          Container(
+                             padding: const EdgeInsets.all(2),
+                             decoration: const BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: Colors.white,
+                             ),
+                             child: ClipOval(
+                                child: Image.asset(
+                                   'assets/images/logo.jpg', 
+                                   height: 60, 
+                                   width: 60, 
+                                   fit: BoxFit.cover,
+                                   errorBuilder: (_,__,___)=>const Icon(Icons.account_circle, size: 60, color: Colors.grey)
+                                ),
+                             ),
+                          ),
                           const SizedBox(height: 12),
-                          const Text("ID Potential", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18)),
+                          const Text("Территория Себя", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18)),
                        ],
                     ),
                  ),
