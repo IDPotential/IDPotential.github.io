@@ -831,6 +831,25 @@ class FirestoreService {
     }
   }
 
+  }
+
+  // --- Festival Admin ---
+
+  Stream<QuerySnapshot<Map<String, dynamic>>> getFestivalApplicationsStream() {
+    // Only fetch if admin (checked by specific UI or rules, but for client side simplicity we just return stream)
+    // Security rules should enforce read access.
+    return _db.collection('festival_applications')
+        .orderBy('createdAt', descending: true)
+        .snapshots();
+  }
+
+  Future<void> updateApplicationStatus(String docId, String newStatus) async {
+    await _db.collection('festival_applications').doc(docId).update({
+      'status': newStatus,
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
+  }
+
   Future<void> addVirtualParticipant(String gameId, String name, List<int> numbers, int? playerNumber) async {
       // Use a timestamp-based ID to avoid collisions and allow easy identification
       final String virtId = 'virt_${DateTime.now().millisecondsSinceEpoch}';

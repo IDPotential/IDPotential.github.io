@@ -8,7 +8,8 @@ import 'login_screen.dart';
 import 'games_list_screen.dart';
 import 'game_details_screen.dart';
 import '../widgets/role_info_dialog.dart';
-import '../widgets/user_matrix_widget.dart'; // Import Matrix Widget
+import '../widgets/user_matrix_widget.dart';
+import 'festival_applications_screen.dart'; // Import Matrix Widget
 
 import 'package:package_info_plus/package_info_plus.dart';
 
@@ -600,8 +601,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const GamesListScreen())),
                         icon: const Icon(Icons.videogame_asset),
                         label: const Text('Игровые сессии'),
+                        label: const Text('Игровые сессии'),
                         style: ElevatedButton.styleFrom(backgroundColor: Colors.purple),
                       ),
+                      
+                    if (isAdmin)
+                       ElevatedButton.icon(
+                          onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const FestivalApplicationsScreen())),
+                          icon: const Icon(Icons.list_alt),
+                          label: const Text('Заявки Фестиваля'),
+                          style: ElevatedButton.styleFrom(backgroundColor: Colors.teal),
+                       ),
                   ],
                 ),
                 
