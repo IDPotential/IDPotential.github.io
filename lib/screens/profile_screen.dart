@@ -482,28 +482,56 @@ class _ProfileScreenState extends State<ProfileScreen> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 // User Stats Card
+                // User Stats Card (Compact)
                 Card(
-                  elevation: 4,
+                  elevation: 2,
                   child: Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: Column(
+                    padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Icon(Icons.account_circle, size: 60, color: Colors.blueAccent),
-                        const SizedBox(height: 10),
-                        Text(
-                          userData['first_name'] ?? 'Пользователь',
-                          style: Theme.of(context).textTheme.headlineSmall,
+                        // Left: Name and Status
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                userData['first_name'] ?? 'Пользователь',
+                                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              if (userData['username'] != null)
+                                Text('@${userData['username']}', style: TextStyle(fontSize: 12, color: Colors.grey[500])),
+                              const SizedBox(height: 4),
+                              Row(
+                                children: [
+                                  Icon(Icons.stars, size: 14, color: Colors.blue[300]),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    statusName, 
+                                    style: TextStyle(fontSize: 13, color: Colors.grey[400])
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
                         ),
-                        if (userData['username'] != null)
-                          Text('@${userData['username']}', style: Theme.of(context).textTheme.bodySmall),
-                        const SizedBox(height: 20),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceAround,
+                        
+                        // Right: Balance
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.end,
                           children: [
-                            _buildStatItem("Баланс", "$credits кр.", Icons.account_balance_wallet),
-                            _buildStatItem("Статус", statusName, Icons.stars),
+                             Text(
+                               "$credits кр.", 
+                               style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.greenAccent)
+                             ),
+                             const SizedBox(height: 4),
+                             Text(
+                               "Баланс", 
+                               style: TextStyle(fontSize: 11, color: Colors.grey[500])
+                             ),
                           ],
-                        ),
+                        )
                       ],
                     ),
                   ),
