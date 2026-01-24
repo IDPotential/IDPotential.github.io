@@ -1,6 +1,7 @@
 
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../widgets/festival_application_form.dart';
 
 class FestivalScreen extends StatelessWidget {
@@ -448,9 +449,9 @@ class FestivalScreen extends StatelessWidget {
            children: [
               _buildProgramItem("12:00", "СЦЕНА", "Открытие фестиваля"),
               const Divider(color: Colors.white10),
-              _buildProgramItem("13:00", "СЦЕНА", "Выступление экспертов (программа формируется)"),
+              _buildProgramItem("13:00 - 17:00", "СЦЕНА", "Выступление экспертов (программа формируется)"),
               const Divider(color: Colors.white10),
-              _buildProgramItem("12:00-18:00", "ИГРОВЫЕ ЗОНЫ", "Трансформационные игры:\n• Территория себя\n• Лила\n• Like Game\n• и полный список игр еще формируется"),
+              _buildProgramItem("12:00-18:00", "ИГРОВЫЕ ЗОНЫ", "Трансформационные игры:\n• Территория себя\n• Лила\n• Like Game\n• полный список игр еще формируется"),
               const Divider(color: Colors.white10),
               _buildProgramItem("17:00", "СЦЕНА", "Розыгрыш призов, вручение и закрытие"),
            ],
@@ -487,10 +488,27 @@ class FestivalScreen extends StatelessWidget {
         builder: (context) => AlertDialog(
            backgroundColor: const Color(0xFF1E293B),
            title: const Text("Пространство АТС", style: TextStyle(color: Colors.white)),
-           content: const SingleChildScrollView(
-              child: Text(
-                 "Выбор АТС как площадки символичен: это место, где десятилетиями соединялись линии связи. На один день мы превратим его в центр коммуникации смыслов, технологий и психологии.\n\nИндустриальная архитектура подчеркивает фундаментальность наших методов и готовность к «высоковольтному» масштабу.",
-                 style: TextStyle(color: Colors.white70, fontSize: 14, height: 1.5),
+           content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                   const Text(
+                      "Выбор АТС как площадки символичен: это место, где десятилетиями соединялись линии связи. На один день мы превратим его в центр коммуникации смыслов, технологий и психологии.\n\nИндустриальная архитектура подчеркивает фундаментальность наших методов и готовность к «высоковольтному» масштабу.",
+                      style: TextStyle(color: Colors.white70, fontSize: 14, height: 1.5),
+                   ),
+                   const SizedBox(height: 16),
+                   InkWell(
+                      onTap: () => launchUrl(Uri.parse('https://yandex.ru/profile/-/CLtT6A30'), mode: LaunchMode.externalApplication),
+                      child: Row(
+                         children: const [
+                            Icon(Icons.map, color: Colors.blueAccent),
+                            SizedBox(width: 8),
+                            Text("Открыть на карте (Яндекс)", style: TextStyle(color: Colors.blueAccent, decoration: TextDecoration.underline)),
+                         ],
+                      ),
+                   )
+                ],
               ),
            ),
            actions: [
