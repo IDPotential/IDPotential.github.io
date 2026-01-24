@@ -39,14 +39,26 @@ class _AppHomeState extends State<AppHome> {
   List<Widget> get screens {
       return [
         HomeScreen(onMenuTap: _openDrawer),
-        HistoryScreen(onMenuTap: _openDrawer),
-        LibraryScreen(onMenuTap: _openDrawer),
+        HistoryScreen(onMenuTap: _openDrawer, onSwipeNext: _nextPage),
+        LibraryScreen(onMenuTap: _openDrawer, onSwipePrev: _prevPage, onSwipeNext: _nextPage),
         GameScreen(onMenuTap: _openDrawer),
       ];
   }
 
   void _openDrawer() {
      _scaffoldKey.currentState?.openDrawer();
+  }
+
+  void _nextPage() {
+    if (_selectedIndex < 3) {
+      _pageController.animateToPage(_selectedIndex + 1, duration: const Duration(milliseconds: 300), curve: Curves.easeInOut);
+    }
+  }
+
+  void _prevPage() {
+    if (_selectedIndex > 0) {
+      _pageController.animateToPage(_selectedIndex - 1, duration: const Duration(milliseconds: 300), curve: Curves.easeInOut);
+    }
   }
 
   @override

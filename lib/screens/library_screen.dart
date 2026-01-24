@@ -5,7 +5,9 @@ import 'package:url_launcher/url_launcher.dart';
 
 class LibraryScreen extends StatelessWidget {
   final VoidCallback? onMenuTap;
-  const LibraryScreen({super.key, this.onMenuTap});
+  final VoidCallback? onSwipeNext;
+  final VoidCallback? onSwipePrev;
+  const LibraryScreen({super.key, this.onMenuTap, this.onSwipeNext, this.onSwipePrev});
 
   @override
   Widget build(BuildContext context) {
@@ -28,12 +30,23 @@ class LibraryScreen extends StatelessWidget {
         body: Center(
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 800),
-            child: TabBarView(
-              children: [
-                _buildGrid(context, isAspects: false),
-                _buildGrid(context, isAspects: true),
-                _buildDecryptionsList(context),
-              ],
+            child: NotificationListener<OverscrollNotification>(
+               onNotification: (notification) {
+                 if (notification.overscroll < 0 && notification.metrics.pixels == notification.metrics.minScrollExtent) {
+                    if (onSwipePrev != null) { onSwipePrev!(); return true; }
+                 }
+                 if (notification.overscroll > 0 && notification.metrics.pixels == notification.metrics.maxScrollExtent) {
+                    if (onSwipeNext != null) { onSwipeNext!(); return true; }
+                 }
+                 return false;
+               },
+               child: TabBarView(
+                children: [
+                  _buildGrid(context, isAspects: false),
+                  _buildGrid(context, isAspects: true),
+                  _buildDecryptionsList(context),
+                ],
+               ),
             ),
           ),
         ),

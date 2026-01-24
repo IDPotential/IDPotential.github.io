@@ -15,7 +15,8 @@ import 'training_history_screen.dart';
 
 class HistoryScreen extends StatefulWidget {
   final VoidCallback? onMenuTap;
-  const HistoryScreen({super.key, this.onMenuTap});
+  final VoidCallback? onSwipeNext;
+  const HistoryScreen({super.key, this.onMenuTap, this.onSwipeNext});
 
   @override
   State<HistoryScreen> createState() => _HistoryScreenState();
@@ -272,12 +273,26 @@ class _HistoryScreenState extends State<HistoryScreen> {
           body: Center(
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 800),
-              child: TabBarView(
+            child: NotificationListener<OverscrollNotification>(
+             onNotification: (notification) {
+                // Check if oversweiping to the right (drag from right to left)
+                if (notification.overscroll > 0 && notification.metrics.pixels == notification.metrics.maxScrollExtent) {
+                    // Logic to debounce or confirm it's a deliberate swipe could be added here
+                    // For now, trigger callback
+                    if (widget.onSwipeNext != null) {
+                       widget.onSwipeNext!();
+                       return true;
+                    }
+                }
+                return false;
+             },
+             child: TabBarView(
                 children: [
                    _buildDiagnosticsTab(),
                    _buildGamesTab(),
                 ],
-              ),
+             ),
+            ),
             ),
           ),
         ),
