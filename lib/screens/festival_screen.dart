@@ -305,11 +305,31 @@ class FestivalScreen extends StatelessWidget {
                         ),
                         const SizedBox(height: 16),
                         _buildOrganizerCard(
+                          "Олег Баранец", 
+                          "Психолог, бизнес-аналитик", 
+                          "Автор игры Территория Себя и платформы для игропрактик. Помогает превратить хаос в ясную структуру развития.",
+                          Colors.blue,
+                          "assets/images/olegbaranets.jpg",
+                          [
+                             {'icon': Icons.send, 'url': 'https://t.me/bons_oleg', 'tooltip': 'Написать'},
+                             {'icon': Icons.campaign, 'url': 'https://t.me/id_territory', 'tooltip': 'Канал'},
+                             {'icon': Icons.language, 'url': 'https://infocards.club/', 'tooltip': 'Сайт'},
+                             {'icon': Icons.play_circle_fill, 'url': 'https://www.youtube.com/@infocardsclub', 'tooltip': 'YouTube'},
+                          ]
+                        ),
+                        const SizedBox(height: 16),
+                        _buildOrganizerCard(
                           "Наталия Баранец", 
                           "Психотерапевт", 
                           "Эксперт по психологии масштаба. Помогает преодолеть внутренние барьеры и подготовить психику к росту.",
                           Colors.pinkAccent,
-                          "assets/images/nataliabaranets.jpg"
+                          "assets/images/nataliabaranets.jpg",
+                          [
+                             {'icon': Icons.send, 'url': 'https://t.me/baranets_info', 'tooltip': 'Написать'},
+                             {'icon': Icons.campaign, 'url': 'https://t.me/baranetsinfo', 'tooltip': 'Канал'},
+                             {'icon': Icons.language, 'url': 'https://baranets.info/', 'tooltip': 'Сайт'},
+                             {'icon': Icons.play_circle_fill, 'url': 'https://www.youtube.com/@baranets_info', 'tooltip': 'YouTube'},
+                          ]
                         ),
 
                         const SizedBox(height: 60),
@@ -387,7 +407,7 @@ class FestivalScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildOrganizerCard(String name, String role, String desc, Color color, [String? imagePath]) {
+  Widget _buildOrganizerCard(String name, String role, String desc, Color color, [String? imagePath, List<Map<String, dynamic>>? socialLinks]) {
     return _buildGlassCard(
       padding: const EdgeInsets.all(16),
       child: Row(
@@ -419,6 +439,28 @@ class FestivalScreen extends StatelessWidget {
                  Text(role, style: const TextStyle(color: Colors.white54, fontSize: 12)),
                  const SizedBox(height: 8),
                  Text(desc, style: const TextStyle(color: Colors.white70, fontSize: 12, height: 1.4)),
+                 if (socialLinks != null) ...[
+                     const SizedBox(height: 12),
+                     Wrap(
+                        spacing: 8,
+                        children: socialLinks.map((link) {
+                           return InkWell(
+                              onTap: () => launchUrl(Uri.parse(link['url']), mode: LaunchMode.externalApplication),
+                              child: Tooltip(
+                                message: link['tooltip'] ?? '',
+                                child: Container(
+                                   padding: const EdgeInsets.all(6),
+                                   decoration: BoxDecoration(
+                                      color: Colors.white.withOpacity(0.1),
+                                      shape: BoxShape.circle
+                                   ),
+                                   child: Icon(link['icon'], color: Colors.white, size: 18)
+                                ),
+                              ),
+                           );
+                        }).toList(),
+                     )
+                  ]
                ],
              ),
            )
