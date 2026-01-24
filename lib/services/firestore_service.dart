@@ -831,7 +831,7 @@ class FirestoreService {
     }
   }
 
-  }
+
 
   // --- Festival Admin ---
 
