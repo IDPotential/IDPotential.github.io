@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter/gestures.dart';
 import '../services/firestore_service.dart';
+import 'package:mask_text_input_formatter/mask_text_input_formatter.dart';
 
 class FestivalApplicationForm extends StatefulWidget {
   final String initialType; // 'Посетитель', 'Мастер', 'Маэстро', 'Партнер'
@@ -128,6 +129,12 @@ class _FestivalApplicationFormState extends State<FestivalApplicationForm> {
   final _phoneController = TextEditingController();
   final _promoController = TextEditingController();
   
+  final _maskFormatter = MaskTextInputFormatter(
+     mask: '+7 (###) ###-##-##', 
+     filter: { "#": RegExp(r'[0-9]') },
+     type: MaskAutoCompletionType.lazy
+  );
+  
   late String _selectedType;
   bool _consentGiven = false;
   bool _isLoading = false;
@@ -204,11 +211,13 @@ class _FestivalApplicationFormState extends State<FestivalApplicationForm> {
                 const SizedBox(height: 16),
                 
                 // Phone
+                // Phone
                 TextFormField(
                   controller: _phoneController,
                   decoration: _inputDecoration("Телефон"),
                   keyboardType: TextInputType.phone,
-                  validator: (v) => v == null || v.isEmpty ? "Введите телефон" : null,
+                  inputFormatters: [_maskFormatter],
+                  validator: (v) => v == null || v.length < 18 ? "Введите телефон" : null, // +7 (999) 999-99-99 is 18 chars
                   style: const TextStyle(color: Colors.black87),
                 ),
                 const SizedBox(height: 16),
