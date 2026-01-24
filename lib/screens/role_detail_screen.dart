@@ -145,6 +145,7 @@ class _RoleDetailScreenState extends State<RoleDetailScreen> {
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 800),
           child: SingleChildScrollView(
+            padding: const EdgeInsets.only(bottom: 60), // Added padding to avoid system nav bar overlap
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
