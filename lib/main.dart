@@ -43,7 +43,10 @@ class _MyAppState extends State<MyApp> {
   // Custom Navigation Key to handle deep links
   final GlobalKey<NavigatorState> _navigatorKey = GlobalKey<NavigatorState>();
   final _appLinks = AppLinks();
+  final GlobalKey<NavigatorState> _navigatorKey = GlobalKey<NavigatorState>();
+  final _appLinks = AppLinks();
   StreamSubscription<Uri>? _linkSubscription;
+  bool _showFestival = false; // Flag for guest access
 
   @override
   void initState() {
@@ -63,6 +66,11 @@ class _MyAppState extends State<MyApp> {
     Uri? initialUri;
     try {
       initialUri = await _appLinks.getInitialLink();
+      if (initialUri != null && initialUri.path.contains('festival')) {
+         setState(() {
+            _showFestival = true;
+         });
+      }
       // Note: MaterialApp handles the initial route automatically via 'routes'.
       // We only need to listen to the stream for subsequent links,
       // but the stream often emits the initial link too.
@@ -89,7 +97,16 @@ class _MyAppState extends State<MyApp> {
     
     // 1. Festival -> Open directly (Guest allowed)
     if (path.contains('festival')) {
-       _navigatorKey.currentState?.pushNamed('/festival');
+       // If app is already running, push. 
+       // If starting up, this might be called early.
+       if (_navigatorKey.currentState != null) {
+          _navigatorKey.currentState?.pushNamed('/festival');
+       } else {
+          // Fallback for startup
+          setState(() {
+            _showFestival = true;
+          });
+       }
        return;
     }
     
@@ -223,6 +240,17 @@ class _MyAppState extends State<MyApp> {
 
           // 2. Done State -> App Content
           if (snapshot.connectionState == ConnectionState.done) {
+             // Guest Override
+             if (_showFestival) {
+                return WillPopScope(
+                   onWillPop: () async {
+                      setState(() => _showFestival = false);
+                      return false; // Don't exit app, just switch state
+                   },
+                   child: const FestivalScreen()
+                );
+             }
+
              return StreamBuilder<User?>(
                 stream: FirebaseAuth.instance.authStateChanges(),
                 builder: (context, authSnap) {
