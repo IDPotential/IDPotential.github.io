@@ -118,9 +118,17 @@ class FestivalScreen extends StatelessWidget {
                                   children: [
                                     const Icon(Icons.location_on, color: Colors.redAccent, size: 20),
                                     const SizedBox(width: 8),
-                                    Text(
-                                      "Пространство АТС, Ул.Некрасова, 3-5",
-                                      style: TextStyle(color: Colors.white.withOpacity(0.9), fontSize: 14),
+                                    InkWell(
+                                      onTap: () => _showLocationDetails(context),
+                                      child: const Text(
+                                        "Пространство АТС, Ул.Некрасова, 3-5",
+                                        style: TextStyle(
+                                          color: Colors.white, 
+                                          fontSize: 14, 
+                                          decoration: TextDecoration.underline,
+                                          decorationColor: Colors.white54
+                                        ),
+                                      ),
                                     ),
                                   ],
                                 ),
@@ -137,6 +145,15 @@ class FestivalScreen extends StatelessWidget {
                           ),
                         ),
 
+                        const SizedBox(height: 50),
+                        
+                        // --- PROGRAM SECTION ---
+                        const Text(
+                          "ПРОГРАММА",
+                          style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold),
+                        ),
+                        const SizedBox(height: 16),
+                        _buildProgramSection(),
                         const SizedBox(height: 50),
 
                         // --- VISITOR SECTION ---
@@ -165,6 +182,12 @@ class FestivalScreen extends StatelessWidget {
                                  Icons.mic, 
                                  "СЦЕНА СМЫСЛОВ", 
                                  "Выступления авторов методик. Найдите «своего» эксперта."
+                              ),
+                              const SizedBox(height: 16),
+                              _buildFeatureRow(
+                                 Icons.self_improvement, 
+                                 "ЗОНА ТЕЛЕСНЫХ ПРАКТИК", 
+                                 "Практики для укрепления физической опоры и управления тревогой."
                               ),
                             ],
                           ),
@@ -214,25 +237,25 @@ class FestivalScreen extends StatelessWidget {
                           physics: const BouncingScrollPhysics(),
                           child: Row(
                             children: [
-                              _buildPricingCard("МАСТЕР", "5 000 ₽", [
+                              InkWell(onTap: () => _showTariffDetails(context, "Мастер"), child: _buildPricingCard("МАСТЕР", "5 000 ₽", [
                                 "Игровой стол",
                                 "Представление на сайте",
                                 "Включение в расписание",
-                              ], Colors.blue),
+                              ], Colors.blue)),
                               const SizedBox(width: 16),
-                              _buildPricingCard("МАЭСТРО", "10 000 ₽", [
+                              InkWell(onTap: () => _showTariffDetails(context, "Маэстро"), child: _buildPricingCard("МАЭСТРО", "10 000 ₽", [
                                 "Всё, что в Мастер",
                                 "Выступление на сцене",
                                 "Видеовизитка",
                                 "Реклама на 2026 год"
-                              ], Colors.purpleAccent, isHighlighted: true),
+                              ], Colors.purpleAccent, isHighlighted: true)),
                               const SizedBox(width: 16),
-                              _buildPricingCard("ПАРТНЕР", "20 000 ₽", [
+                              InkWell(onTap: () => _showTariffDetails(context, "Партнер"), child: _buildPricingCard("ПАРТНЕР", "20 000 ₽", [
                                 "Всё, что в Маэстро",
                                 "Логотип партнера",
                                 "Розыгрыш ваших призов",
                                 "Интервью"
-                              ], Colors.amber),
+                              ], Colors.amber)),
                             ],
                           ),
                         ),
@@ -416,6 +439,115 @@ class FestivalScreen extends StatelessWidget {
         child: Container(color: Colors.transparent),
       ),
     );
+  }
+
+  Widget _buildProgramSection() {
+     return _buildGlassCard(
+        child: Column(
+           crossAxisAlignment: CrossAxisAlignment.start,
+           children: [
+              _buildProgramItem("12:00", "СЦЕНА", "Открытие фестиваля"),
+              const Divider(color: Colors.white10),
+              _buildProgramItem("13:00", "СЦЕНА", "Выступление экспертов (программа формируется)"),
+              const Divider(color: Colors.white10),
+              _buildProgramItem("12:00-18:00", "ИГРОВЫЕ ЗОНЫ", "Трансформационные игры:\n• Территория себя\n• Лила\n• Like Game\n• и полный список игр еще формируется"),
+              const Divider(color: Colors.white10),
+              _buildProgramItem("17:00", "СЦЕНА", "Розыгрыш призов, вручение и закрытие"),
+           ],
+        )
+     );
+  }
+
+  Widget _buildProgramItem(String time, String zone, String desc) {
+     return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        child: Row(
+           crossAxisAlignment: CrossAxisAlignment.start,
+           children: [
+              Text(time, style: const TextStyle(color: Colors.amberAccent, fontWeight: FontWeight.bold, fontSize: 16)),
+              const SizedBox(width: 16),
+              Expanded(
+                 child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                       Text(zone, style: const TextStyle(color: Colors.white54, fontSize: 10, letterSpacing: 1.2)),
+                       const SizedBox(height: 4),
+                       Text(desc, style: const TextStyle(color: Colors.white, fontSize: 14)),
+                    ],
+                 )
+              )
+           ],
+        ),
+     );
+  }
+
+  void _showLocationDetails(BuildContext context) {
+     showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+           backgroundColor: const Color(0xFF1E293B),
+           title: const Text("Пространство АТС", style: TextStyle(color: Colors.white)),
+           content: const SingleChildScrollView(
+              child: Text(
+                 "Выбор АТС как площадки символичен: это место, где десятилетиями соединялись линии связи. На один день мы превратим его в центр коммуникации смыслов, технологий и психологии.\n\nИндустриальная архитектура подчеркивает фундаментальность наших методов и готовность к «высоковольтному» масштабу.",
+                 style: TextStyle(color: Colors.white70, fontSize: 14, height: 1.5),
+              ),
+           ),
+           actions: [
+              TextButton(onPressed: () => Navigator.pop(context), child: const Text("Закрыть"))
+           ],
+        )
+     );
+  }
+
+  void _showTariffDetails(BuildContext context, String type) {
+     String title = type;
+     String content = "";
+
+     // Using text logic from extracted file
+     if (type == "Мастер") {
+        content = 
+           "✅ Представление игры на сайте проекта\n"
+           "✅ Включение в официальное расписание\n"
+           "✅ Игровой стол в Пространстве АТС\n\n"
+           "Почему это эффективно?\n"
+           "Вы получаете готовую инфраструктуру и поток клиентов, избавляясь от организационного хаоса.";
+     } else if (type == "Маэстро") {
+        content = 
+           "✅ Всё, что в тарифе Мастер\n"
+           "✅ Видеовизитка мастера на сайте\n"
+           "✅ Выступление на главной сцене\n"
+           "✅ Размещение вашего баннера в зале\n"
+           "✅ Анонс ваших событий на весь 2026 год\n"
+           "✅ Рекламные публикации в соцсетях\n\n"
+           "Почему это эффективно?\n"
+           "Вы заявляете о себе как о лидере мнений, используя сцену для подготовки аудитории к вашему масштабу.";
+     } else if (type == "Партнер") {
+        title = "Партнер Проекта";
+        content = 
+           "✅ Всё, что в тарифе Маэстро\n"
+           "✅ Сохранение вашей афиши на сайте (6 мес.)\n"
+           "✅ Съемка персонального видеоинтервью\n"
+           "✅ Статус «Партнер проекта» на сайте\n"
+           "✅ Печать информации в раздаточных материалах\n"
+           "✅ Розыгрыш ваших призов и вручение со сцены\n\n"
+           "Почему это эффективно?\n"
+           "Вы становитесь частью бренда, закрепляя свое присутствие в инфополе на полгода вперед и создавая доверие через интервью и личный контакт.";
+     }
+
+     showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+           backgroundColor: const Color(0xFF1E293B),
+           title: Text(title, style: const TextStyle(color: Colors.white)),
+           content: SingleChildScrollView(
+              child: Text(content, style: const TextStyle(color: Colors.white70, fontSize: 14, height: 1.5)),
+           ),
+           actions: [
+              TextButton(onPressed: () => Navigator.pop(context), child: const Text("Закрыть"))
+           ],
+        )
+     );
   }
 
   Widget _buildGlassCard({required Widget child, EdgeInsets padding = const EdgeInsets.all(24)}) {
