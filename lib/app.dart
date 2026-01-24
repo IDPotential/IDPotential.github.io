@@ -38,10 +38,10 @@ class _AppHomeState extends State<AppHome> {
   // Using getter to lazily initialize screens with callbacks
   List<Widget> get screens {
       return [
-        HomeScreen(onMenuTap: _openDrawer),
-        HistoryScreen(onMenuTap: _openDrawer, onSwipeNext: _nextPage),
+        HomeScreen(onMenuTap: _openDrawer, onSwipeNext: _nextPage, onSwipePrev: _openDrawer),
+        HistoryScreen(onMenuTap: _openDrawer, onSwipeNext: _nextPage, onSwipePrev: _prevPage),
         LibraryScreen(onMenuTap: _openDrawer, onSwipePrev: _prevPage, onSwipeNext: _nextPage),
-        GameScreen(onMenuTap: _openDrawer),
+        GameScreen(onMenuTap: _openDrawer, onSwipePrev: _prevPage),
       ];
   }
 

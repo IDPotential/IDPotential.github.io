@@ -393,7 +393,8 @@ class _TrainingGameScreenState extends State<TrainingGameScreen> {
                     backgroundColor: Colors.green
                  ),
                  child: const Text("Сохранить выбор", style: TextStyle(fontSize: 18)),
-              )
+              ),
+              const SizedBox(height: 100), // Bottom padding for browser bars
            ],
         ),
        );

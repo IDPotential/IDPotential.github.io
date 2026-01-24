@@ -13,7 +13,9 @@ import 'package:package_info_plus/package_info_plus.dart';
 
 class HomeScreen extends StatefulWidget {
   final VoidCallback? onMenuTap;
-  const HomeScreen({super.key, this.onMenuTap});
+  final VoidCallback? onSwipeNext;
+  final VoidCallback? onSwipePrev;
+  const HomeScreen({super.key, this.onMenuTap, this.onSwipeNext, this.onSwipePrev});
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -58,11 +60,30 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ],
       ),
-      body: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 800),
-          child: SingleChildScrollView(
-            child: Column(
+      body: NotificationListener<OverscrollNotification>(
+        onNotification: (notification) {
+          // Swipe to Open Drawer (Drag right, overscroll < 0)
+          if (notification.overscroll < 0 && notification.metrics.pixels == notification.metrics.minScrollExtent) {
+            if (widget.onSwipePrev != null) {
+              widget.onSwipePrev!();
+              return true;
+            }
+          }
+          // Swipe to Next Tab (Drag left, overscroll > 0)
+          if (notification.overscroll > 0 && notification.metrics.pixels == notification.metrics.maxScrollExtent) {
+            if (widget.onSwipeNext != null) {
+              widget.onSwipeNext!();
+              return true;
+            }
+          }
+          return false;
+        },
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 800),
+            child: SingleChildScrollView(
+              physics: const AlwaysScrollableScrollPhysics(), // Ensure overscroll works
+              child: Column(
 
           children: [
              // Festival Banner
