@@ -600,6 +600,14 @@ class FestivalScreen extends StatelessWidget {
               child: Text(content, style: const TextStyle(color: Colors.white70, fontSize: 14, height: 1.5)),
            ),
            actions: [
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF3B82F6), foregroundColor: Colors.white),
+                onPressed: () {
+                   Navigator.pop(context);
+                   showDialog(context: context, builder: (_) => FestivalApplicationForm(initialType: type));
+                },
+                child: const Text("Заявка на участие"),
+              ),
               TextButton(onPressed: () => Navigator.pop(context), child: const Text("Закрыть"))
            ],
         )
