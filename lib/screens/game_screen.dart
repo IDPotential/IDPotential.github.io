@@ -1695,13 +1695,15 @@ ToggleButtons(
             leading: widget.onMenuTap != null 
                ? IconButton(icon: const Icon(Icons.menu), onPressed: widget.onMenuTap)
                : null,
+            actions: [
+               IconButton(
+                  icon: const Icon(Icons.person),
+                  onPressed: _showProfileDialog,
+                  tooltip: 'Профиль',
+               )
+            ],
          ),
-         floatingActionButton: FloatingActionButton.extended(
-            onPressed: _showProfileDialog,
-            backgroundColor: Colors.blueAccent,
-            icon: const Icon(Icons.person, color: Colors.white),
-            label: const Text("Профиль", style: TextStyle(color: Colors.white)),
-         ),
+
          body: Container(
             color: const Color(0xFF0F172A),
             child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
