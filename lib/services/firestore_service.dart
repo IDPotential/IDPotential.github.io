@@ -206,6 +206,19 @@ class FirestoreService {
       'status': 'pending',
       'createdAt': FieldValue.serverTimestamp(),
     });
+
+    // Notify N8n
+    try {
+      await N8nService().sendSupportRequest(
+        userId: user.uid,
+        userName: userData['first_name'] ?? 'Unknown',
+        contact: userData['username'] ?? user.email ?? 'Unknown',
+        type: type,
+        text: text,
+      );
+    } catch (e) {
+      debugPrint("Error notifying N8n: $e");
+    }
   }
   
   Stream<QuerySnapshot<Map<String, dynamic>>> getPendingRequests() {

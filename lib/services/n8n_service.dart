@@ -89,6 +89,35 @@ class N8nService {
     }
   }
 
+  Future<void> sendSupportRequest({
+    required String userId,
+    required String userName,
+    required String contact,
+    required String type,
+    String? text,
+  }) async {
+    final url = kIsWeb ? 'http://localhost:5678/webhook/support-request' : 'http://10.0.2.2:5678/webhook/support-request';
+
+    try {
+      debugPrint('Sending Support Request: $userName ($type)');
+      await http.post(
+        Uri.parse(url),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'type': 'support_request',
+          'userId': userId,
+          'userName': userName,
+          'contact': contact,
+          'requestType': type,
+          'text': text ?? '',
+          'timestamp': DateTime.now().toIso8601String(),
+        }),
+      );
+    } catch (e) {
+      debugPrint('Error sending support request to n8n: $e');
+    }
+  }
+
   Future<void> triggerGameReport({
     required String gameId,
     required String meetingId,
