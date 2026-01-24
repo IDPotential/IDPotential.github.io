@@ -361,11 +361,11 @@ class _FestivalApplicationFormState extends State<FestivalApplicationForm> {
          Navigator.pop(context); // Close dialog
          showDialog(
             context: context, 
-            builder: (_) => AlertDialog(
+            builder: (dialogCtx) => AlertDialog(
                title: const Text("Успешно!"),
                content: const Text("Ваша заявка отправлена. Мы свяжемся с вами в ближайшее время."),
                actions: [
-                  TextButton(onPressed: () => Navigator.pop(context), child: const Text("ОК"))
+                  TextButton(onPressed: () => Navigator.pop(dialogCtx), child: const Text("ОК"))
                ],
             )
          );

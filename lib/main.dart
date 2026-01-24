@@ -38,7 +38,7 @@ class MyApp extends StatefulWidget {
 class _MyAppState extends State<MyApp> {
   // Initialization Future
   late Future<void> _initFuture;
-  final ValueNotifier<String> _loadingStatus = ValueNotifier("Подключение к Firebase...");
+  final ValueNotifier<String> _loadingStatus = ValueNotifier("Подключение к базе данных..."); // Changed from Firebase...
   
   // Custom Navigation Key to handle deep links
   final GlobalKey<NavigatorState> _navigatorKey = GlobalKey<NavigatorState>();
@@ -115,7 +115,7 @@ class _MyAppState extends State<MyApp> {
   Future<void> _initApp() async {
     try {
       // 1. Firebase
-      _loadingStatus.value = "Подключение к Firebase...";
+      _loadingStatus.value = "Подключение к базе данных...";
       await Firebase.initializeApp(
         options: DefaultFirebaseOptions.currentPlatform,
       );
