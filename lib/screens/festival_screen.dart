@@ -281,6 +281,7 @@ class FestivalScreen extends StatelessWidget {
                            )
                         ),
 
+                        const SizedBox(height: 50),
 
                         // --- PROGRAM SECTION ---
                         const Text(
@@ -289,8 +290,6 @@ class FestivalScreen extends StatelessWidget {
                         ),
                         const SizedBox(height: 16),
                         _buildProgramSection(),
-                        const SizedBox(height: 50),
-
                         const SizedBox(height: 50),
 
                         // --- ORGANIZERS ---
