@@ -582,8 +582,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               foregroundColor: Colors.blue,
                               side: const BorderSide(color: Colors.blue)
                            ),
-                         )
-                      else if (userData['telegram_id'] == null)
+                         ),
+                      if (userData['telegram_id'] == null)
                         ElevatedButton.icon(
                           onPressed: _showLinkTelegramDialog,
                           icon: const Icon(Icons.link, color: Colors.blue),
