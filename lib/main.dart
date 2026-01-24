@@ -43,8 +43,6 @@ class _MyAppState extends State<MyApp> {
   // Custom Navigation Key to handle deep links
   final GlobalKey<NavigatorState> _navigatorKey = GlobalKey<NavigatorState>();
   final _appLinks = AppLinks();
-  final GlobalKey<NavigatorState> _navigatorKey = GlobalKey<NavigatorState>();
-  final _appLinks = AppLinks();
   StreamSubscription<Uri>? _linkSubscription;
   bool _showFestival = false; // Flag for guest access
 
