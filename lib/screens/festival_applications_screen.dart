@@ -39,15 +39,19 @@ class _FestivalApplicationsScreenState extends State<FestivalApplicationsScreen>
       try {
         await _firestoreService.updateApplicationStatus(docId, newStatus);
         if (mounted) {
-           ScaffoldMessenger.of(context).showSnackBar(
-             SnackBar(content: Text('Статус изменен на: ${_statusLabels[newStatus]}'), backgroundColor: Colors.green, duration: const Duration(seconds: 1)),
-           );
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Статус изменен на: ${_statusLabels[newStatus]}'),
+              backgroundColor: Colors.green,
+              duration: const Duration(seconds: 1),
+            ),
+          );
         }
       } catch (e) {
         if (mounted) {
-           ScaffoldMessenger.of(context).showSnackBar(
-             SnackBar(content: Text('Ошибка обновления: $e'), backgroundColor: Colors.red),
-           );
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Ошибка обновления: $e'), backgroundColor: Colors.red),
+          );
         }
       }
     }
@@ -76,7 +80,7 @@ class _FestivalApplicationsScreenState extends State<FestivalApplicationsScreen>
       final type = data['type'] ?? 'Не указан';
       final status = _statusLabels[data['status']] ?? data['status'] ?? 'new';
       final promo = data['promo'] ?? '';
-      
+
       sb.writeln("Дата: $dateStr");
       sb.writeln("Имя: $name");
       sb.writeln("Телефон: $phone");
@@ -110,16 +114,16 @@ class _FestivalApplicationsScreenState extends State<FestivalApplicationsScreen>
         title: const Text('Заявки на Фестиваль'),
         actions: [
           StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-             stream: _firestoreService.getFestivalApplicationsStream(),
-             builder: (context, snapshot) {
-                 if (!snapshot.hasData || snapshot.data!.docs.isEmpty) return const SizedBox.shrink();
-                 return IconButton(
-                    icon: const Icon(Icons.download),
-                    tooltip: 'Скачать список (.txt)',
-                    onPressed: () => _exportToFile(snapshot.data!.docs)
-                 );
-             }
-          )
+            stream: _firestoreService.getFestivalApplicationsStream(),
+            builder: (context, snapshot) {
+              if (!snapshot.hasData || snapshot.data!.docs.isEmpty) return const SizedBox.shrink();
+              return IconButton(
+                icon: const Icon(Icons.download),
+                tooltip: 'Скачать список (.txt)',
+                onPressed: () => _exportToFile(snapshot.data!.docs),
+              );
+            },
+          ),
         ],
       ),
       body: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
@@ -128,7 +132,7 @@ class _FestivalApplicationsScreenState extends State<FestivalApplicationsScreen>
           if (snapshot.hasError) return Center(child: Text('Ошибка: ${snapshot.error}'));
           if (snapshot.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator());
 
-          final allDocs = snapshot.data!.docs;
+          final allDocs = snapshot.data?.docs ?? [];
           if (allDocs.isEmpty) return const Center(child: Text('Заявок пока нет'));
 
           // Filtering logic
@@ -144,8 +148,8 @@ class _FestivalApplicationsScreenState extends State<FestivalApplicationsScreen>
 
             // Filter by search query
             if (_searchQuery.isNotEmpty) {
-               final query = _searchQuery.toLowerCase();
-               return name.contains(query) || type.contains(query) || promo.contains(query);
+              final query = _searchQuery.toLowerCase();
+              return name.contains(query) || type.contains(query) || promo.contains(query);
             }
 
             return true;
@@ -159,12 +163,26 @@ class _FestivalApplicationsScreenState extends State<FestivalApplicationsScreen>
                 child: Column(
                   children: [
                     TextField(
-                      onChanged: (val) => setState(() => _searchQuery = val),
+                      onChanged: (val) {
+                        setState(() {
+                          _searchQuery = val;
+                        });
+                      },
                       decoration: InputDecoration(
                         hintText: 'Поиск по имени, категории или промокоду',
                         prefixIcon: const Icon(Icons.search),
                         border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                         contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+                        suffixIcon: _searchQuery.isNotEmpty
+                            ? IconButton(
+                                icon: const Icon(Icons.clear),
+                                onPressed: () {
+                                  setState(() {
+                                    _searchQuery = '';
+                                  });
+                                },
+                              )
+                            : null,
                       ),
                     ),
                     const SizedBox(height: 12),
@@ -172,14 +190,18 @@ class _FestivalApplicationsScreenState extends State<FestivalApplicationsScreen>
                       scrollDirection: Axis.horizontal,
                       child: Row(
                         children: _statusLabels.entries.map((e) {
+                          final isSelected = _selectedStatuses.contains(e.key);
                           return Padding(
                             padding: const EdgeInsets.only(right: 8.0),
                             child: FilterChip(
-                              label: Text(e.value, style: TextStyle(
-                                fontSize: 12,
-                                color: _selectedStatuses.contains(e.key) ? Colors.white : _statusColors[e.key],
-                              )),
-                              selected: _selectedStatuses.contains(e.key),
+                              label: Text(
+                                e.value,
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: isSelected ? Colors.white : _statusColors[e.key],
+                                ),
+                              ),
+                              selected: isSelected,
                               selectedColor: _statusColors[e.key],
                               onSelected: (selected) {
                                 setState(() {
@@ -198,7 +220,7 @@ class _FestivalApplicationsScreenState extends State<FestivalApplicationsScreen>
                   ],
                 ),
               ),
-              
+
               if (filteredDocs.isEmpty)
                 const Expanded(child: Center(child: Text('Заявки не найдены')))
               else
@@ -208,88 +230,87 @@ class _FestivalApplicationsScreenState extends State<FestivalApplicationsScreen>
                     itemCount: filteredDocs.length,
                     itemBuilder: (context, index) {
                       final doc = filteredDocs[index];
-                      // ... rest of the card continues below ...
-              final data = doc.data();
-              final date = (data['createdAt'] as Timestamp?)?.toDate();
-              final dateStr = date != null ? DateFormat('dd.MM.yyyy HH:mm').format(date) : 'Нет даты';
-              
-              final name = data['name'] ?? 'Без имени';
-              final phone = data['phone'] ?? 'Нет телефона';
-              final type = data['type'] ?? 'Не указан';
-              final status = data['status'] ?? 'new';
-              final promo = data['promo'];
+                      final data = doc.data();
+                      final date = (data['createdAt'] as Timestamp?)?.toDate();
+                      final dateStr = date != null ? DateFormat('dd.MM.yyyy HH:mm').format(date) : 'Нет даты';
 
-              return Card(
-                margin: const EdgeInsets.only(bottom: 12),
-                child: Padding(
-                  padding: const EdgeInsets.all(12),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Header: Date + Status Dropdown
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(dateStr, style: const TextStyle(fontSize: 12, color: Colors.grey)),
-                          Container(
-                             padding: const EdgeInsets.symmetric(horizontal: 8),
-                             decoration: BoxDecoration(
-                               color: (_statusColors[status] ?? Colors.grey).withOpacity(0.1),
-                               borderRadius: BorderRadius.circular(4),
-                               border: Border.all(color: (_statusColors[status] ?? Colors.grey).withOpacity(0.5))
-                             ),
-                             child: DropdownButtonHideUnderline(
-                               child: DropdownButton<String>(
-                                 value: _statusLabels.containsKey(status) ? status : 'new',
-                                 isDense: true,
-                                 style: TextStyle(
-                                    color: _statusColors[status] ?? Colors.black, 
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 13
-                                 ),
-                                 items: _statusLabels.entries.map((e) {
-                                   return DropdownMenuItem(
-                                      value: e.key,
-                                      child: Text(e.value, style: TextStyle(color: _statusColors[e.key])),
-                                   );
-                                 }).toList(),
-                                 onChanged: (val) => _updateStatus(doc.id, val),
-                               ),
-                             ),
+                      final name = data['name'] ?? 'Без имени';
+                      final phone = data['phone'] ?? 'Нет телефона';
+                      final type = data['type'] ?? 'Не указан';
+                      final status = data['status'] ?? 'new';
+                      final promo = data['promo'];
+
+                      return Card(
+                        margin: const EdgeInsets.only(bottom: 12),
+                        child: Padding(
+                          padding: const EdgeInsets.all(12),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              // Header: Date + Status Dropdown
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text(dateStr, style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                                    decoration: BoxDecoration(
+                                      color: (_statusColors[status] ?? Colors.grey).withOpacity(0.1),
+                                      borderRadius: BorderRadius.circular(4),
+                                      border: Border.all(color: (_statusColors[status] ?? Colors.grey).withOpacity(0.5)),
+                                    ),
+                                    child: DropdownButtonHideUnderline(
+                                      child: DropdownButton<String>(
+                                        value: _statusLabels.containsKey(status) ? status : 'new',
+                                        isDense: true,
+                                        style: TextStyle(
+                                          color: _statusColors[status] ?? Colors.black,
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 13,
+                                        ),
+                                        items: _statusLabels.entries.map((e) {
+                                          return DropdownMenuItem(
+                                            value: e.key,
+                                            child: Text(e.value, style: TextStyle(color: _statusColors[e.key])),
+                                          );
+                                        }).toList(),
+                                        onChanged: (val) => _updateStatus(doc.id, val),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 8),
+
+                              // Name & Type
+                              Text("$name ($type)", style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                              if (promo != null && promo.toString().isNotEmpty)
+                                Text("Промокод: $promo", style: const TextStyle(color: Colors.purple, fontSize: 13)),
+
+                              const SizedBox(height: 8),
+
+                              // Phone Row
+                              Row(
+                                children: [
+                                  const Icon(Icons.phone, size: 16, color: Colors.grey),
+                                  const SizedBox(width: 4),
+                                  SelectableText(phone, style: const TextStyle(fontSize: 15)),
+                                  IconButton(
+                                    icon: const Icon(Icons.copy, size: 16, color: Colors.blue),
+                                    onPressed: () => _copyToClipboard(phone),
+                                    tooltip: 'Скопировать номер',
+                                    constraints: const BoxConstraints(), // Compact
+                                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                                  ),
+                                ],
+                              ),
+                            ],
                           ),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      
-                      // Name & Type
-                      Text("$name ($type)", style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                      if (promo != null && promo.toString().isNotEmpty)
-                         Text("Промокод: $promo", style: const TextStyle(color: Colors.purple, fontSize: 13)),
-                      
-                      const SizedBox(height: 8),
-                      
-                      // Phone Row
-                      Row(
-                        children: [
-                          const Icon(Icons.phone, size: 16, color: Colors.grey),
-                          const SizedBox(width: 4),
-                          SelectableText(phone, style: const TextStyle(fontSize: 15)),
-                          IconButton(
-                            icon: const Icon(Icons.copy, size: 16, color: Colors.blue),
-                            onPressed: () => _copyToClipboard(phone),
-                            tooltip: 'Скопировать номер',
-                            constraints: const BoxConstraints(), // Compact
-                            padding: const EdgeInsets.symmetric(horizontal: 8),
-                          )
-                        ],
-                      )
-                    ],
+                        ),
+                      );
+                    },
                   ),
                 ),
-              );
-            },
-          ),
-        ),
             ],
           );
         },
