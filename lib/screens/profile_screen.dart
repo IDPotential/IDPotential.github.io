@@ -629,7 +629,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const GamesListScreen())),
                         icon: const Icon(Icons.videogame_asset),
                         label: const Text('Игровые сессии'),
-                        label: const Text('Игровые сессии'),
                         style: ElevatedButton.styleFrom(backgroundColor: Colors.purple),
                       ),
                       
