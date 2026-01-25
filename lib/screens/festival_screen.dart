@@ -114,7 +114,7 @@ class FestivalScreen extends StatelessWidget {
                                   color: Colors.white.withOpacity(0.05),
                                 ),
                                 child: const Text(
-                                  "СИСТЕМНАЯ ПЛОЩАДКА ДЛЯ РОСТА",
+                                  "ФЕСТИВАЛЬ ИГРОПРАКТИК",
                                   textAlign: TextAlign.center,
                                   style: TextStyle(color: Colors.white70, fontSize: 12, letterSpacing: 1.5, fontWeight: FontWeight.bold),
                                 ),
