@@ -21,7 +21,9 @@ import '../widgets/role_info_dialog.dart';
 class GameScreen extends StatefulWidget {
   final String? gameId;
   final VoidCallback? onMenuTap;
-  const GameScreen({super.key, this.gameId, this.onMenuTap});
+  final VoidCallback? onSwipePrev;
+  final VoidCallback? onSwipeNext;
+  const GameScreen({super.key, this.gameId, this.onMenuTap, this.onSwipePrev, this.onSwipeNext});
 
   @override
   State<GameScreen> createState() => _GameScreenState();
