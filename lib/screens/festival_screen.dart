@@ -178,7 +178,7 @@ class FestivalScreen extends StatelessWidget {
                               _buildFeatureRow(
                                  Icons.verified, 
                                  "ВЫГОДА", 
-                                 "Участие в играх на сумму ~10 000₽ всего за 1 000₽ (входной билет)."
+                                 "Участие в играх на сумму ~10 000₽ всего за 1 500₽ (входной билет)."
                               ),
                               const SizedBox(height: 16),
                               _buildFeatureRow(
@@ -220,7 +220,7 @@ class FestivalScreen extends StatelessWidget {
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
                                 Text("СТАТЬ УЧАСТНИКОМ", style: TextStyle(fontWeight: FontWeight.bold)),
-                                Text("Стоимость билета — 1000 ₽", style: TextStyle(fontSize: 10,  color: Colors.white70)),
+                                Text("Стоимость билета — 1500 ₽", style: TextStyle(fontSize: 10,  color: Colors.white70)),
                               ],
                             ),
                           ),
