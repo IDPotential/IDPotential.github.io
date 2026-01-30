@@ -274,31 +274,12 @@ class _HistoryScreenState extends State<HistoryScreen> {
           body: Center(
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 800),
-            child: NotificationListener<OverscrollNotification>(
-             onNotification: (notification) {
-                // Swipe to Previous Tab (Drag right, overscroll < 0)
-                if (notification.overscroll < 0 && notification.metrics.pixels == notification.metrics.minScrollExtent) {
-                    if (widget.onSwipePrev != null) {
-                       widget.onSwipePrev!();
-                       return true;
-                    }
-                }
-                // Swipe to Next Tab (Drag left, overscroll > 0)
-                if (notification.overscroll > 0 && notification.metrics.pixels == notification.metrics.maxScrollExtent) {
-                    if (widget.onSwipeNext != null) {
-                       widget.onSwipeNext!();
-                       return true;
-                    }
-                }
-                return false;
-             },
-             child: TabBarView(
+            child: TabBarView(
                 children: [
                    _buildDiagnosticsTab(),
                    _buildGamesTab(),
                 ],
              ),
-            ),
             ),
           ),
         ),

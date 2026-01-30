@@ -60,25 +60,7 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ],
       ),
-      body: NotificationListener<OverscrollNotification>(
-        onNotification: (notification) {
-          // Swipe to Open Drawer (Drag right, overscroll < 0)
-          if (notification.overscroll < 0 && notification.metrics.pixels == notification.metrics.minScrollExtent) {
-            if (widget.onSwipePrev != null) {
-              widget.onSwipePrev!();
-              return true;
-            }
-          }
-          // Swipe to Next Tab (Drag left, overscroll > 0)
-          if (notification.overscroll > 0 && notification.metrics.pixels == notification.metrics.maxScrollExtent) {
-            if (widget.onSwipeNext != null) {
-              widget.onSwipeNext!();
-              return true;
-            }
-          }
-          return false;
-        },
-        child: Center(
+      body: Center(
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 800),
             child: SingleChildScrollView(
@@ -202,7 +184,6 @@ class _HomeScreenState extends State<HomeScreen> {
             ],
           ),
         ),
-      ),
       ),
       ),
     );
