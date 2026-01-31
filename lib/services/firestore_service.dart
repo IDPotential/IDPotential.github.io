@@ -788,7 +788,6 @@ class FirestoreService {
   Future<void> rejectParticipant(String gameId, String userId) async {
     await _db.collection('games').doc(gameId).collection('participants').doc(userId).update({
       'status': 'rejected'
-      'status': 'rejected'
     });
   }
 

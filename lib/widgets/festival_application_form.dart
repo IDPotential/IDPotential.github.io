@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter/gestures.dart';
 import '../services/firestore_service.dart';
-import '../services/firestore_service.dart';
 import '../models/promo_code.dart';
 import 'package:mask_text_input_formatter/mask_text_input_formatter.dart';
 
