@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter/gestures.dart';
 import '../services/firestore_service.dart';
+import '../services/firestore_service.dart';
+import '../models/promo_code.dart';
 import 'package:mask_text_input_formatter/mask_text_input_formatter.dart';
 
 class FestivalApplicationForm extends StatefulWidget {
@@ -138,6 +140,19 @@ class _FestivalApplicationFormState extends State<FestivalApplicationForm> {
   late String _selectedType;
   bool _consentGiven = false;
   bool _isLoading = false;
+  
+  PromoCode? _appliedPromo;
+  String? _promoError;
+  int _basePrice = 0;
+  int _finalPrice = 0;
+  int _discount = 0;
+
+  final Map<String, int> _basePrices = {
+    'Посетитель': 1500,
+    'Мастер': 5000,
+    'Маэстро': 10000,
+    'Партнер': 0,
+  };
 
   final List<String> _types = [
     'Посетитель',
@@ -154,6 +169,65 @@ class _FestivalApplicationFormState extends State<FestivalApplicationForm> {
        if (_selectedType == 'Uchastnik') _selectedType = 'Посетитель';
        else _selectedType = 'Посетитель';
     }
+    _calculatePrice();
+  }
+
+  void _calculatePrice() {
+     _basePrice = _basePrices[_selectedType] ?? 0;
+     _discount = 0;
+     
+     if (_appliedPromo != null) {
+        if (!_appliedPromo!.applicableTypes.contains(_selectedType)) {
+           // Promo not applicable for this type
+           // We do not remove it, just don't apply discount, or remove?
+           // Better remove and notify
+           _appliedPromo = null;
+           _promoError = "Промокод не действует для этой категории";
+        } else {
+           if (_appliedPromo!.discountType == 'percent') {
+              _discount = (_basePrice * _appliedPromo!.discountValue / 100).round();
+           } else {
+              _discount = _appliedPromo!.discountValue;
+           }
+        }
+     }
+     
+     if (_discount > _basePrice) _discount = _basePrice;
+     _finalPrice = _basePrice - _discount;
+     setState(() {});
+  }
+  
+  Future<void> _checkPromo() async {
+     final code = _promoController.text.trim();
+     if (code.isEmpty) {
+        setState(() {
+           _appliedPromo = null;
+           _promoError = null;
+           _calculatePrice();
+        });
+        return;
+     }
+     
+     setState(() => _isLoading = true);
+     try {
+        final promo = await FirestoreService().getPromoCode(code);
+        if (promo != null) {
+           if (promo.applicableTypes.contains(_selectedType)) {
+              _appliedPromo = promo;
+              _promoError = null;
+           } else {
+              _appliedPromo = null;
+              _promoError = "Промокод не для этой категории";
+           }
+        } else {
+           _appliedPromo = null;
+           _promoError = "Промокод не найден";
+        }
+     } catch (e) {
+        _promoError = "Ошибка проверки";
+     }
+     _isLoading = false;
+     _calculatePrice();
   }
 
   InputDecoration _inputDecoration(String label) {
@@ -223,10 +297,43 @@ class _FestivalApplicationFormState extends State<FestivalApplicationForm> {
                 const SizedBox(height: 16),
                 
                 // Promocode
-                TextFormField(
-                  controller: _promoController,
-                  decoration: _inputDecoration("Промокод"),
-                  style: const TextStyle(color: Colors.black87),
+                Row(
+                   crossAxisAlignment: CrossAxisAlignment.start,
+                   children: [
+                      Expanded(
+                        child: TextFormField(
+                          controller: _promoController,
+                          decoration: _inputDecoration("Промокод").copyWith(
+                             errorText: _promoError,
+                             suffixIcon: _appliedPromo != null 
+                                ? const Icon(Icons.check_circle, color: Colors.green)
+                                : null
+                          ),
+                          style: const TextStyle(color: Colors.black87),
+                          onChanged: (_) {
+                             if (_appliedPromo != null) {
+                                setState(() {
+                                   _appliedPromo = null;
+                                   _calculatePrice();
+                                });
+                             }
+                          },
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Padding(
+                        padding: const EdgeInsets.only(top: 2),
+                        child: ElevatedButton(
+                           onPressed: _checkPromo,
+                           style: ElevatedButton.styleFrom(
+                              minimumSize: const Size(50, 56),
+                              backgroundColor: const Color(0xFF2E0249),
+                              padding: EdgeInsets.zero
+                           ),
+                           child: const Icon(Icons.check, color: Colors.white),
+                        ),
+                      )
+                   ],
                 ),
                 const SizedBox(height: 16),
                 
@@ -255,7 +362,16 @@ class _FestivalApplicationFormState extends State<FestivalApplicationForm> {
                         child: Text(t, style: const TextStyle(color: Colors.black87)),
                       )).toList(),
                       onChanged: (val) {
-                        if (val != null) setState(() => _selectedType = val);
+                        if (val != null) {
+                           setState(() {
+                              _selectedType = val;
+                              // Re-validate promo relevance
+                              _calculatePrice();
+                              if (_appliedPromo != null && !_appliedPromo!.applicableTypes.contains(val)) {
+                                 _checkPromo(); // Re-check or reset
+                              }
+                           });
+                        }
                       },
                     ),
                   ),
@@ -295,6 +411,45 @@ class _FestivalApplicationFormState extends State<FestivalApplicationForm> {
                       ),
                     ],
                   ),
+                ),
+
+                const SizedBox(height: 20),
+                
+                // Price Info
+                Container(
+                   padding: const EdgeInsets.all(12),
+                   decoration: BoxDecoration(
+                      color: Colors.grey[100],
+                      borderRadius: BorderRadius.circular(8)
+                   ),
+                   child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                         const Text("К оплате:", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.black87)),
+                         Column(
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                               if (_discount > 0)
+                                  Text(
+                                    "$_basePrice ₽", 
+                                    style: const TextStyle(
+                                       decoration: TextDecoration.lineThrough, 
+                                       color: Colors.grey, 
+                                       fontSize: 14
+                                    ),
+                                  ),
+                               Text(
+                                  "$_finalPrice ₽", 
+                                  style: const TextStyle(
+                                     fontSize: 20, 
+                                     fontWeight: FontWeight.bold, 
+                                     color: Color(0xFF2E0249)
+                                  )
+                               ),
+                            ],
+                         )
+                      ],
+                   ),
                 ),
 
                 const SizedBox(height: 24),
@@ -364,6 +519,8 @@ class _FestivalApplicationFormState extends State<FestivalApplicationForm> {
          phone: _phoneController.text.trim(),
          promo: _promoController.text.trim(),
          type: _selectedType,
+         finalPrice: _basePrice > 0 ? _finalPrice : null, // Only send price if not Partners (0)
+         discount: _discount,
       );
       
       if (mounted) {

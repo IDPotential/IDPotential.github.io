@@ -10,6 +10,7 @@ import 'game_details_screen.dart';
 import '../widgets/role_info_dialog.dart';
 import '../widgets/user_matrix_widget.dart';
 import 'festival_applications_screen.dart'; // Import Matrix Widget
+import 'promo_codes_screen.dart';
 
 import 'package:package_info_plus/package_info_plus.dart';
 
@@ -638,6 +639,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           icon: const Icon(Icons.list_alt),
                           label: const Text('Заявки Фестиваля'),
                           style: ElevatedButton.styleFrom(backgroundColor: Colors.teal),
+                       ),
+                       ElevatedButton.icon(
+                          onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PromoCodesScreen())),
+                          icon: const Icon(Icons.discount),
+                          label: const Text('Промокоды'),
+                          style: ElevatedButton.styleFrom(backgroundColor: Colors.indigo),
                        ),
                   ],
                 ),

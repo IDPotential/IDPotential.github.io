@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart' show kIsWeb, debugPrint;
 import 'package:universal_io/io.dart';
 import 'package:universal_html/html.dart' as html;
 import '../models/calculation.dart';
+import '../models/promo_code.dart';
 import 'n8n_service.dart';
 
 class FirestoreService {
@@ -787,7 +788,44 @@ class FirestoreService {
   Future<void> rejectParticipant(String gameId, String userId) async {
     await _db.collection('games').doc(gameId).collection('participants').doc(userId).update({
       'status': 'rejected'
+      'status': 'rejected'
     });
+  }
+
+  // --- Promo Codes ---
+
+  Stream<List<PromoCode>> getPromoCodesStream() {
+    return _db.collection('promo_codes').snapshots().map((snapshot) {
+      return snapshot.docs.map((doc) {
+        return PromoCode.fromMap(doc.data(), doc.id);
+      }).toList();
+    });
+  }
+
+  Future<void> savePromoCode(PromoCode promo) async {
+    if (promo.id != null) {
+      await _db.collection('promo_codes').doc(promo.id).update(promo.toMap());
+    } else {
+      await _db.collection('promo_codes').add(promo.toMap());
+    }
+  }
+
+  Future<void> deletePromoCode(String id) async {
+    await _db.collection('promo_codes').doc(id).delete();
+  }
+
+  Future<PromoCode?> getPromoCode(String code) async {
+    final query = await _db.collection('promo_codes')
+      .where('code', isEqualTo: code)
+      .limit(1)
+      .get();
+      
+    if (query.docs.isNotEmpty) {
+      final doc = query.docs.first;
+      final promo = PromoCode.fromMap(doc.data(), doc.id);
+      if (promo.isActive) return promo;
+    }
+    return null;
   }
   
   Future<void> setPlayerNumber(String gameId, int number) async {
@@ -806,6 +844,8 @@ class FirestoreService {
     required String phone,
     required String promo,
     required String type,
+    num? finalPrice,
+    num? discount,
   }) async {
     final user = _auth.currentUser;
     await _db.collection('festival_applications').add({
@@ -814,6 +854,8 @@ class FirestoreService {
       'phone': phone,
       'promo': promo,
       'type': type,
+      'finalPrice': finalPrice,
+      'discount': discount,
       'createdAt': FieldValue.serverTimestamp(),
       'status': 'new',
     });
