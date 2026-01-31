@@ -143,7 +143,13 @@ service cloud.firestore {
       allow delete: if isAuthenticated() && resource.data.userId == request.auth.uid;
     }
 
-    // 4. Festival Applications
+    // 4. Promo Codes
+    match /promo_codes/{codeId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+
+    // 5. Festival Applications
     match /festival_applications/{appId} {
       allow create: if true; // Allow public applications (userId can be null)
       allow read, update: if isAdmin();
