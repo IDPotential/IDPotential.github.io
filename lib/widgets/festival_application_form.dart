@@ -344,7 +344,7 @@ class _FestivalApplicationFormState extends State<FestivalApplicationForm> {
                            onPressed: _checkPromo,
                            style: ElevatedButton.styleFrom(
                               minimumSize: const Size(50, 56),
-                              backgroundColor: const Color(0xFF2E0249),
+                              backgroundColor: _appliedPromo != null ? Colors.deepPurple : Colors.grey, // Purple if applied, else Grey
                               padding: EdgeInsets.zero
                            ),
                            child: const Icon(Icons.check, color: Colors.white),
@@ -352,6 +352,14 @@ class _FestivalApplicationFormState extends State<FestivalApplicationForm> {
                       )
                    ],
                 ),
+                if (_appliedPromo == null)
+                  const Padding(
+                    padding: EdgeInsets.only(top: 4.0),
+                    child: Text(
+                      "Для активации промокода нажмите галочку",
+                      style: TextStyle(fontSize: 12, color: Colors.grey),
+                    ),
+                  ),
                 const SizedBox(height: 16),
                 
                 // Dropdown Type

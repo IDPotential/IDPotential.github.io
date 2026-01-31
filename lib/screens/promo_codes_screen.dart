@@ -135,8 +135,11 @@ class _PromoCodesScreenState extends State<PromoCodesScreen> {
                 color: p.isActive ? Colors.white : Colors.grey[200],
                 margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 child: ListTile(
-                  title: Text(p.code, style: const TextStyle(fontWeight: FontWeight.bold)),
-                  subtitle: Text("${p.discountType == 'percent' ? '${p.discountValue}%' : '${p.discountValue} руб.'}\n${p.applicableTypes.join(', ')}"),
+                  title: Text(p.code, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.black)),
+                  subtitle: Text(
+                      "${p.discountType == 'percent' ? '${p.discountValue}%' : '${p.discountValue} руб.'}\n${p.applicableTypes.join(', ')}",
+                      style: const TextStyle(color: Colors.black87)
+                  ),
                   trailing: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
