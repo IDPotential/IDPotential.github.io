@@ -813,18 +813,15 @@ class FirestoreService {
     await _db.collection('promo_codes').doc(id).delete();
   }
 
-  Future<PromoCode?> getPromoCode(String code) async {
+  Future<List<PromoCode>> getValidPromoCodes(String code) async {
     final query = await _db.collection('promo_codes')
       .where('code', isEqualTo: code)
-      .limit(1)
       .get();
       
-    if (query.docs.isNotEmpty) {
-      final doc = query.docs.first;
-      final promo = PromoCode.fromMap(doc.data(), doc.id);
-      if (promo.isActive) return promo;
-    }
-    return null;
+    return query.docs
+        .map((doc) => PromoCode.fromMap(doc.data(), doc.id))
+        .where((p) => p.isActive)
+        .toList();
   }
   
   Future<void> setPlayerNumber(String gameId, int number) async {

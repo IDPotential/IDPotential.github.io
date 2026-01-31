@@ -150,7 +150,7 @@ class _FestivalApplicationFormState extends State<FestivalApplicationForm> {
     'Посетитель': 1500,
     'Мастер': 5000,
     'Маэстро': 10000,
-    'Партнер': 0,
+    'Партнер': 20000,
   };
 
   final List<String> _types = [
@@ -174,14 +174,18 @@ class _FestivalApplicationFormState extends State<FestivalApplicationForm> {
   void _calculatePrice() {
      _basePrice = _basePrices[_selectedType] ?? 0;
      _discount = 0;
-     
+     _promoError = null; // Clear error initially
+
      if (_appliedPromo != null) {
+        // Double check if current applied promo is valid for this type
+        // If we have a list of candidates (we should store them?), we might swap to a better one
+        // ideally we re-run "find best promo" from the cached list if we saved it.
+        // For simplicity, let's just re-validate or re-fetch. 
+        // Better: store _currentCodeString and re-check if type changes.
+        // Actually, let's do this: 
         if (!_appliedPromo!.applicableTypes.contains(_selectedType)) {
-           // Promo not applicable for this type
-           // We do not remove it, just don't apply discount, or remove?
-           // Better remove and notify
-           _appliedPromo = null;
-           _promoError = "Промокод не действует для этой категории";
+             // Try to find another one in the list? 
+             // We need to store the list of fetched promos for this code.
         } else {
            if (_appliedPromo!.discountType == 'percent') {
               _discount = (_basePrice * _appliedPromo!.discountValue / 100).round();
@@ -196,11 +200,15 @@ class _FestivalApplicationFormState extends State<FestivalApplicationForm> {
      setState(() {});
   }
   
+  // Cache of found promos for the current code string
+  List<PromoCode> _foundPromos = [];
+
   Future<void> _checkPromo() async {
      final code = _promoController.text.trim();
      if (code.isEmpty) {
         setState(() {
            _appliedPromo = null;
+           _foundPromos = [];
            _promoError = null;
            _calculatePrice();
         });
@@ -209,24 +217,34 @@ class _FestivalApplicationFormState extends State<FestivalApplicationForm> {
      
      setState(() => _isLoading = true);
      try {
-        final promo = await FirestoreService().getPromoCode(code);
-        if (promo != null) {
-           if (promo.applicableTypes.contains(_selectedType)) {
-              _appliedPromo = promo;
-              _promoError = null;
-           } else {
-              _appliedPromo = null;
-              _promoError = "Промокод не для этой категории";
-           }
+        // Fetch ALL promos with this code
+        _foundPromos = await FirestoreService().getValidPromoCodes(code);
+        
+        if (_foundPromos.isNotEmpty) {
+           _tryApplyPromo();
         } else {
            _appliedPromo = null;
            _promoError = "Промокод не найден";
         }
      } catch (e) {
+        debugPrint("Promo Error: $e");
         _promoError = "Ошибка проверки";
      }
      _isLoading = false;
      _calculatePrice();
+  }
+
+  void _tryApplyPromo() {
+     // Find first promo from list that applies to current type
+     try {
+        final match = _foundPromos.firstWhere((p) => p.applicableTypes.contains(_selectedType));
+        _appliedPromo = match;
+        _promoError = null;
+     } catch (e) {
+        // No match found for this type, but promo exists
+        _appliedPromo = null;
+        _promoError = "Код не действует для этой категории";
+     }
   }
 
   InputDecoration _inputDecoration(String label) {
@@ -364,11 +382,10 @@ class _FestivalApplicationFormState extends State<FestivalApplicationForm> {
                         if (val != null) {
                            setState(() {
                               _selectedType = val;
-                              // Re-validate promo relevance
-                              _calculatePrice();
-                              if (_appliedPromo != null && !_appliedPromo!.applicableTypes.contains(val)) {
-                                 _checkPromo(); // Re-check or reset
+                              if (_foundPromos.isNotEmpty) {
+                                 _tryApplyPromo();
                               }
+                              _calculatePrice();
                            });
                         }
                       },
