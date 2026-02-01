@@ -37,6 +37,12 @@ class Calculation {
   @HiveField(10)
   String? telegram;
 
+  @HiveField(11)
+  final String type; // 'idp' or 'classic'
+
+  @HiveField(12)
+  final Map<String, dynamic>? extraData;
+
   Calculation({
     this.id,
     required this.name,
@@ -49,6 +55,8 @@ class Calculation {
     this.decryption = 0,
     this.firebaseId,
     this.telegram,
+    this.type = 'idp',
+    this.extraData,
   });
   
   Calculation copyWith({
@@ -62,7 +70,10 @@ class Calculation {
     String? notes,
     int? decryption,
     String? firebaseId,
+    String? firebaseId,
     String? telegram,
+    String? type,
+    Map<String, dynamic>? extraData,
   }) {
     return Calculation(
       id: id ?? this.id,
@@ -76,6 +87,8 @@ class Calculation {
       decryption: decryption ?? this.decryption,
       firebaseId: firebaseId ?? this.firebaseId,
       telegram: telegram ?? this.telegram,
+      type: type ?? this.type,
+      extraData: extraData ?? this.extraData,
     );
   }
   
@@ -90,6 +103,8 @@ class Calculation {
       'notes': notes,
       'decryption': decryption,
       'telegram': telegram,
+      'type': type,
+      'extraData': extraData,
       // firebaseId is usually not part of the body
     };
   }
@@ -123,12 +138,22 @@ class Calculation {
       decryption: map['decryption'] as int? ?? 0,
       firebaseId: map['id'] as String?, // Inject ID if present
       telegram: map['telegram'] as String?,
+      type: map['type'] as String? ?? 'idp',
+      extraData: map['extraData'] != null 
+          ? Map<String, dynamic>.from(map['extraData'] as Map)
+          : null,
     );
   }
   
   String get formattedScheme {
     final nums = numbers;
     
+    final nums = numbers;
+    
+    if (type == 'classic') {
+      return 'Классическая диагностика (Таро + Пифагор)\\n\$name, \$birthDate';
+    }
+
     if (gender == 'М') {
       return '''
 Имя: $name

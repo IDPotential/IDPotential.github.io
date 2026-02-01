@@ -21,6 +21,7 @@ class _CalculationScreenState extends State<CalculationScreen> {
   final _nameController = TextEditingController();
   final _dateController = TextEditingController();
   String _gender = 'М';
+  String _selectedSystem = 'idp'; // 'idp' or 'classic'
   bool _isCalculating = false;
   final FirestoreService _firestoreService = FirestoreService();
   
@@ -31,6 +32,7 @@ class _CalculationScreenState extends State<CalculationScreen> {
       _nameController.text = widget.existingCalculation!.name;
       _dateController.text = widget.existingCalculation!.birthDate;
       _gender = widget.existingCalculation!.gender;
+      _selectedSystem = widget.existingCalculation!.type; // Load existing type
     }
   }
   
@@ -49,12 +51,24 @@ class _CalculationScreenState extends State<CalculationScreen> {
     });
     
     try {
-      // Расчет чисел
-      final numbers = CalculatorService.calculateDiagnostic(
-        _dateController.text,
-        _nameController.text,
-        _gender,
-      );
+      List<int> numbers = [];
+      Map<String, dynamic>? extraData;
+
+      if (_selectedSystem == 'classic') {
+        final result = CalculatorService.calculateClassic(_dateController.text);
+        // Store working numbers in 'numbers' for convenience if desired
+        if (result['pythagoras'] != null && result['pythagoras']['workingNumbers'] != null) {
+           numbers = (result['pythagoras']['workingNumbers'] as List).cast<int>();
+        }
+        extraData = result;
+      } else {
+        // IDP
+        numbers = CalculatorService.calculateDiagnostic(
+          _dateController.text,
+          _nameController.text,
+          _gender,
+        );
+      }
       
       // Создание объекта расчета
       final calculation = Calculation(
@@ -65,6 +79,8 @@ class _CalculationScreenState extends State<CalculationScreen> {
         createdAt: widget.existingCalculation?.createdAt ?? DateTime.now(), // Keep original date if editing
         group: widget.existingCalculation?.group, // Keep original group
         decryption: widget.existingCalculation?.decryption ?? 0, // Keep paid status
+        type: _selectedSystem,
+        extraData: extraData,
       );
       
       String id;
@@ -86,8 +102,6 @@ class _CalculationScreenState extends State<CalculationScreen> {
       // Переход к результатам
       if (!mounted) return;
       
-      // If editing, usually pop back or replace? 
-      // User likely wants to see Result immediately.
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(
@@ -110,9 +124,11 @@ class _CalculationScreenState extends State<CalculationScreen> {
         ),
       );
     } finally {
-      setState(() {
-        _isCalculating = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isCalculating = false;
+        });
+      }
     }
   }
   
@@ -206,18 +222,14 @@ class _CalculationScreenState extends State<CalculationScreen> {
                   text = text.replaceAll(RegExp(r'[^\d.]'), '');
 
                   // 3. Auto-insert dots Logic
-                  // If user is deleting, do not auto-insert (simple check: length decreased?)
-                  // We need previous value to know if deleting. 
-                  // But standard onChanged doesn't give previous.
-                  // For simple "forward" typing:
+                  // if user is deleting, do not auto-insert (simple check: length decreased?)
+                  // We need previous value to know if deleting. but standard onChanged doesn't give previous.
+                  // for simple "forward" typing:
                   if (text.length > value.length) { 
-                     // This implies pasting or some insertion that increased length significantly? 
-                     // Actually onChanged 'value' IS the new text. 
-                     // We can't strictly detect backspace easily here without controller listener.
-                     // Let's rely on length checks of the CLEANED text.
+                     // implied paste or insert
                   }
                   
-                  // Clean text to just digits for re-formatting logic if it looks like a raw string
+                  // Clean text to just digits for re-formatting logic
                   String digitsOnly = text.replaceAll('.', '');
                   
                   // If we have exactly 8 digits and no dots, assume full fast input/paste (01012000)
@@ -255,6 +267,56 @@ class _CalculationScreenState extends State<CalculationScreen> {
                 },
               ),
               
+              const SizedBox(height: 16),
+              
+               // Система расчета
+              Card(
+                child: Padding( 
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column( 
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                       Text(
+                        'Система расчета',
+                        style: Theme.of(context).textTheme.titleSmall,
+                      ),
+                      const SizedBox(height: 8),
+                      // Using Segmented Button for System Choice
+                      SizedBox(
+                        width: double.infinity,
+                        child: SegmentedButton<String>(
+                          segments: const [
+                            ButtonSegment<String>(
+                              value: 'idp',
+                              label: Text('ИДП'),
+                              icon: Icon(Icons.psychology),
+                            ),
+                            ButtonSegment<String>(
+                              value: 'classic',
+                              label: Text('Классика'),
+                              icon: Icon(Icons.star), // or 'layers'
+                            ),
+                          ],
+                          selected: {_selectedSystem},
+                          onSelectionChanged: (Set<String> newSelection) {
+                            setState(() {
+                              _selectedSystem = newSelection.first;
+                            });
+                          },
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                       Text(
+                        _selectedSystem == 'idp' 
+                            ? 'Индивидуальная Диагностика Потенциала' 
+                            : 'Таро + Квадрат Пифагора',
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+
               const SizedBox(height: 16),
               
               // Выбор пола
