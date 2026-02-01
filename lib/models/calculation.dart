@@ -70,7 +70,6 @@ class Calculation {
     String? notes,
     int? decryption,
     String? firebaseId,
-    String? firebaseId,
     String? telegram,
     String? type,
     Map<String, dynamic>? extraData,
@@ -148,10 +147,8 @@ class Calculation {
   String get formattedScheme {
     final nums = numbers;
     
-    final nums = numbers;
-    
     if (type == 'classic') {
-      return 'Классическая диагностика (Таро + Пифагор)\\n\$name, \$birthDate';
+      return 'Классическая диагностика (Таро + Пифагор)\n$name, $birthDate';
     }
 
     if (gender == 'М') {
