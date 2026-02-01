@@ -225,21 +225,30 @@ class _ResultScreenState extends State<ResultScreen> {
     return cleaned;
   }
 
-  void _shareResult() {
-    String textToShare = "";
-    if (_currentType == "classic") {
-       textToShare = "Классическая диагностика: ${_classicData.toString()}"; // Simplified
-    } else {
-       textToShare = _viewMode == ResultViewMode.text ? _decryptionText : _veryDetailedText;
-    }
-    
-    textToShare = _stripMarkdown(textToShare);
-    textToShare += '\n\nРасчет бота https://t.me/id_potential_bot';
+Future<void> _shareResult() async {
+    try {
+      String textToShare = "";
+      if (_currentType == "classic") {
+         textToShare = "Классическая диагностика: ${_classicData.toString()}"; // Simplified
+      } else {
+         textToShare = _viewMode == ResultViewMode.text ? _decryptionText : _veryDetailedText;
+      }
+      
+      textToShare = _stripMarkdown(textToShare);
+      textToShare += '\n\nРасчет бота https://t.me/id_potential_bot';
 
-    if (kIsWeb) {
-      _showWebShareDialog(textToShare);
-    } else {
-      Share.share(textToShare, subject: 'Результат: ${widget.calculation.name}');
+      if (kIsWeb) {
+        _showWebShareDialog(textToShare);
+      } else {
+        await Share.share(textToShare, subject: 'Результат: ${widget.calculation.name}');
+      }
+    } catch (e) {
+      debugPrint('Share error: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Ошибка при отправке: $e'), backgroundColor: Colors.red),
+        );
+      }
     }
   }
 

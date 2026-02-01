@@ -12,6 +12,9 @@ import 'calculation_screen.dart';
 import 'game_details_screen.dart';
 import '../widgets/role_info_dialog.dart';
 import 'training_history_screen.dart';
+import 'package:share_plus/share_plus.dart';
+import '../services/knowledge_service.dart';
+import '../services/calculator_service.dart';
 
 class HistoryScreen extends StatefulWidget {
   final VoidCallback? onMenuTap;
@@ -230,6 +233,49 @@ class _HistoryScreenState extends State<HistoryScreen> {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Импорт отключен (данные синхронизируются с облаком)')));
   }
 
+  Future<void> _shareCalculation(Calculation calc) async {
+      try {
+        Calculation effectiveCalc = calc;
+        
+        // Ensure numbers are calculated for IDP
+        if ((effectiveCalc.numbers.isEmpty) && effectiveCalc.type != 'classic') {
+             final ids = CalculatorService.calculateDiagnostic(effectiveCalc.birthDate, effectiveCalc.name, effectiveCalc.gender);
+             effectiveCalc = effectiveCalc.copyWith(numbers: ids);
+        }
+
+        String textToShare = "";
+        if (effectiveCalc.type == 'classic') {
+             if (effectiveCalc.extraData != null) {
+                textToShare = "Классическая диагностика: ${effectiveCalc.extraData.toString()}";
+             } else {
+                final classicData = CalculatorService.calculateClassic(effectiveCalc.birthDate);
+                textToShare = "Классическая диагностика: ${classicData.toString()}";
+             }
+        } else {
+             textToShare = KnowledgeService.generateDetailedDescription(effectiveCalc);
+        }
+        
+        // Strip markdown
+        textToShare = textToShare.replaceAll(RegExp(r'^#{1,6}\s*', multiLine: true), '');
+        textToShare = textToShare.replaceAllMapped(RegExp(r'(\*\*|__)(.*?)\1'), (match) => match.group(2) ?? '');
+        textToShare = textToShare.replaceAllMapped(RegExp(r'(\*|_)(.*?)\1'), (match) => match.group(2) ?? '');
+        textToShare = textToShare.replaceAllMapped(RegExp(r'\[(.*?)\]\(.*?\)'), (match) => match.group(1) ?? '');
+        
+        textToShare += '\n\nРасчет бота https://t.me/id_potential_bot';
+
+        if (kIsWeb) {
+           showModalBottomSheet(context: context, builder: (c) => SafeArea(child: Column(mainAxisSize: MainAxisSize.min, children: [
+             ListTile(leading: const Icon(Icons.copy), title: const Text('Copy'), onTap: () { Clipboard.setData(ClipboardData(text: textToShare)); Navigator.pop(c); }),
+           ])));
+        } else {
+           await Share.share(textToShare, subject: 'Результат: ${calc.name}');
+        }
+      } catch (e) {
+         debugPrint("Share error: $e");
+         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Ошибка: $e'), backgroundColor: Colors.red));
+      }
+  }
+
   @override
   Widget build(BuildContext context) {
     return DefaultTabController(
@@ -353,10 +399,12 @@ class _HistoryScreenState extends State<HistoryScreen> {
                                 ),
                                 PopupMenuButton<String>(
                                    onSelected: (v) {
+                                      if (v == 'share') _shareCalculation(calc);
                                       if (v == 'edit') _editCalculation(calc);
                                       if (v == 'delete' && calc.firebaseId != null) _deleteCalculation(calc.firebaseId!, calc.name);
                                    },
                                    itemBuilder: (ctx) => [
+                                      const PopupMenuItem(value: 'share', child: Row(children:[Icon(Icons.share, color: Colors.blueAccent), SizedBox(width:8), Text("Поделиться")])),
                                       const PopupMenuItem(value: 'edit', child: Row(children:[Icon(Icons.perm_contact_calendar_outlined, color: Colors.blueGrey), SizedBox(width:8), Text("Изменить данные")])),
                                       const PopupMenuItem(value: 'delete', child: Row(children:[Icon(Icons.delete_outline, color:Colors.red), SizedBox(width:8), Text("Удалить")])),
                                    ],
