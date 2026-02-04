@@ -307,6 +307,58 @@ class FestivalScreen extends StatelessWidget {
                         _buildProgramSection(),
                         const SizedBox(height: 50),
 
+                        // --- MASTERS SECTION ---
+                        const Text(
+                          "МАСТЕРА ФЕСТИВАЛЯ",
+                          style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold),
+                        ),
+                        const SizedBox(height: 20),
+                        
+                        _buildMasterCard(
+                           context,
+                           "Ксения Варакина",
+                           "Коуч, психолог, бизнес-тренер",
+                           "МАГИЯ ЛИЧНОСТИ",
+                           "«Магия личности» — игра, после которой вы определите 1 стратегическое решение, меняющее вашу траекторию.\n\nЭто сочетание коучинговой глубины, психологической точности и игрового формата, который позволяет увидеть свои слепые зоны быстрее, чем за месяцы самокопания.\n\nЧто даёт игра?\nЭто не «ещё одно упражнение». Это формат, в котором:\n➡️ Заметны привычные, но уже неработающие стратегии,\n➡️ Легко найти решение, даже если откладывали его несколько месяцев или лет,\n➡️ За пару шагов можно увидеть то, что сдерживает и не даёт шагнуть вперёд.\n\nПосле игры вы:\n⚡️ Поймёте, какой шаг сделать в ближайшие 72 часа\n⚡️ Уйдёте с 3 чёткими решениями\n⚡️ Получите заряд энергии на конкретные действия\n\nНе просто веду игру, а помогаю увидеть в вас то, что вы давно перестали замечать.",
+                           Colors.orangeAccent,
+                           "assets/images/ksenia_varakina.jpg",
+                        ),
+                        const SizedBox(height: 24),
+                        
+                        _buildMasterCard(
+                           context,
+                           "Владимир Папушин",
+                           "Предприниматель, игропрактик",
+                           "РЫБАКОВ. ИГРА НА МИЛЛИАРД",
+                           "«Рыбаков. Игра на миллиард» — Коммуникация, переговоры, стратегия.\n\nУникальный бизнес-тренажер, развивающий навыки предпринимательского мышления и масштабного видения.\n\nНа игре вы прокачаете:\n🎲 Навыки коммуникации и построения партнерств\n🎲 Стратегическое мышление\n🎲 Умение видеть возможности там, где другие видят проблемы\n\nВладимир — серийный предприниматель (20+ лет) и ведущий игропрактик (8+ лет), основатель компании «Pro Cash Flow» и клуба «Время лидеров».",
+                           Colors.blue,
+                           "assets/images/vladimir_papushin.jpg",
+                           [
+                              {'icon': Icons.language, 'url': 'https://cashflowpiter.ru/', 'tooltip': 'Сайт'},
+                              {'icon': Icons.group, 'url': 'https://vk.com/pro_cashflow_spb', 'tooltip': 'VK'},
+                              {'icon': Icons.send, 'url': 'https://t.me/cash_flow_piter', 'tooltip': 'Telegram'},
+                              {'icon': Icons.play_circle_fill, 'url': 'http://www.youtube.com/@PRO-Cash-Flow', 'tooltip': 'YouTube'},
+                              {'icon': Icons.camera_alt, 'url': 'https://www.instagram.com/vladimir4v', 'tooltip': 'Instagram'},
+                           ]
+                        ),
+                        const SizedBox(height: 24),
+
+                        _buildMasterCard(
+                           context,
+                           "Олег Баранец",
+                           "Психолог, бизнес-аналитик",
+                           "ТЕРРИТОРИЯ СЕБЯ",
+                           "«Территория Себя» — Авторская трансформационная игра.\n\nИгра, которая помогает превратить хаос в ясную структуру развития. Это инструмент для глубокой диагностики и нахождения скрытых ресурсов личности.\n\nОлег — эксперт по систематизации жизни и бизнеса, основатель Info Cards Club.\n\n«Преобразую хаос в ясность».",
+                           Colors.lightBlueAccent,
+                           "assets/images/olegbaranets.jpg",
+                           [
+                              {'icon': Icons.send, 'url': 'https://t.me/id_territory', 'tooltip': 'Канал'},
+                              {'icon': Icons.language, 'url': 'https://infocards.club', 'tooltip': 'Сайт'},
+                           ]
+                        ),
+
+                        const SizedBox(height: 50),
+
                         // --- ORGANIZERS ---
                         const Text(
                           "ОРГАНИЗАТОРЫ",
@@ -417,6 +469,110 @@ class FestivalScreen extends StatelessWidget {
     );
   }
 
+  Widget _buildMasterCard(BuildContext context, String name, String role, String gameName, String gameDesc, Color color, String imagePath, [List<Map<String, dynamic>>? socialLinks]) {
+    return _buildGlassCard(
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        children: [
+           Row(
+             crossAxisAlignment: CrossAxisAlignment.start,
+             children: [
+                Container(
+                  width: 70,
+                  height: 70,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: color.withOpacity(0.2),
+                    border: Border.all(color: color, width: 2),
+                  ),
+                  child: ClipOval(
+                    child: Image.asset(imagePath, fit: BoxFit.cover, errorBuilder: (_,__,___) => Icon(Icons.person, color: color, size: 35)),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                       Text(name, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18)),
+                       Text(role, style: const TextStyle(color: Colors.white60, fontSize: 13, height: 1.2)),
+                       
+                       if (socialLinks != null) ...[
+                          const SizedBox(height: 10),
+                          Wrap(
+                             spacing: 12,
+                             children: socialLinks.map((link) {
+                                return InkWell(
+                                   onTap: () => launchUrl(Uri.parse(link['url']), mode: LaunchMode.externalApplication),
+                                   child: Tooltip(
+                                     message: link['tooltip'] ?? '',
+                                     child: Icon(link['icon'], color: Colors.white70, size: 20)
+                                   ),
+                                );
+                             }).toList(),
+                          )
+                       ]
+                    ],
+                  ),
+                )
+             ],
+           ),
+           const SizedBox(height: 20),
+           
+           // Game Block
+           InkWell(
+             onTap: () {
+                showDialog(
+                   context: context,
+                   builder: (_) => AlertDialog(
+                      backgroundColor: const Color(0xFF1E293B),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                      title: Row(
+                        children: [
+                          Icon(Icons.casino, color: color),
+                          const SizedBox(width: 10),
+                          Expanded(child: Text(gameName, style: TextStyle(color: color, fontWeight: FontWeight.bold))),
+                        ],
+                      ),
+                      content: SingleChildScrollView(
+                         child: Text(gameDesc, style: const TextStyle(color: Colors.white70, fontSize: 15, height: 1.6)),
+                      ),
+                      actions: [
+                         TextButton(onPressed: () => Navigator.pop(context), child: const Text("Закрыть", style: TextStyle(color: Colors.white54))),
+                      ],
+                   )
+                );
+             },
+             child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                   color: color.withOpacity(0.1),
+                   borderRadius: BorderRadius.circular(16),
+                   border: Border.all(color: color.withOpacity(0.3)),
+                ),
+                child: Column(
+                   crossAxisAlignment: CrossAxisAlignment.start,
+                   children: [
+                      Text("ПРЕДСТАВЛЯЕТ ИГРУ", style: TextStyle(color: color.withOpacity(0.7), fontSize: 10, letterSpacing: 2, fontWeight: FontWeight.bold)),
+                      const SizedBox(height: 6),
+                      Row(
+                         children: [
+                            Expanded(child: Text(gameName, style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w900))),
+                            Icon(Icons.info_outline, color: color.withOpacity(0.8)),
+                         ],
+                      ),
+                      const SizedBox(height: 4),
+                      const Text("Нажмите, чтобы узнать подробнее", style: TextStyle(color: Colors.white30, fontSize: 10, fontStyle: FontStyle.italic)),
+                   ],
+                ),
+             ),
+           )
+        ],
+      )
+    );
+  }
+
   Widget _buildOrganizerCard(String name, String role, String desc, Color color, [String? imagePath, List<Map<String, dynamic>>? socialLinks]) {
     return _buildGlassCard(
       padding: const EdgeInsets.all(16),
@@ -503,7 +659,7 @@ class FestivalScreen extends StatelessWidget {
               const Divider(color: Colors.white10),
               _buildProgramItem("13:00 - 17:00", "СЦЕНА", "Выступление экспертов (программа формируется)"),
               const Divider(color: Colors.white10),
-              _buildProgramItem("12:00-18:00", "ИГРОВЫЕ ЗОНЫ", "Трансформационные игры:\n• Территория себя\n• Лила\n• Like Game\n• полный список игр еще формируется"),
+              _buildProgramItem("12:00-18:00", "ИГРОВЫЕ ЗОНЫ", "Трансформационные игры:\n• Территория себя\n• Лила\n• Rybakov\n• Магия личности\n• полный список игр еще формируется"),
               const Divider(color: Colors.white10),
               _buildProgramItem("17:00", "СЦЕНА", "Розыгрыш призов, вручение и закрытие"),
            ],
