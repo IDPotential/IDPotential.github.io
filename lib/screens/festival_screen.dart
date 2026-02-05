@@ -361,6 +361,38 @@ class FestivalScreen extends StatelessWidget {
                               {'icon': Icons.language, 'url': 'https://infocards.club', 'tooltip': 'Сайт'},
                            ]
                         ),
+                        const SizedBox(height: 24),
+
+                        _buildMasterCard(
+                           context,
+                           "Тома Стулова",
+                           "Генератор идей, эксперт фототехники",
+                           "КОММУНИКАТИВНАЯ ИГРА СО СМЫСЛОМ",
+                           "Коммуникативная игра со смыслом. Игры, вечеринки, пикники, творческие мастер-классы, походы, нетворкинги...\n\nТома — генератор идей, оптимист и человек-энергия. Эксперт в области фототехники и фотосъемки. Снимает забавные рилсы. Любит спорт (йога, плавание, велосипед).\n\nПланы: Наполняться энергией и работать с вдохновляющими людьми.",
+                           Colors.pinkAccent,
+                           "assets/images/toma.jpg",
+                           [
+                              {'icon': Icons.send, 'url': 'https://t.me/tomastulova', 'tooltip': 'Telegram'},
+                              {'icon': Icons.campaign, 'url': 'https://t.me/bla_bla_game', 'tooltip': 'Канал'},
+                              {'icon': Icons.camera_alt, 'url': 'https://instagram.com/tomastulova', 'tooltip': 'Instagram'},
+                           ]
+                        ),
+                        const SizedBox(height: 24),
+
+                        _buildMasterCard(
+                           context,
+                           "Ольга Дорошкевич",
+                           "Ресурсный коуч, игропрактик",
+                           "ТЕРРИТОРИЯ ДЕНЕГ",
+                           "«Территория Денег» — Трансформационная игра.\n\nЭто игра-помощник при переходе на новый денежный уровень. В игре Вы сможете изменить мышление «дефицита» на мышление «изобилия».\n\nИгра помогает:\n📍 Найти причины ограничивающие доход\n📍 Понять какой блок в теме денег\n📍 Выстроить эффективную денежную стратегию\n\nОльга — Ресурсный КОУЧ, автор игр, МАК карт, книги Живые Строки, мастер игровых техник, ченнелер.",
+                           Colors.green,
+                           "assets/images/olga.jpg",
+                           [
+                              {'icon': Icons.send, 'url': 'https://t.me/olga_doroshkevich', 'tooltip': 'Telegram'},
+                              {'icon': Icons.campaign, 'url': 'https://t.me/OlgaDoroshkevichVselennya', 'tooltip': 'Канал'},
+                              {'icon': Icons.play_circle_fill, 'url': 'https://www.youtube.com/@ODoroshkevich', 'tooltip': 'YouTube'},
+                           ]
+                        ),
 
                         const SizedBox(height: 50),
 
@@ -397,6 +429,29 @@ class FestivalScreen extends StatelessWidget {
                              {'icon': Icons.language, 'url': 'https://baranets.info/', 'tooltip': 'Сайт'},
                              {'icon': Icons.play_circle_fill, 'url': 'https://www.youtube.com/@baranets_info', 'tooltip': 'YouTube'},
                           ]
+                        ),
+
+                        const SizedBox(height: 50),
+
+                        // --- INFO PARTNERS ---
+                        const Text(
+                          "ИНФОРМАЦИОННЫЕ ПАРТНЕРЫ",
+                          style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold),
+                        ),
+                        const SizedBox(height: 20),
+
+                        _buildGlassCard(
+                           child: Column(
+                             children: [
+                                _buildPartnerRow("АТС Некрасова — кластер событий", "https://t.me/ats_nekrasova"),
+                                const Divider(color: Colors.white10),
+                                _buildPartnerRow("ЛЮБОВЬ И ДЕНЬГИ", "https://t.me/love_borichevskaya"),
+                                const Divider(color: Colors.white10),
+                                _buildPartnerRow("Тренинги \"PRO CashFlow\"", "https://t.me/cash_flow_piter"),
+                                const Divider(color: Colors.white10),
+                                _buildPartnerRow("Клуб коммуникативных игр Томы Стуловой", "https://t.me/bla_bla_game"),
+                             ],
+                           )
                         ),
 
                         const SizedBox(height: 60),
@@ -691,6 +746,28 @@ class FestivalScreen extends StatelessWidget {
                  )
               )
            ],
+        ),
+     );
+  }
+
+  Widget _buildPartnerRow(String title, String url) {
+     return InkWell(
+        onTap: () => launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication),
+        child: Padding(
+           padding: const EdgeInsets.symmetric(vertical: 12),
+           child: Row(
+              children: [
+                 const Icon(Icons.telegram, color: Colors.blueAccent, size: 24),
+                 const SizedBox(width: 16),
+                 Expanded(
+                    child: Text(
+                       title,
+                       style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w500),
+                    ),
+                 ),
+                 const Icon(Icons.arrow_forward_ios, color: Colors.white24, size: 14),
+              ],
+           ),
         ),
      );
   }
