@@ -394,6 +394,24 @@ class FestivalScreen extends StatelessWidget {
                            ]
                         ),
 
+                        const SizedBox(height: 24),
+
+                        _buildMasterCard(
+                           context,
+                           "Вера Майнакская",
+                           "Игропрактик, эксперт по желаниям",
+                           "ПУТЬ ЖЕЛАНИЙ",
+                           "«Путь Желаний» — Большая напольная игра пространство для честного диалога с собой.\n\nЗдесь можно мягко и безопасно заглянуть во внутренний мир, услышать своё сердце и дать голос своим настоящим мечтам.\n\nИгра помогает увидеть:\n✨ что мешает исполнению желаемого\n✨ какие страхи стоят на пути к цели\n✨ какая сфера жизни сейчас может стать точкой ресурса\n\nЭто не гадание — это структурная работа с запросом.",
+                           Colors.cyanAccent,
+                           "assets/images/vera.jpg",
+                           [
+                              {'icon': Icons.send, 'url': 'https://t.me/Vera_Maynakskaya', 'tooltip': 'Telegram'},
+                              {'icon': Icons.campaign, 'url': 'https://t.me/VeraMaynakskaya', 'tooltip': 'Канал'},
+                              {'icon': Icons.camera_alt, 'url': 'https://www.instagram.com/vera_maynakskaya', 'tooltip': 'Instagram'},
+                              {'icon': Icons.group, 'url': 'https://vk.com/vera_maynakskaya', 'tooltip': 'VK'},
+                           ]
+                        ),
+
                         const SizedBox(height: 50),
 
                         // --- ORGANIZERS ---
@@ -719,7 +737,7 @@ class FestivalScreen extends StatelessWidget {
               const Divider(color: Colors.white10),
               _buildProgramItem("13:00 - 17:00", "СЦЕНА", "Выступление экспертов (программа формируется)"),
               const Divider(color: Colors.white10),
-              _buildProgramItem("12:00-18:00", "ИГРОВЫЕ ЗОНЫ", "Трансформационные игры:\n• Территория себя\n• Территория денег\n• Лила\n• Rybakov\n• Магия личности\n• полный список игр еще формируется"),
+              _buildProgramItem("12:00-18:00", "ИГРОВЫЕ ЗОНЫ", "Трансформационные игры:\n• Территория себя\n• Территория денег\n• Путь Желаний\n• Лила\n• Rybakov\n• Магия личности\n• полный список игр еще формируется"),
               const Divider(color: Colors.white10),
               _buildProgramItem("17:00", "СЦЕНА", "Розыгрыш призов, вручение и закрытие"),
            ],
