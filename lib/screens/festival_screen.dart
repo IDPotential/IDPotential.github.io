@@ -13,6 +13,7 @@ class FestivalScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFF0F044C), // Fallback color
       extendBodyBehindAppBar: true,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
@@ -427,6 +428,36 @@ class FestivalScreen extends StatelessWidget {
                               {'icon': Icons.campaign, 'url': 'https://t.me/irinaviznuk', 'tooltip': 'Канал'},
                            ]
                         ),
+                        const SizedBox(height: 24),
+
+                        _buildMasterCard(
+                           context,
+                           "Светлана Гурина",
+                           "Женский коуч, мастер МАК",
+                           "ОЧЕРЕДЬ ИЗ ДЕНЕГ",
+                           "«Очередь из денег» — Трансформационная игра про отношения с деньгами через состояние, внутренние роли и выборы.\n\nВ процессе становится видно:\n— из какого внутреннего места человек заходит в деньги,\n— где он себя ограничивает,\n— какие ресурсы уже есть, но не используются,\n— что мешает двигаться дальше.\n\nИгра помогает не искать «волшебные схемы», а глубже понять себя и выстроить более устойчивые отношения с деньгами.",
+                           Colors.deepPurpleAccent,
+                           "assets/images/svetlana_gurina.jpg",
+                           [
+                              {'icon': Icons.send, 'url': 'https://t.me/svetlana_gurina_aroma_candles', 'tooltip': 'Telegram'},
+                              {'icon': Icons.campaign, 'url': 'https://t.me/tvoe_sostoyanie_sveta', 'tooltip': 'Канал'},
+                           ]
+                        ),
+                        const SizedBox(height: 24),
+
+                        _buildMasterCard(
+                           context,
+                           "Екатерина Волкова",
+                           "Психолог, расстановщик",
+                           "ЛИЛА",
+                           "«Лила» — это глубокая психологическая игра-практика, которая помогает исследовать важные жизненные темы, отношения с собой и найти ответы, уже живущие внутри.\n\nЗачем играть?\n— Исследовать свой внутренний мир и ситуации.\n— Выйти из замкнутого круга мыслей.\n— Услышать свою интуицию.\n\nКакой результат?\n— Ясность в ситуации.\n— Опора и контакт с собой.\n— Инсайт и энергия для следующего шага.\n\n«Лила» — это мостик между вашим внутренним миром и внешней жизнью.",
+                           Colors.indigo,
+                           "assets/images/ekaterina_volkova.jpg",
+                           [
+                              {'icon': Icons.send, 'url': 'https://t.me/ekaterinavteta', 'tooltip': 'Личные сообщения'},
+                              {'icon': Icons.campaign, 'url': 'https://t.me/lilaprotebja', 'tooltip': 'Канал'},
+                           ]
+                        ),
 
                         const SizedBox(height: 50),
 
@@ -735,11 +766,14 @@ class FestivalScreen extends StatelessWidget {
       height: size,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        color: color,
-      ),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 50, sigmaY: 50),
-        child: Container(color: Colors.transparent),
+        color: color.withOpacity(0.0), // Transparent center to let shadow fail gracefully if needed
+        boxShadow: [
+           BoxShadow(
+              color: color.withOpacity(0.5),
+              blurRadius: 100, // High blur for glow effect
+              spreadRadius: 20,
+           )
+        ],
       ),
     );
   }
@@ -753,7 +787,7 @@ class FestivalScreen extends StatelessWidget {
               const Divider(color: Colors.white10),
               _buildProgramItem("13:00 - 17:00", "СЦЕНА", "Выступление экспертов (программа формируется)"),
               const Divider(color: Colors.white10),
-              _buildProgramItem("12:00-18:00", "ИГРОВЫЕ ЗОНЫ", "Трансформационные игры:\n• Территория себя\n• Территория денег\n• Путь Желаний\n• Лила\n• Rybakov\n• Магия личности\n• Арт-терапевтическая практика\n• полный список игр еще формируется"),
+              _buildProgramItem("12:00-18:00", "ИГРОВЫЕ ЗОНЫ", "Трансформационные игры:\n• Территория себя\n• Территория денег\n• Очередь из Денег\n• Путь Желаний\n• Лила\n• Rybakov\n• Магия личности\n• Арт-терапевтическая практика\n• полный список игр еще формируется"),
               const Divider(color: Colors.white10),
               _buildProgramItem("17:00", "СЦЕНА", "Розыгрыш призов, вручение и закрытие"),
            ],
