@@ -459,6 +459,39 @@ class FestivalScreen extends StatelessWidget {
                            ]
                         ),
 
+                        const SizedBox(height: 24),
+
+                        _buildMasterCard(
+                           context,
+                           "Ирина Абрамова",
+                           "Переговорщик, медиатор, эксперт по межличностным отношениям и коммуникациям",
+                           "РЫБАКОВ. ИГРА НА МИЛЛИАРД",
+                           "Для меня «Игра на миллиард» — это диагностика:\n- ваших навыков коммуникации;\n- умения оценивать стоимость ваших ресурсов;\n- ваших способностей доносить ценность сотрудничества с вами.\n\nЕсли:\n➡️ вас не слышат,\n▶️ вам сложно договариваться,\n➡️ кажется, что вас не понимают,\n➡️ и ваше общение можно описать поговорками:\n✳️ что в лоб, что по лбу;\n✳️ хоть головой об стену;\n✳️ разговор слепого с глухим;\n✳️ в одно ухо влетело, в другое вылетело,\n\nтогда я иду к вам!",
+                           Colors.teal,
+                           "assets/images/irina_abramova.jpg",
+                           [
+                              {'icon': Icons.send, 'url': 'https://t.me/Irina_mediator', 'tooltip': 'Написать'},
+                              {'icon': Icons.campaign, 'url': 'https://t.me/razvitiebussnes', 'tooltip': 'Канал'},
+                           ]
+                        ),
+
+                        const SizedBox(height: 24),
+
+                        _buildMasterCard(
+                           context,
+                           "Надежда Ланская",
+                           "Маркетолог и организатор мероприятий",
+                           "Недостатки vs SuperСпособности",
+                           "⭐️Недостатки vs SuperСпособности Коммуникативная игра со смыслом ⭐️\n\nТы когда-нибудь задумывался, что твои недостатки могут оказаться суперспособностями?\n\nМы, Надя и Тома, маркетолог и игропрактик, приглашаем тебя на необычное мероприятие, где в игровом формате ты сможешь проработать свои недостатки и сильные стороны. Откроем двери в мир детских игр и забавных упражнений, где смех и общение помогут изменить твоё внутреннее отношение к себе и к своим так называемым недостаткам😏\n\nА еще мы знаем, что то, что ты считаешь недостатком, для кого-то другого — план развития. И мы уверены, что любую свою черту можно продать и использовать, ведь это часть твоей личности, которая точно уже в чём-то тебе помогала.\n\nЧто будет:\n✨ Увидишь, как то, что ты считал минусом, может стать твоим главным козырем.\n✨ Научишься «продавать» и использовать любую свою черту характера.\n✨ Прокачаешь самооценку и найдёшь новый ресурс в себе через игру и общение.\n\nЭто не лекция, а игровой опыт, который меняет восприятие.",
+                           Colors.orange,
+                           "assets/images/nadezhda_lanskaya.jpg",
+                           [
+                              {'icon': Icons.send, 'url': 'https://t.me/landusha', 'tooltip': 'Написать'},
+                              {'icon': Icons.campaign, 'url': 'https://t.me/landusha_thinks', 'tooltip': 'Канал'},
+                           ],
+                           "assets/images/nadya_toma_game.jpg"
+                        ),
+
                         const SizedBox(height: 50),
 
                         // --- ORGANIZERS ---
@@ -594,7 +627,7 @@ class FestivalScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildMasterCard(BuildContext context, String name, String role, String gameName, String gameDesc, Color color, String imagePath, [List<Map<String, dynamic>>? socialLinks]) {
+  Widget _buildMasterCard(BuildContext context, String name, String role, String gameName, String gameDesc, Color color, String imagePath, [List<Map<String, dynamic>>? socialLinks, String? gameImagePath]) {
     return _buildGlassCard(
       padding: const EdgeInsets.all(20),
       child: Column(
@@ -660,7 +693,19 @@ class FestivalScreen extends StatelessWidget {
                         ],
                       ),
                       content: SingleChildScrollView(
-                         child: Text(gameDesc, style: const TextStyle(color: Colors.white70, fontSize: 15, height: 1.6)),
+                         child: Column(
+                           mainAxisSize: MainAxisSize.min,
+                           children: [
+                              if (gameImagePath != null) ...[
+                                ClipRRect(
+                                  borderRadius: BorderRadius.circular(12),
+                                  child: Image.asset(gameImagePath, fit: BoxFit.cover),
+                                ),
+                                const SizedBox(height: 16),
+                              ],
+                              Text(gameDesc, style: const TextStyle(color: Colors.white70, fontSize: 15, height: 1.6)),
+                           ],
+                         ),
                       ),
                       actions: [
                          TextButton(onPressed: () => Navigator.pop(context), child: const Text("Закрыть", style: TextStyle(color: Colors.white54))),
