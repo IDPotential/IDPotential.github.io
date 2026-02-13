@@ -7,8 +7,30 @@ import '../app.dart';
 import 'login_screen.dart';
 import '../widgets/festival_application_form.dart';
 
-class FestivalScreen extends StatelessWidget {
+class FestivalScreen extends StatefulWidget {
   const FestivalScreen({super.key});
+
+  @override
+  State<FestivalScreen> createState() => _FestivalScreenState();
+}
+
+class _FestivalScreenState extends State<FestivalScreen> {
+  final GlobalKey _visitorsKey = GlobalKey();
+  final GlobalKey _expertsKey = GlobalKey();
+  final GlobalKey _programKey = GlobalKey();
+  final GlobalKey _mastersKey = GlobalKey();
+  final GlobalKey _organizersKey = GlobalKey();
+  final GlobalKey _partnersKey = GlobalKey();
+
+  void _scrollToSection(GlobalKey? key) {
+    if (key == null || key.currentContext == null) return;
+    Scrollable.ensureVisible(
+      key.currentContext!,
+      duration: const Duration(milliseconds: 600),
+      curve: Curves.easeInOut,
+      alignment: 0.1, // Scroll slightly above the target
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -167,9 +189,10 @@ class FestivalScreen extends StatelessWidget {
 
 
                         // --- VISITOR SECTION ---
-                        const Text(
+                        Text(
                           "ДЛЯ ПОСЕТИТЕЛЕЙ",
-                          style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold),
+                          key: _visitorsKey,
+                          style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold),
                         ),
                         const SizedBox(height: 16),
                         _buildGlassCard(
@@ -235,9 +258,10 @@ class FestivalScreen extends StatelessWidget {
                         const SizedBox(height: 50),
 
                         // --- PARTNER SECTION ---
-                        const Text(
+                        Text(
                           "ДЛЯ ЭКСПЕРТОВ",
-                          style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold),
+                          key: _expertsKey,
+                          style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold),
                         ),
                         const SizedBox(height: 8),
                         const Text(
@@ -310,18 +334,20 @@ class FestivalScreen extends StatelessWidget {
                         const SizedBox(height: 50),
 
                         // --- PROGRAM SECTION ---
-                        const Text(
+                        Text(
                           "ПРОГРАММА",
-                          style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold),
+                          key: _programKey,
+                          style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold),
                         ),
                         const SizedBox(height: 16),
                         _buildProgramSection(),
                         const SizedBox(height: 50),
 
                         // --- MASTERS SECTION ---
-                        const Text(
+                        Text(
                           "МАСТЕРА ФЕСТИВАЛЯ",
-                          style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold),
+                          key: _mastersKey,
+                          style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold),
                         ),
                         const SizedBox(height: 20),
                         
@@ -506,9 +532,10 @@ class FestivalScreen extends StatelessWidget {
                         const SizedBox(height: 50),
 
                         // --- ORGANIZERS ---
-                        const Text(
+                        Text(
                           "ОРГАНИЗАТОРЫ",
-                          style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold),
+                          key: _organizersKey,
+                          style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold),
                         ),
                         const SizedBox(height: 20),
 
@@ -543,9 +570,10 @@ class FestivalScreen extends StatelessWidget {
                         const SizedBox(height: 50),
 
                         // --- INFO PARTNERS ---
-                        const Text(
+                        Text(
                           "ИНФОРМАЦИОННЫЕ ПАРТНЕРЫ",
-                          style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold),
+                          key: _partnersKey,
+                          style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold),
                         ),
                         const SizedBox(height: 20),
 
