@@ -213,10 +213,15 @@ class FestivalScreen extends StatelessWidget {
                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                               elevation: 5,
                             ),
-                            onPressed: () => showDialog(
-                              context: context,
-                              builder: (_) => const FestivalApplicationForm(initialType: 'Посетитель'),
-                            ),
+                              onPressed: () => showDialog(
+                                context: context,
+                                builder: (_) => Center(
+                                  child: ConstrainedBox(
+                                    constraints: const BoxConstraints(maxWidth: 800),
+                                    child: const FestivalApplicationForm(initialType: 'Посетитель')
+                                  )
+                                ),
+                              ),
                             child: const Column(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
@@ -288,7 +293,12 @@ class FestivalScreen extends StatelessWidget {
                                     ),
                                     onPressed: () => showDialog(
                                       context: context,
-                                      builder: (_) => const FestivalApplicationForm(initialType: 'Мастер'),
+                                      builder: (_) => Center(
+                                        child: ConstrainedBox(
+                                          constraints: const BoxConstraints(maxWidth: 800),
+                                          child: const FestivalApplicationForm(initialType: 'Мастер')
+                                        )
+                                      ),
                                     ),
                                     child: const Text("СФОРМИРОВАТЬ ЗАЯВКУ"),
                                   ),
@@ -889,35 +899,40 @@ class FestivalScreen extends StatelessWidget {
   void _showLocationDetails(BuildContext context) {
      showDialog(
         context: context,
-        builder: (context) => AlertDialog(
-           backgroundColor: const Color(0xFF1E293B),
-           title: const Text("Пространство АТС", style: TextStyle(color: Colors.white)),
-           content: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                   const Text(
-                      "Выбор АТС как площадки символичен: это место, где десятилетиями соединялись линии связи. На один день мы превратим его в центр коммуникации смыслов, технологий и психологии.\n\nИндустриальная архитектура подчеркивает фундаментальность наших методов и готовность к «высоковольтному» масштабу.",
-                      style: TextStyle(color: Colors.white70, fontSize: 14, height: 1.5),
-                   ),
-                   const SizedBox(height: 16),
-                   InkWell(
-                      onTap: () => launchUrl(Uri.parse('https://yandex.ru/profile/-/CLtT6A30'), mode: LaunchMode.externalApplication),
-                      child: Row(
-                         children: const [
-                            Icon(Icons.map, color: Colors.blueAccent),
-                            SizedBox(width: 8),
-                            Text("Открыть на карте (Яндекс)", style: TextStyle(color: Colors.blueAccent, decoration: TextDecoration.underline)),
-                         ],
-                      ),
-                   )
-                ],
-              ),
-           ),
-           actions: [
-              TextButton(onPressed: () => Navigator.pop(context), child: const Text("Закрыть"))
-           ],
+        builder: (context) => Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 800),
+            child: AlertDialog(
+               backgroundColor: const Color(0xFF1E293B),
+               title: const Text("Пространство АТС", style: TextStyle(color: Colors.white)),
+               content: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                       const Text(
+                          "Выбор АТС как площадки символичен: это место, где десятилетиями соединялись линии связи. На один день мы превратим его в центр коммуникации смыслов, технологий и психологии.\n\nИндустриальная архитектура подчеркивает фундаментальность наших методов и готовность к «высоковольтному» масштабу.",
+                          style: TextStyle(color: Colors.white70, fontSize: 14, height: 1.5),
+                       ),
+                       const SizedBox(height: 16),
+                       InkWell(
+                          onTap: () => launchUrl(Uri.parse('https://yandex.ru/profile/-/CLtT6A30'), mode: LaunchMode.externalApplication),
+                          child: Row(
+                             children: const [
+                                Icon(Icons.map, color: Colors.blueAccent),
+                                SizedBox(width: 8),
+                                Text("Открыть на карте (Яндекс)", style: TextStyle(color: Colors.blueAccent, decoration: TextDecoration.underline)),
+                             ],
+                          ),
+                       )
+                    ],
+                  ),
+               ),
+               actions: [
+                  TextButton(onPressed: () => Navigator.pop(context), child: const Text("Закрыть"))
+               ],
+            ),
+          ),
         )
      );
   }
@@ -959,23 +974,36 @@ class FestivalScreen extends StatelessWidget {
 
      showDialog(
         context: context,
-        builder: (context) => AlertDialog(
-           backgroundColor: const Color(0xFF1E293B),
-           title: Text(title, style: const TextStyle(color: Colors.white)),
-           content: SingleChildScrollView(
-              child: Text(content, style: const TextStyle(color: Colors.white70, fontSize: 14, height: 1.5)),
-           ),
-           actions: [
-              ElevatedButton(
-                style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF3B82F6), foregroundColor: Colors.white),
-                onPressed: () {
-                   Navigator.pop(context);
-                   showDialog(context: context, builder: (_) => FestivalApplicationForm(initialType: type));
-                },
-                child: const Text("Заявка на участие"),
-              ),
-              TextButton(onPressed: () => Navigator.pop(context), child: const Text("Закрыть"))
-           ],
+        builder: (context) => Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 800),
+            child: AlertDialog(
+               backgroundColor: const Color(0xFF1E293B),
+               title: Text(title, style: const TextStyle(color: Colors.white)),
+               content: SingleChildScrollView(
+                  child: Text(content, style: const TextStyle(color: Colors.white70, fontSize: 14, height: 1.5)),
+               ),
+               actions: [
+                  ElevatedButton(
+                    style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF3B82F6), foregroundColor: Colors.white),
+                    onPressed: () {
+                       Navigator.pop(context);
+                       showDialog(
+                          context: context,
+                          builder: (_) => Center(
+                            child: ConstrainedBox(
+                              constraints: const BoxConstraints(maxWidth: 800),
+                              child: FestivalApplicationForm(initialType: type)
+                            )
+                          )
+                       );
+                    },
+                    child: const Text("Заявка на участие"),
+                  ),
+                  TextButton(onPressed: () => Navigator.pop(context), child: const Text("Закрыть"))
+               ],
+            ),
+          ),
         )
      );
   }
