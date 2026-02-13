@@ -55,7 +55,24 @@ class _FestivalScreenState extends State<FestivalScreen> {
                 }
              }
           },
-        ),
+          actions: [
+          PopupMenuButton<GlobalKey?>(
+            icon: const Icon(Icons.menu, color: Colors.white),
+            color: const Color(0xFF1E293B),
+            onSelected: _scrollToSection,
+            itemBuilder: (context) => [
+              const PopupMenuItem(value: null, enabled: false, child: Text("НАВИГАЦИЯ", style: TextStyle(color: Colors.white54, fontSize: 12))),
+              PopupMenuItem(value: _visitorsKey, child: const Text("Посетителям", style: TextStyle(color: Colors.white))),
+              PopupMenuItem(value: _expertsKey, child: const Text("Экспертам", style: TextStyle(color: Colors.white))),
+              PopupMenuItem(value: _programKey, child: const Text("Программа", style: TextStyle(color: Colors.white))),
+              PopupMenuItem(value: _mastersKey, child: const Text("Мастера", style: TextStyle(color: Colors.white))),
+              PopupMenuItem(value: _organizersKey, child: const Text("Организаторы", style: TextStyle(color: Colors.white))),
+              PopupMenuItem(value: _partnersKey, child: const Text("Партнеры", style: TextStyle(color: Colors.white))),
+            ],
+          ),
+          const SizedBox(width: 16),
+        ],
+      ),
       ),
       body: Stack(
         children: [
@@ -752,7 +769,10 @@ class _FestivalScreenState extends State<FestivalScreen> {
              onTap: () {
                 showDialog(
                    context: context,
-                   builder: (_) => AlertDialog(
+                   builder: (_) => Center(
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 800),
+                        child: AlertDialog(
                       backgroundColor: const Color(0xFF1E293B),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
                       title: Row(
@@ -781,6 +801,7 @@ class _FestivalScreenState extends State<FestivalScreen> {
                          TextButton(onPressed: () => Navigator.pop(context), child: const Text("Закрыть", style: TextStyle(color: Colors.white54))),
                       ],
                    )
+                  )
                 );
              },
              child: Container(
