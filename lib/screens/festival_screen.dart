@@ -74,7 +74,7 @@ class _FestivalScreenState extends State<FestivalScreen> {
           const SizedBox(width: 16),
         ],
       ),
-      ),
+
       body: Stack(
         children: [
           // 1. Dynamic Background
