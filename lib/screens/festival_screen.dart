@@ -803,7 +803,7 @@ class _FestivalScreenState extends State<FestivalScreen> {
                       ],
                    )
                   )
-                );
+                ));
              },
              child: Container(
                 width: double.infinity,
