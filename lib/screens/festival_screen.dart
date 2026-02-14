@@ -55,7 +55,8 @@ class _FestivalScreenState extends State<FestivalScreen> {
                 }
              }
           },
-          actions: [
+        ),
+        actions: [
           PopupMenuButton<GlobalKey?>(
             icon: const Icon(Icons.menu, color: Colors.white),
             color: const Color(0xFF1E293B),
