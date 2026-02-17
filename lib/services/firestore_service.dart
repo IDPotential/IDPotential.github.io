@@ -5,6 +5,7 @@ import 'package:universal_io/io.dart';
 import 'package:universal_html/html.dart' as html;
 import '../models/calculation.dart';
 import '../models/promo_code.dart';
+import '../models/festival_game.dart';
 import 'n8n_service.dart';
 
 class FirestoreService {
@@ -1126,6 +1127,127 @@ class FirestoreService {
              'timestamp': FieldValue.serverTimestamp(),
           });
       });
+  }
+
+  }
+
+  // --- Festival Games ---
+
+  Future<void> createFestivalGame(FestivalGame game) async {
+    final user = _auth.currentUser;
+    if (user == null) throw Exception("User not logged in");
+    
+    // Check admin or master role
+    final userDoc = await _db.collection('users').doc(user.uid).get();
+    final role = userDoc.data()?['role'];
+    
+    // Allow 'admin' or 'master' (or custom check)
+    if (role != 'admin' && role != 'master') {
+      throw Exception("Unauthorized");
+    }
+
+    await _db.collection('festival_games').add(game.toMap());
+  }
+
+  Stream<List<FestivalGame>> getFestivalGamesStream() {
+    return _db.collection('festival_games')
+      .orderBy('startTime')
+      .snapshots()
+      .map((snapshot) => snapshot.docs
+        .map((doc) => FestivalGame.fromMap(doc.data(), doc.id))
+        .toList());
+  }
+
+  Future<void> registerForFestivalGame(String gameId) async {
+    final user = _auth.currentUser;
+    if (user == null) throw Exception("User not logged in");
+
+    // 1. Get Game Data
+    final gameDoc = await _db.collection('festival_games').doc(gameId).get();
+    if (!gameDoc.exists) throw Exception("Game not found");
+    
+    final game = FestivalGame.fromMap(gameDoc.data()!, gameDoc.id);
+
+    // 2. Check if full
+    if (game.placesLeft <= 0) {
+      throw Exception("Мест нет");
+    }
+
+    // 3. Check if already registered
+    if (game.isUserRegistered(user.uid)) {
+      throw Exception("Вы уже записаны на эту игру");
+    }
+
+    // 4. Check for time overlap
+    // Get all games user is registered for
+    final allGamesSnapshot = await _db.collection('festival_games').get();
+    final allGames = allGamesSnapshot.docs.map((d) => FestivalGame.fromMap(d.data(), d.id)).toList();
+    
+    for (var g in allGames) {
+      if (g.isUserRegistered(user.uid)) {
+         // Check overlap
+         // Overlap if (StartA < EndB) and (EndA > StartB)
+         if (game.startTime.isBefore(g.endTime) && game.endTime.isAfter(g.startTime)) {
+            throw Exception("Пересечение по времени с игрой '${g.title}'");
+         }
+      }
+    }
+
+    // 5. Register
+    final userDoc = await _db.collection('users').doc(user.uid).get();
+    final userName = userDoc.data()?['first_name'] ?? 'Unknown';
+
+    final participant = {
+      'userId': user.uid,
+      'userName': userName,
+      'registeredAt': Timestamp.now(),
+    };
+
+    await _db.collection('festival_games').doc(gameId).update({
+      'participants': FieldValue.arrayUnion([participant])
+    });
+  }
+
+  Future<void> updateFestivalGame(FestivalGame game) async {
+    final user = _auth.currentUser;
+    if (user == null) throw Exception("User not logged in");
+    
+    // Check admin or master role
+    final userDoc = await _db.collection('users').doc(user.uid).get();
+    final role = userDoc.data()?['role'];
+    
+    if (role != 'admin' && role != 'master') {
+      throw Exception("Unauthorized");
+    }
+
+    await _db.collection('festival_games').doc(game.id).update(game.toMap());
+  }
+
+  Future<void> deleteFestivalGame(String gameId) async {
+    final user = _auth.currentUser;
+    if (user == null) throw Exception("User not logged in");
+    
+    final userDoc = await _db.collection('users').doc(user.uid).get();
+    final role = userDoc.data()?['role'];
+    
+    if (role != 'admin' && role != 'master') {
+      throw Exception("Unauthorized");
+    }
+    
+    await _db.collection('festival_games').doc(gameId).delete();
+  }
+
+  Stream<List<FestivalGame>> getFestivalMasterGames() {
+     final user = _auth.currentUser;
+     if (user == null) return const Stream.empty();
+
+     return _db.collection('festival_games')
+        .where('masterId', isEqualTo: user.uid)
+        .orderBy('startTime')
+        .snapshots()
+        .map((snapshot) => snapshot.docs
+          .map((doc) => FestivalGame.fromMap(doc.data(), doc.id))
+          .toList());
   }
 
 }

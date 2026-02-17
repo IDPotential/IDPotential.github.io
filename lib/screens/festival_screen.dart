@@ -6,6 +6,12 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../app.dart';
 import 'login_screen.dart';
 import '../widgets/festival_application_form.dart';
+import '../models/festival_game.dart';
+import '../services/firestore_service.dart';
+import '../widgets/festival_game_card.dart';
+import '../widgets/game_editor_dialog.dart';
+import '../widgets/game_manager_dialog.dart';
+import 'package:intl/intl.dart';
 
 class FestivalScreen extends StatefulWidget {
   const FestivalScreen({super.key});
@@ -21,6 +27,29 @@ class _FestivalScreenState extends State<FestivalScreen> {
   final GlobalKey _mastersKey = GlobalKey();
   final GlobalKey _organizersKey = GlobalKey();
   final GlobalKey _partnersKey = GlobalKey();
+  
+  int _currentIndex = 0;
+  String? _userRole;
+  String? _userId;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkUserRole();
+  }
+
+  Future<void> _checkUserRole() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      _userId = user.uid;
+      final doc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
+      if (mounted) {
+        setState(() {
+          _userRole = doc.data()?['role'];
+        });
+      }
+    }
+  }
 
   void _scrollToSection(GlobalKey? key) {
     if (key == null || key.currentContext == null) return;
@@ -106,7 +135,10 @@ class _FestivalScreenState extends State<FestivalScreen> {
 
           // 3. Content Scroll
           Positioned.fill(
-            child: SingleChildScrollView(
+            child: IndexedStack(
+              index: _currentIndex,
+              children: [
+                SingleChildScrollView(
               physics: const BouncingScrollPhysics(),
               child: Center(
                 child: ConstrainedBox(
@@ -566,6 +598,22 @@ class _FestivalScreenState extends State<FestivalScreen> {
 
                         _buildMasterCard(
                            context,
+                           "Анна Торпан",
+                           "Эксперт телесной терапии, мастер гвоздестояния, наставник",
+                           "ПРАКТИКА ГВОЗДЕСТОЯНИЯ",
+                           "«Найди точку опоры внутри себя»\n\nВ суете дней мы теряем контакт с самым главным — с собой. Нас захлестывают мысли, тревоги, телесные зажимы и ограничивающие убеждения.\n\nПриглашаем вас на глубокую практику Стояния на гвоздях Садху — мощный инструмент для возвращения к себе. Главное, быстрый и эффективный, для тех кто не любит ждать.\n\nЭто путешествие, в котором вы:\n· Остановите бесконечный поток мыслей и обретете тишину внутри.\n· Освободите тело от накопленного напряжения, стресса и тревоги.\n· Осознаете и отпустите убеждения, блокирующие ваш финансовый рост.\n· Снимите внутренние барьеры, мешающие выстраивать искренние и гармоничные отношения.\n· Наполнитесь чувством энергии и лёгкости.\n· Наладите свой внутренний навигатор — ту самую связь между телом, умом и душой, которая ведет к целостности и гармонии.\n· И самое главное, вернете любовь к себе и жизни.\n\nПод моим опытным руководством, бережно и безопасно пройдете через этот мощный опыт и откроете в себе новые источники силы и спокойствия.",
+                           Colors.redAccent,
+                           "assets/images/Anya_Torpan.jpg",
+                           [
+                              {'icon': Icons.send, 'url': 'https://t.me/aniitorpan', 'tooltip': 'Написать'},
+                              {'icon': Icons.campaign, 'url': 'https://t.me/aniitorpan_I', 'tooltip': 'Канал'},
+                           ]
+                        ),
+                        
+                        const SizedBox(height: 24),
+
+                        _buildMasterCard(
+                           context,
                            "ВарВара Ардель",
                            "Квантовый психолог, игропрактик",
                            "КАГОМЭ-КАГОМЭ (Трансформация)",
@@ -655,10 +703,94 @@ class _FestivalScreenState extends State<FestivalScreen> {
                 ),
               ),
             ),
+            _buildSchedule(),
+          ],
+        ),
           ),
         ],
       ),
     );
+  }
+
+  Widget _buildSchedule() {
+    return Positioned.fill(
+      child: Container(
+        color: Colors.transparent, // Let background show through
+        child: Column(
+          children: [
+             const SizedBox(height: 100), // Space for AppBar
+             Padding(
+               padding: const EdgeInsets.symmetric(horizontal: 24),
+               child: Row(
+                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                 children: [
+                   const Text("Расписание игр", style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold)),
+                   if (_userRole == 'admin' || _userRole == 'master')
+                      ElevatedButton.icon(
+                        onPressed: _showCreateGameDialog,
+                        icon: const Icon(Icons.add),
+                        label: const Text("Создать игру"),
+                      )
+                 ],
+               ),
+             ),
+             const SizedBox(height: 16),
+             Expanded(
+               child: StreamBuilder<List<FestivalGame>>(
+                 stream: FirestoreService().getFestivalGamesStream(),
+                 builder: (context, snapshot) {
+                   if (snapshot.hasError) return Center(child: Text("Error: ${snapshot.error}", style: const TextStyle(color: Colors.red)));
+                   if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
+                   
+                   final games = snapshot.data!;
+                   if (games.isEmpty) return const Center(child: Text("Расписание пока пусто", style: TextStyle(color: Colors.white54)));
+                   
+                   return ListView.builder(
+                     padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                     itemCount: games.length,
+                     itemBuilder: (context, index) {
+                       final game = games[index];
+                       final isRegistered = game.isUserRegistered(_userId ?? '');
+                       final isMyGame = game.masterId == _userId;
+                       
+                       return FestivalGameCard(
+                         game: game,
+                         isRegistered: isRegistered,
+                         onRegister: () => _registerForGame(game),
+                         onManage: (_userRole == 'admin' || isMyGame) ? () => _showManageGameDialog(game) : null,
+                       );
+                     },
+                   );
+                 },
+               ),
+             ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _registerForGame(FestivalGame game) async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Сначала войдите в систему")));
+      return;
+    }
+    
+    try {
+       await FirestoreService().registerForFestivalGame(game.id);
+       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Вы записаны на игру '${game.title}'!")));
+    } catch (e) {
+       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Ошибка: ${e.toString().replaceAll('Exception: ', '')}")));
+    }
+  }
+
+  void _showCreateGameDialog() {
+     showDialog(context: context, builder: (_) => const GameEditorDialog());
+  }
+  
+  void _showManageGameDialog(FestivalGame game) {
+     showDialog(context: context, builder: (_) => GameManagerDialog(game: game));
   }
 
   // --- HELPERS ---
