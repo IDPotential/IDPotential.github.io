@@ -1251,4 +1251,39 @@ class FirestoreService {
           .toList());
   }
 
+
+  Future<List<PromoCode>> getValidPromoCodes(String code) async {
+    try {
+      final snapshot = await _db.collection('promo_codes')
+          .where('code', isEqualTo: code)
+          .where('isActive', isEqualTo: true)
+          .get();
+
+      return snapshot.docs.map((doc) => PromoCode.fromMap(doc.data(), doc.id)).toList();
+    } catch (e) {
+      debugPrint("Error fetching promo codes: $e");
+      return [];
+    }
+  }
+
+  Future<void> saveFestivalApplication({
+     required String name,
+     required String phone,
+     String? promo,
+     required String type,
+     int? finalPrice,
+     int? discount,
+  }) async {
+    await _db.collection('festival_applications').add({
+      'name': name,
+      'phone': phone,
+      'promo': promo,
+      'type': type,
+      'finalPrice': finalPrice,
+      'discount': discount,
+      'createdAt': FieldValue.serverTimestamp(),
+      'status': 'new',
+    });
+  }
+
 }
