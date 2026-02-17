@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart' show kIsWeb, debugPrint;
@@ -1239,7 +1240,7 @@ class FirestoreService {
 
   Stream<List<FestivalGame>> getFestivalMasterGames() {
      final user = _auth.currentUser;
-     if (user == null) return const Stream.empty();
+     if (user == null) return Stream.value([]);
 
      return _db.collection('festival_games')
         .where('masterId', isEqualTo: user.uid)
