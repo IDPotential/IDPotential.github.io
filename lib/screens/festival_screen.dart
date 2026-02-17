@@ -709,13 +709,24 @@ class _FestivalScreenState extends State<FestivalScreen> {
           ),
         ],
       ),
+      bottomNavigationBar: BottomNavigationBar(
+        currentIndex: _currentIndex,
+        onTap: (index) => setState(() => _currentIndex = index),
+        backgroundColor: const Color(0xFF1E293B),
+        selectedItemColor: Colors.amberAccent,
+        unselectedItemColor: Colors.white54,
+        items: const [
+          BottomNavigationBarItem(icon: Icon(Icons.info), label: "Информация"),
+          BottomNavigationBarItem(icon: Icon(Icons.calendar_month), label: "Расписание"),
+        ],
+      ),
     );
   }
 
   Widget _buildSchedule() {
-    return Positioned.fill(
+    return SizedBox.expand(
       child: Container(
-        color: Colors.transparent, // Let background show through
+        color: Colors.black54, // Partially opaque background for readability
         child: Column(
           children: [
              const SizedBox(height: 100), // Space for AppBar
