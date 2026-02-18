@@ -22,7 +22,8 @@ class _GameEditorDialogState extends State<GameEditorDialog> {
   final _locationController = TextEditingController();
   final _maxPlayersController = TextEditingController(text: "10");
   final _durationController = TextEditingController(text: "60");
-  
+  int? _selectedSlotId; // 1, 2, or 3
+
   DateTime _selectedDate = DateTime(2026, 2, 21, 12, 0); // Festival default date
   bool _isLoading = false;
 
@@ -37,6 +38,7 @@ class _GameEditorDialogState extends State<GameEditorDialog> {
       _maxPlayersController.text = widget.game!.maxParticipants.toString();
       _durationController.text = widget.game!.durationMinutes.toString();
       _selectedDate = widget.game!.startTime;
+      _selectedSlotId = widget.game!.slotId;
     } else {
        _prefillMasterName();
     }
@@ -77,6 +79,23 @@ class _GameEditorDialogState extends State<GameEditorDialog> {
                   const SizedBox(width: 16),
                   Expanded(child: _buildTextField(_durationController, "Мин.", isNumber: true)),
                 ],
+              ),
+              const SizedBox(height: 16),
+              DropdownButtonFormField<int>(
+                value: _selectedSlotId,
+                dropdownColor: const Color(0xFF1E293B),
+                style: const TextStyle(color: Colors.white),
+                decoration: const InputDecoration(
+                  labelText: "Слот времени",
+                  labelStyle: TextStyle(color: Colors.white54),
+                  enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.white24)),
+                ),
+                items: const [
+                  DropdownMenuItem(value: 1, child: Text("Слот 1 (12:45 - 14:15)")),
+                  DropdownMenuItem(value: 2, child: Text("Слот 2 (14:45 - 16:15)")),
+                  DropdownMenuItem(value: 3, child: Text("Слот 3 (16:30 - 18:00)")),
+                ],
+                onChanged: (val) => setState(() => _selectedSlotId = val),
               ),
               const SizedBox(height: 16),
               ListTile(
@@ -160,6 +179,7 @@ class _GameEditorDialogState extends State<GameEditorDialog> {
         location: _locationController.text.trim(),
         maxParticipants: int.parse(_maxPlayersController.text),
         participants: widget.game?.participants ?? [],
+        slotId: _selectedSlotId,
       );
 
       if (widget.game == null) {

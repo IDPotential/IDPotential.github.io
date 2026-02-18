@@ -11,6 +11,7 @@ class FestivalGame {
   final String location;
   final int maxParticipants;
   final List<Map<String, dynamic>> participants; // [{userId, userName, registeredAt}]
+  final int? slotId; // 1, 2, or 3
 
   FestivalGame({
     required this.id,
@@ -23,6 +24,7 @@ class FestivalGame {
     required this.location,
     required this.maxParticipants,
     required this.participants,
+    this.slotId,
   });
 
   DateTime get endTime => startTime.add(Duration(minutes: durationMinutes));
@@ -44,6 +46,7 @@ class FestivalGame {
       'location': location,
       'maxParticipants': maxParticipants,
       'participants': participants,
+      'slotId': slotId,
     };
   }
 
@@ -59,6 +62,7 @@ class FestivalGame {
       location: map['location'] ?? '',
       maxParticipants: map['maxParticipants'] ?? 10,
       participants: List<Map<String, dynamic>>.from(map['participants'] ?? []),
+      slotId: map['slotId'],
     );
   }
 }

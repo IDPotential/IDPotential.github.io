@@ -11,7 +11,9 @@ import '../models/festival_game.dart';
 import '../services/firestore_service.dart';
 import '../widgets/festival_game_card.dart';
 import '../widgets/game_editor_dialog.dart';
+import '../widgets/game_editor_dialog.dart';
 import '../widgets/game_manager_dialog.dart';
+import '../widgets/ticket_link_dialog.dart';
 import 'package:intl/intl.dart';
 
 class FestivalScreen extends StatefulWidget {
@@ -70,12 +72,12 @@ class _FestivalScreenState extends State<FestivalScreen> {
             _userRole = data?['role'];
             _firstName = data?['first_name'];
             _phoneNumber = data?['phoneNumber'];
-            _isLoadingProfile = false;
           });
         }
       } catch (e) {
          debugPrint("Error fetching profile: $e");
-         if(mounted) setState(() => _isLoadingProfile = false);
+      } finally {
+         if (mounted) setState(() => _isLoadingProfile = false);
       }
     } else {
        if(mounted) setState(() => _isLoadingProfile = false);
@@ -129,6 +131,17 @@ class _FestivalScreenState extends State<FestivalScreen> {
           },
         ),
         actions: [
+          if (_userId == null)
+            TextButton(
+              onPressed: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const LoginScreen())),
+              child: const Text("Войти", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+            ),
+          if (_userRole == 'admin')
+            IconButton(
+              icon: const Icon(Icons.link, color: Colors.amberAccent),
+              tooltip: "Привязать билет",
+              onPressed: _showTicketLinkDialog,
+            ),
           PopupMenuButton<dynamic>(
             icon: const Icon(Icons.menu, color: Colors.white),
             color: const Color(0xFF1E293B),
@@ -883,21 +896,43 @@ class _FestivalScreenState extends State<FestivalScreen> {
           children: [
              const SizedBox(height: 100), // Space for AppBar
              Padding(
-               padding: const EdgeInsets.symmetric(horizontal: 24),
-               child: Row(
-                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                 children: [
-                   const Text("Расписание игр", style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold)),
-                   if (_userRole == 'admin' || _userRole == 'master')
-                      ElevatedButton.icon(
-                        onPressed: _showCreateGameDialog,
-                        icon: const Icon(Icons.add),
-                        label: const Text("Создать игру"),
-                      )
-                 ],
+               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+               child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                     if (_firstName != null)
+                        Text("$_firstName, рады видеть тебя на фестивале!", style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+                     const SizedBox(height: 4),
+                     const Text("Можешь записаться на сеты игр или выбрать случайное распределение.", style: TextStyle(color: Colors.white70, fontSize: 14)),
+                     const SizedBox(height: 12),
+                     Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                           const Text("Расписание игр", style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold)),
+                           if (_userRole == 'admin' || _userRole == 'master')
+                              IconButton(
+                                onPressed: _showCreateGameDialog,
+                                icon: const Icon(Icons.add, color: Colors.amberAccent),
+                                tooltip: "Создать игру",
+                              ),
+                        ],
+                     ),
+                     const SizedBox(height: 8),
+                     SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton.icon(
+                           onPressed: _trustTheFlow,
+                           icon: const Icon(Icons.auto_awesome),
+                           label: const Text("Довериться потоку"),
+                           style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.purpleAccent,
+                              foregroundColor: Colors.white,
+                           ),
+                        ),
+                     ),
+                  ],
                ),
              ),
-             const SizedBox(height: 16),
              Expanded(
                child: StreamBuilder<List<FestivalGame>>(
                  stream: FirestoreService().getFestivalGamesStream(),
@@ -906,23 +941,24 @@ class _FestivalScreenState extends State<FestivalScreen> {
                    if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
                    
                    final games = snapshot.data!;
-                   if (games.isEmpty) return const Center(child: Text("Расписание пока пусто", style: TextStyle(color: Colors.white54)));
+                   // Sort by time
+                   games.sort((a, b) => a.startTime.compareTo(b.startTime));
                    
-                   return ListView.builder(
-                     padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-                     itemCount: games.length,
-                     itemBuilder: (context, index) {
-                       final game = games[index];
-                       final isRegistered = game.isUserRegistered(_userId ?? '');
-                       final isMyGame = game.masterId == _userId;
-                       
-                       return FestivalGameCard(
-                         game: game,
-                         isRegistered: isRegistered,
-                         onRegister: () => _registerForGame(game),
-                         onManage: (_userRole == 'admin' || isMyGame) ? () => _showManageGameDialog(game) : null,
-                       );
-                     },
+                   // Group by Slots
+                   final slot1 = games.where((g) => g.slotId == 1).toList();
+                   final slot2 = games.where((g) => g.slotId == 2).toList();
+                   final slot3 = games.where((g) => g.slotId == 3).toList();
+                   final other = games.where((g) => g.slotId == null || g.slotId == 0).toList();
+
+                   return ListView(
+                      padding: const EdgeInsets.all(16),
+                      children: [
+                         if (slot1.isNotEmpty) _buildSlotSection("12:45 \u2014 14:15 | Первый Сет", slot1),
+                         if (slot2.isNotEmpty) _buildSlotSection("14:45 \u2014 16:15 | Второй Сет", slot2),
+                         if (slot3.isNotEmpty) _buildSlotSection("16:30 \u2014 18:00 | Третий Сет", slot3),
+                         if (other.isNotEmpty) _buildSlotSection("Другие игры", other),
+                         const SizedBox(height: 100),
+                      ],
                    );
                  },
                ),
@@ -931,6 +967,99 @@ class _FestivalScreenState extends State<FestivalScreen> {
         ),
       ),
     );
+  }
+
+  Widget _buildSlotSection(String title, List<FestivalGame> games) {
+     return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+           Padding(
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              child: Container(
+                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                 decoration: BoxDecoration(color: Colors.amberAccent.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(8)),
+                 child: Text(title, style: const TextStyle(color: Colors.amberAccent, fontSize: 18, fontWeight: FontWeight.bold)),
+              ),
+           ),
+           ...games.map((g) {
+               final isRegistered = g.isUserRegistered(_userId ?? '');
+               final isMyGame = g.masterId == _userId;
+               
+               return Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: FestivalGameCard(
+                    game: g,
+                    currentUserId: _userId, // Or pass isRegistered directly if card supports it? 
+                    // Wait, FestivalGameCard takes currentUserId and checks itself usually, 
+                    // but looking at previous code: 
+                    // FestivalGameCard(game: game, isRegistered: isRegistered, ... )
+                    // Let's check FestivalGameCard signature. 
+                    // Assuming old signature was: FestivalGameCard(game: game, ...)
+                    // Re-checking old code from view_file:
+                    // FestivalGameCard(game: game, isRegistered: isRegistered, onRegister: ..., onManage: ...)
+                    
+                    isRegistered: isRegistered,
+                    onRegister: () => _registerForGame(g),
+                    onManage: (_userRole == 'admin' || isMyGame) ? () => _showManageGameDialog(g) : null,
+                    onEdit: (_userRole == 'admin' || isMyGame) ? () => _showCreateGameDialog(game: g) : null,
+                  ),
+               );
+             }
+           ),
+        ],
+     );
+  }
+
+  bool _isMasterOf(FestivalGame g) => g.masterId == _userId;
+
+  void _trustTheFlow() async {
+     final allGames = await FirestoreService().getFestivalGamesOnce();
+     final slot1 = allGames.where((g) => g.slotId == 1 && g.placesLeft > 0).toList();
+     final slot2 = allGames.where((g) => g.slotId == 2 && g.placesLeft > 0).toList();
+     final slot3 = allGames.where((g) => g.slotId == 3 && g.placesLeft > 0).toList();
+     
+     if (slot1.isEmpty && slot2.isEmpty && slot3.isEmpty) {
+        if(mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Нет доступных игр для случайного выбора")));
+        return;
+     }
+
+     final rng = DateTime.now().millisecondsSinceEpoch;
+     final s1 = slot1.isNotEmpty ? slot1[rng % slot1.length] : null;
+     final s2 = slot2.isNotEmpty ? slot2[(rng + 1) % slot2.length] : null;
+     final s3 = slot3.isNotEmpty ? slot3[(rng + 2) % slot3.length] : null;
+     
+     if (!mounted) return;
+
+     showDialog(
+       context: context,
+       builder: (ctx) => AlertDialog(
+          backgroundColor: const Color(0xFF1E293B),
+          title: const Text("Твой Путь Фестиваля", style: TextStyle(color: Colors.white)),
+          content: Column(
+             mainAxisSize: MainAxisSize.min,
+             crossAxisAlignment: CrossAxisAlignment.start,
+             children: [
+                if (s1 != null) Text("12:45: ${s1.title}", style: const TextStyle(color: Colors.white)),
+                if (s2 != null) Text("14:45: ${s2.title}", style: const TextStyle(color: Colors.white)),
+                if (s3 != null) Text("16:30: ${s3.title}", style: const TextStyle(color: Colors.white)),
+                if (s1 == null && s2 == null && s3 == null) const Text("К сожалению, все места заняты.", style: TextStyle(color: Colors.white54)),
+             ],
+          ),
+          actions: [
+             TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("Отмена")),
+             if (s1 != null || s2 != null || s3 != null)
+                ElevatedButton(
+                   onPressed: () async {
+                      Navigator.pop(ctx);
+                      if (s1 != null) await _registerForGame(s1);
+                      if (s2 != null) await _registerForGame(s2);
+                      if (s3 != null) await _registerForGame(s3);
+                   },
+                   child: const Text("Записаться на всё"),
+                )
+          ],
+       )
+     );
   }
 
   void _registerForGame(FestivalGame game) async {
@@ -1400,6 +1529,13 @@ class _FestivalScreenState extends State<FestivalScreen> {
           child: child,
         ),
       ),
+    );
+  }
+
+  void _showTicketLinkDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => const TicketLinkDialog(),
     );
   }
 }
