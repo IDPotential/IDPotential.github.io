@@ -1105,6 +1105,18 @@ class FirestoreService {
     return snapshot.docs.map((doc) => FestivalGame.fromMap(doc.data(), doc.id)).toList();
   }
 
+  Future<List<Map<String, dynamic>>> getFestivalMasters() async {
+    final snapshot = await _db.collection('users').where('isMaster', isEqualTo: true).get();
+    return snapshot.docs.map((doc) {
+       final data = doc.data();
+       return {
+          'uid': doc.id,
+          'name': "${data['first_name'] ?? ''} ${data['last_name'] ?? ''}".trim(),
+          'photo': data['photo_url']
+       };
+    }).toList();
+  }
+
   Future<void> registerForFestivalGame(String gameId) async {
     final user = _auth.currentUser;
     if (user == null) throw Exception("User not logged in");
