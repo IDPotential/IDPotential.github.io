@@ -1117,6 +1117,19 @@ class FirestoreService {
     }).toList();
   }
 
+
+
+  Future<List<Map<String, dynamic>>> getFestivalActivities() async {
+    final snapshot = await _db.collection('festival_activities').get();
+    return snapshot.docs.map((doc) {
+       final data = doc.data();
+       return {
+         ...data,
+         'id': doc.id,
+       };
+    }).toList();
+  }
+
   Future<void> registerForFestivalGame(String gameId) async {
     final user = _auth.currentUser;
     if (user == null) throw Exception("User not logged in");

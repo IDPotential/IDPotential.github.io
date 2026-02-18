@@ -43,17 +43,22 @@ def find_user(db, email=None, telegram=None):
             pass
 
     if telegram:
-        print(f"Searching by Telegram: {telegram}")
-        # Assuming we store telegram username somewhere? 
-        # If not, we might only have 'telegram_id'. 
-        # If the user input is a username (e.g. @username), we might not find it if we only store IDs.
-        # But let's check a 'username' or 'telegram_username' field if it exists.
-        # For now, let's assume the user might have put it in 'username' or we check 'telegram_id' if implemented.
+        # Normalize: Remove '@' if present
+        clean_tg = telegram.lstrip('@')
+        print(f"Searching by Telegram username: {clean_tg}")
         
-        # Adapting to your schema: 'username' often stores the email prefix or display name.
-        # Use with caution.
-        pass
-        
+        # Try exact match first
+        query = user_ref.where('username', '==', clean_tg).limit(1)
+        results = list(query.stream())
+        if results:
+            return results[0]
+            
+        # Try with @ prefix if not found (in case stored with @)
+        query = user_ref.where('username', '==', f"@{clean_tg}").limit(1)
+        results = list(query.stream())
+        if results:
+            return results[0]
+            
     return None
 
 def update_user_master(db, user_id, is_master=True, role=None):
@@ -83,7 +88,7 @@ def main():
     parser = argparse.ArgumentParser(description="Manage Festival Users (Masters, Tickets)")
     parser.add_argument("--email", help="User's Email")
     parser.add_argument("--uid", help="User's UID (directly)")
-    # parser.add_argument("--telegram", help="User's Telegram Username (e.g. @durov)") # Omitted for now until schema confirmed
+    parser.add_argument("--telegram", help="User's Telegram Username (e.g. @durov)")
     
     parser.add_argument("--make-master", action="store_true", help="Set isMaster=True")
     parser.add_argument("--role", help="Set Role (e.g. 'master', 'admin', 'user')")
@@ -91,8 +96,8 @@ def main():
     
     args = parser.parse_args()
 
-    if not args.email and not args.uid:
-        print("Error: Must provide --email or --uid")
+    if not args.email and not args.uid and not args.telegram:
+        print("Error: Must provide --email, --uid, or --telegram")
         return
 
     try:
@@ -101,13 +106,18 @@ def main():
         user_doc = None
         user_id = args.uid
         
-        if not user_id and args.email:
-            user_doc = find_user(db, email=args.email)
+        if not user_id:
+            if args.email:
+                user_doc = find_user(db, email=args.email)
+            elif args.telegram:
+                user_doc = find_user(db, telegram=args.telegram)
+                
             if user_doc:
                 user_id = user_doc.id
                 print(f"Found user: {user_id} ({user_doc.to_dict().get('first_name', 'No Name')})")
             else:
-                print(f"Error: User with email '{args.email}' not found in Firestore or Auth.")
+                criteria = f"email '{args.email}'" if args.email else f"telegram '{args.telegram}'"
+                print(f"Error: User with {criteria} not found in Firestore.")
                 return
 
         if args.make_master:

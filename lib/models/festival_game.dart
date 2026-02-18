@@ -4,14 +4,19 @@ class FestivalGame {
   final String id;
   final String title;
   final String description;
-  final String masterId;
-  final String masterName;
+  final String masterId; // Primary/Creator (optional if using list)
+  final String masterName; // Display name (primary)
   final DateTime startTime;
   final int durationMinutes;
   final String location;
   final int maxParticipants;
-  final List<Map<String, dynamic>> participants; // [{userId, userName, registeredAt}]
-  final int? slotId; // 1, 2, or 3
+  final List<Map<String, dynamic>> participants; 
+  final int? slotId; 
+  
+  // New Fields
+  final String? activityId; // Link to festival_activities catalog
+  final List<String> masterIds; // List of UIDs who can manage this game
+  final List<String> masterTickets; // List of Tickets (mXXXXX) that have access
 
   FestivalGame({
     required this.id,
@@ -25,14 +30,23 @@ class FestivalGame {
     required this.maxParticipants,
     required this.participants,
     this.slotId,
+    this.activityId,
+    this.masterIds = const [],
+    this.masterTickets = const [],
   });
 
   DateTime get endTime => startTime.add(Duration(minutes: durationMinutes));
-
   int get placesLeft => maxParticipants - participants.length;
 
   bool isUserRegistered(String userId) {
     return participants.any((p) => p['userId'] == userId);
+  }
+  
+  // Check if a user has master access
+  bool hasMasterAccess(String? uid, String? ticket) {
+     if (uid != null && (uid == masterId || masterIds.contains(uid))) return true;
+     if (ticket != null && masterTickets.contains(ticket)) return true;
+     return false;
   }
 
   Map<String, dynamic> toMap() {
@@ -47,6 +61,9 @@ class FestivalGame {
       'maxParticipants': maxParticipants,
       'participants': participants,
       'slotId': slotId,
+      'activityId': activityId,
+      'masterIds': masterIds,
+      'masterTickets': masterTickets,
     };
   }
 
@@ -63,6 +80,9 @@ class FestivalGame {
       maxParticipants: map['maxParticipants'] ?? 10,
       participants: List<Map<String, dynamic>>.from(map['participants'] ?? []),
       slotId: map['slotId'],
+      activityId: map['activityId'],
+      masterIds: List<String>.from(map['masterIds'] ?? []),
+      masterTickets: List<String>.from(map['masterTickets'] ?? []),
     );
   }
 }

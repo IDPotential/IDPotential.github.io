@@ -11,11 +11,11 @@ import '../models/festival_game.dart';
 import '../services/firestore_service.dart';
 import '../widgets/festival_game_card.dart';
 import '../widgets/game_editor_dialog.dart';
-import '../widgets/game_editor_dialog.dart';
+
 import '../widgets/game_manager_dialog.dart';
 import '../widgets/ticket_link_dialog.dart';
 import '../widgets/profile_settings_dialog.dart';
-import 'package:intl/intl.dart';
+
 
 class FestivalScreen extends StatefulWidget {
   final String? initialTab;
@@ -36,9 +36,10 @@ class _FestivalScreenState extends State<FestivalScreen> {
   int _currentIndex = 0;
   String? _userRole;
   String? _userId;
-  String? _firstName;
-  String? _phoneNumber;
-  bool _isLoadingProfile = true;
+   String? _firstName;
+   String? _phoneNumber;
+   String? _ticketNumber;
+   bool _isLoadingProfile = true;
 
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
@@ -73,6 +74,7 @@ class _FestivalScreenState extends State<FestivalScreen> {
             _userRole = data?['role'];
             _firstName = data?['first_name'];
             _phoneNumber = data?['phoneNumber'];
+            _ticketNumber = data?['ticket'];
           });
         }
       } catch (e) {
@@ -994,7 +996,7 @@ class _FestivalScreenState extends State<FestivalScreen> {
            ),
            ...games.map((g) {
                final isRegistered = g.isUserRegistered(_userId ?? '');
-               final isMyGame = g.masterId == _userId;
+               final isMyGame = g.hasMasterAccess(_userId, _ticketNumber);
                
                return Padding(
                   padding: const EdgeInsets.only(bottom: 12),
@@ -1011,7 +1013,7 @@ class _FestivalScreenState extends State<FestivalScreen> {
      );
   }
 
-  bool _isMasterOf(FestivalGame g) => g.masterId == _userId;
+
 
   void _trustTheFlow() async {
      final allGames = await FirestoreService().getFestivalGamesOnce();

@@ -290,26 +290,7 @@ class AuthService {
     debugPrint("History Migrated: ${histSnapshot.docs.length}");
   }
 
-  // Link Email & Password to existing account
-  Future<void> linkEmailAndPassword(String email, String password) async {
-      final user = _auth.currentUser;
-      if (user == null) throw Exception("No user");
-      
-      try {
-         final cred = EmailAuthProvider.credential(email: email, password: password);
-         await user.linkWithCredential(cred);
-         
-         // Update Firestore
-         await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
-            'email': email,
-            'username': email.split('@')[0], // Set default username if missing
-         }, SetOptions(merge: true));
-         
-      } catch (e) {
-         debugPrint("Link Email Error: $e");
-         rethrow;
-      }
-  }
+
 
   // Sign out
   Future<void> signOut() async {

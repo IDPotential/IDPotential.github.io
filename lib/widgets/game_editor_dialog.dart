@@ -22,19 +22,24 @@ class _GameEditorDialogState extends State<GameEditorDialog> {
   final _locationController = TextEditingController();
   final _maxPlayersController = TextEditingController(text: "10");
   final _durationController = TextEditingController(text: "60");
-  int? _selectedSlotId; // 1, 2, or 3
+  int? _selectedSlotId; 
   
   List<Map<String, dynamic>> _masters = [];
   String? _selectedMasterUid;
   bool _loadingMasters = true;
 
-  DateTime _selectedDate = DateTime(2026, 2, 21, 12, 0); // Festival default date
+  // Activity Catalog
+  List<Map<String, dynamic>> _activities = [];
+  String? _selectedActivityId;
+  List<String> _activityMasterTickets = [];
+
+  DateTime _selectedDate = DateTime(2026, 2, 21, 12, 0); 
   bool _isLoading = false;
 
   @override
   void initState() {
     super.initState();
-    _loadMasters();
+    _loadData();
     if (widget.game != null) {
       _titleController.text = widget.game!.title;
       _descController.text = widget.game!.description;
@@ -45,33 +50,66 @@ class _GameEditorDialogState extends State<GameEditorDialog> {
       _selectedDate = widget.game!.startTime;
       _selectedSlotId = widget.game!.slotId;
       _selectedMasterUid = widget.game!.masterId;
+      _selectedActivityId = widget.game!.activityId;
+      _activityMasterTickets = widget.game!.masterTickets;
     }
   }
 
-  Future<void> _loadMasters() async {
+  Future<void> _loadData() async {
      try {
-        final masters = await FirestoreService().getFestivalMasters();
+        final mastersFuture = FirestoreService().getFestivalMasters();
+        final activitiesFuture = FirestoreService().getFestivalActivities();
+        
+        final results = await Future.wait([mastersFuture, activitiesFuture]);
+        
         if (mounted) {
            setState(() {
-              _masters = masters;
+              _masters = results[0];
+              _activities = results[1];
               _loadingMasters = false;
            });
-           
-           // If creating new game, try to auto-select current user if they are a master
+
            if (widget.game == null) {
-              final user = FirebaseAuth.instance.currentUser;
-              if (user != null) {
-                 final me = masters.firstWhere((m) => m['uid'] == user.uid, orElse: () => {});
-                 if (me.isNotEmpty) {
-                    _selectedMasterUid = me['uid'];
-                    _masterNameController.text = me['name'];
-                 }
-              }
+              _prefillMaster();
            }
         }
      } catch (e) {
-        print("Error loading masters: $e");
+        debugPrint("Error loading data: $e");
         if (mounted) setState(() => _loadingMasters = false);
+     }
+  }
+
+  void _prefillMaster() {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user != null) {
+         final me = _masters.firstWhere((m) => m['uid'] == user.uid, orElse: () => {});
+         if (me.isNotEmpty) {
+            _selectedMasterUid = me['uid'];
+            _masterNameController.text = me['name'];
+         }
+      }
+  }
+
+  void _onActivitySelected(String? activityId) {
+     if (activityId == null) return;
+     final activity = _activities.firstWhere((a) => a['id'] == activityId, orElse: () => {});
+     if (activity.isNotEmpty) {
+        setState(() {
+           _selectedActivityId = activityId;
+           _titleController.text = activity['title'] ?? '';
+           // Only overwrite description if empty or user wants to (here we just overwrite for simplicity in creation)
+           if (_descController.text.isEmpty) {
+               _descController.text = activity['description'] ?? '';
+           }
+           
+           // If activity has masters, try to set the name
+           final masters = List<String>.from(activity['masters'] ?? []);
+           if (masters.isNotEmpty) {
+              _masterNameController.text = masters.join(", ");
+           }
+           
+           _activityMasterTickets = List<String>.from(activity['tickets'] ?? []);
+        });
      }
   }
 
@@ -86,10 +124,40 @@ class _GameEditorDialogState extends State<GameEditorDialog> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
+              // 1. Activity Selector
+              if (_activities.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 16),
+                    child: DropdownButtonFormField<String>(
+                      value: _activities.any((a) => a['id'] == _selectedActivityId) ? _selectedActivityId : null,
+                      dropdownColor: const Color(0xFF1E293B),
+                      style: const TextStyle(color: Colors.white),
+                      decoration: const InputDecoration(
+                        labelText: "Выбрать из каталога (Автозаполнение)",
+                        labelStyle: TextStyle(color: Colors.amberAccent),
+                        enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: Colors.amberAccent)),
+                        focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: Colors.amber, width: 2)),
+                      ),
+                      items: [
+                         const DropdownMenuItem<String>(value: null, child: Text("Вручную / Без шаблона", style: TextStyle(color: Colors.white54))),
+                         ..._activities.map((a) {
+                            // Truncate title if too long
+                            String title = a['title'] ?? 'No Title';
+                            if (title.length > 30) title = "${title.substring(0, 30)}...";
+                            return DropdownMenuItem<String>(
+                              value: a['id'],
+                              child: Text(title),
+                            );
+                         }),
+                      ],
+                      onChanged: _onActivitySelected,
+                    ),
+                  ),
+
               _buildTextField(_titleController, "Название игры"),
               _buildTextField(_descController, "Описание", maxLines: 3),
               
-              // Master Selection
+              // 2. Master Selection (Admin/User list)
               if (_loadingMasters)
                  const Padding(padding: EdgeInsets.all(8.0), child: CircularProgressIndicator())
               else if (_masters.isNotEmpty)
@@ -100,28 +168,43 @@ class _GameEditorDialogState extends State<GameEditorDialog> {
                       dropdownColor: const Color(0xFF1E293B),
                       style: const TextStyle(color: Colors.white),
                       decoration: const InputDecoration(
-                         labelText: "Мастер",
+                         labelText: "Мастер (пользователь)",
                          labelStyle: TextStyle(color: Colors.white54),
                          enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.white24)),
+                         helperText: "Выберите зарегистрированного мастера (для доступа)",
+                         helperStyle: TextStyle(color: Colors.white30),
                       ),
-                      items: _masters.map((m) {
-                         return DropdownMenuItem<String>(
-                            value: m['uid'],
-                            child: Text(m['name']),
-                         );
-                      }).toList(),
+                      items: [
+                         const DropdownMenuItem<String>(value: null, child: Text("Не выбран / Внешний мастер")),
+                         ..._masters.map((m) {
+                           return DropdownMenuItem<String>(
+                              value: m['uid'],
+                              child: Text(m['name']),
+                           );
+                        }),
+                      ],
                       onChanged: (val) {
                          setState(() {
                             _selectedMasterUid = val;
-                            final selected = _masters.firstWhere((m) => m['uid'] == val);
-                            _masterNameController.text = selected['name'];
+                            if (val != null) {
+                               final selected = _masters.firstWhere((m) => m['uid'] == val);
+                               // Only overwrite name if not set by activity or user
+                               if (_masterNameController.text.isEmpty) {
+                                  _masterNameController.text = selected['name'];
+                               }
+                            }
                          });
                       },
-                      validator: (val) => val == null ? "Выберите мастера" : null,
                    ),
-                 )
-              else
-                 _buildTextField(_masterNameController, "Имя мастера"), // Fallback
+                 ),
+
+              _buildTextField(_masterNameController, "Имя мастера (отображаемое)"),
+              
+              if (_activityMasterTickets.isNotEmpty)
+                  Padding(
+                     padding: const EdgeInsets.only(bottom: 12),
+                     child: Text("Привязанные билеты: ${_activityMasterTickets.join(", ")}", style: const TextStyle(color: Colors.greenAccent, fontSize: 12)),
+                  ),
 
               _buildTextField(_locationController, "Локация (стол/зал)"),
               Row(
@@ -231,6 +314,8 @@ class _GameEditorDialogState extends State<GameEditorDialog> {
         maxParticipants: int.parse(_maxPlayersController.text),
         participants: widget.game?.participants ?? [],
         slotId: _selectedSlotId,
+        activityId: _selectedActivityId,
+        masterTickets: _activityMasterTickets,
       );
 
       if (widget.game == null) {
