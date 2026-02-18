@@ -5,7 +5,8 @@ import '../services/auth_service.dart';
 import '../app.dart';
 
 class LoginScreen extends StatefulWidget {
-  const LoginScreen({super.key});
+  final bool isTicketMode;
+  const LoginScreen({super.key, this.isTicketMode = false});
 
   @override
   State<LoginScreen> createState() => _LoginScreenState();
@@ -18,13 +19,15 @@ class _LoginScreenState extends State<LoginScreen> {
   
   bool _isLoading = false;
   bool _isRegistering = false; 
-  bool _isTokenLogin = false; 
+  bool _isTokenLogin = false;
+  late bool _isTicketMode; 
   String? _errorMessage;
   String _appVersion = '';
 
   @override
   void initState() {
     super.initState();
+    _isTicketMode = widget.isTicketMode;
     _loadVersion();
   }
 
@@ -62,12 +65,17 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<void> _submit() async {
-    final email = _emailController.text.trim();
+    var email = _emailController.text.trim();
     final password = _passwordController.text.trim();
     
     if (email.isEmpty || password.isEmpty) {
-        setState(() => _errorMessage = "Введите email и пароль");
+        setState(() => _errorMessage = "Введите логин и пароль");
         return;
+    }
+
+    // Auto-append domain for ticket login if valid format
+    if (_isTicketMode && !email.contains('@')) {
+       email = "$email@idpotential.festival";
     }
 
     setState(() {
@@ -216,13 +224,14 @@ class _LoginScreenState extends State<LoginScreen> {
                        const Icon(Icons.security, size: 64, color: Colors.blueAccent),
                        const SizedBox(height: 24),
                        Text(
-                         _isTokenLogin ? "Вход по токену" : (_isRegistering ? "Регистрация" : "Вход"),
+                         _isTokenLogin ? "Вход по токену" : (_isTicketMode ? "Вход по билету" : (_isRegistering ? "Регистрация" : "Вход")),
                          style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.white),
                        ),
                        const SizedBox(height: 24),
                        
                        // Toggle Auth Mode (Email vs Token)
-                       if (!_isRegistering && !_isTokenLogin)
+                       // Hide toggles if in Ticket Mode to keep it simple
+                       if (!_isRegistering && !_isTokenLogin && !_isTicketMode)
                           Padding(
                             padding: const EdgeInsets.only(bottom: 20.0),
                             child: Row(
@@ -288,11 +297,11 @@ class _LoginScreenState extends State<LoginScreen> {
                              controller: _emailController,
                              style: const TextStyle(color: Colors.white),
                              decoration: InputDecoration(
-                               labelText: "Email",
+                               labelText: _isTicketMode ? "Логин билета" : "Email",
                                labelStyle: const TextStyle(color: Colors.white70),
                                enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: Colors.white.withOpacity(0.3))),
                                focusedBorder: const OutlineInputBorder(borderSide: BorderSide(color: Colors.blueAccent)),
-                               prefixIcon: const Icon(Icons.email, color: Colors.white70),
+                               prefixIcon: Icon(_isTicketMode ? Icons.confirmation_number : Icons.email, color: Colors.white70),
                              ),
                           ),
                           const SizedBox(height: 16),

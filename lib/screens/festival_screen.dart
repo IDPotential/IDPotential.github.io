@@ -133,7 +133,7 @@ class _FestivalScreenState extends State<FestivalScreen> {
         actions: [
           if (_userId == null)
             TextButton(
-              onPressed: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const LoginScreen())),
+              onPressed: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const LoginScreen(isTicketMode: true))),
               child: const Text("Войти", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
             ),
           if (_userRole == 'admin')
