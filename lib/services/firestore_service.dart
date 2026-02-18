@@ -1,9 +1,7 @@
 import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter/foundation.dart' show kIsWeb, debugPrint;
-import 'package:universal_io/io.dart';
-import 'package:universal_html/html.dart' as html;
+import 'package:flutter/foundation.dart' show debugPrint;
 import '../models/calculation.dart';
 import '../models/promo_code.dart';
 import '../models/festival_game.dart';
@@ -929,74 +927,7 @@ class FirestoreService {
       });
   }
 
-  void _notifyAdminOfJoinRequest({
-      required String name, 
-      String? tg, 
-      String? email, 
-      required String gameId, 
-      required String gameTitle, 
-      required String gameDate
-  }) async {
-    // Use ConfigService if token is sensitive, or load dynamically. 
-    // Ideally: ConfigService().telegramToken
-    final token = 'TOKEN_REMOVED_CHECK_CONFIG'; // TODO: Add to Remote Config
-    final adminId = '196473271';
-    
-    // 2. Fallback for Telegram (if missing)
-    String telegramHandle = tg ?? "";
-    String userEmail = email ?? "";
-    
-    if (telegramHandle.isEmpty || userEmail.isEmpty) {
-       // Try fetching from User Profile if missing
-       try {
-          final user = _auth.currentUser;
-          if (user != null) {
-              if (userEmail.isEmpty) userEmail = user.email ?? "";
-              
-              if (telegramHandle.isEmpty) {
-                final userDoc = await _db.collection('users').doc(user.uid).get();
-                final data = userDoc.data();
-                if (data != null) {
-                    telegramHandle = data['telegram'] ?? data['username'] ?? "";
-                    if (telegramHandle.isNotEmpty && !telegramHandle.startsWith('@')) {
-                        telegramHandle = '@$telegramHandle';
-                    }
-                }
-              }
-          }
-       } catch (_) {}
-    }
-    
-    final now = DateTime.now();
-    // Timezone adjustment +3 for Moscow if assuming server is UTC, or just local
-    // Using simple format
-    final timeStr = "${now.day}.${now.month} ${now.hour}:${now.minute.toString().padLeft(2, '0')}";
 
-    final text = '🔔 Новая заявка на игру!\n\n'
-           '🎮 Игра: $gameTitle\n'
-           '📅 Дата игры: $gameDate\n'
-           '👤 Имя: $name\n'
-           '✈️ Telegram: ${telegramHandle.isEmpty ? "не указан" : telegramHandle}\n'
-           '📧 Email: ${userEmail.isEmpty ? "не указан" : userEmail}\n'
-           '⏰ Время заявки: $timeStr\n\n'
-           'Проверьте панель управления в приложении.';
-    
-    try {
-      final url = 'https://api.telegram.org/bot$token/sendMessage?chat_id=$adminId&text=${Uri.encodeComponent(text)}';
-      
-      if (kIsWeb) {
-         // Use global fetch on web
-         html.window.fetch(url);
-      } else {
-         final client = HttpClient();
-         final request = await client.getUrl(Uri.parse(url));
-         final response = await request.close();
-         response.drain(); 
-      }
-    } catch (e) {
-       debugPrint("Telegram notification failed: $e");
-    }
-  }
   
 
 
@@ -1167,6 +1098,11 @@ class FirestoreService {
       .map((snapshot) => snapshot.docs
         .map((doc) => FestivalGame.fromMap(doc.data(), doc.id))
         .toList());
+  }
+
+  Future<List<FestivalGame>> getFestivalGamesOnce() async {
+    final snapshot = await _db.collection('festival_games').orderBy('startTime').get();
+    return snapshot.docs.map((doc) => FestivalGame.fromMap(doc.data(), doc.id)).toList();
   }
 
   Future<void> registerForFestivalGame(String gameId) async {

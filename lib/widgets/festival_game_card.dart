@@ -20,7 +20,7 @@ class FestivalGameCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final dateFormat = DateFormat('HH:mm');
     final timeStr = "${dateFormat.format(game.startTime)} - ${dateFormat.format(game.endTime)}";
-    final isFull = game.placesLeft <= 0;
+
 
     return Container(
       margin: const EdgeInsets.only(bottom: 16),

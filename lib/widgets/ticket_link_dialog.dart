@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import '../services/firestore_service.dart';
 
 class TicketLinkDialog extends StatefulWidget {
   const TicketLinkDialog({super.key});
@@ -84,7 +83,7 @@ class _TicketLinkDialogState extends State<TicketLinkDialog> {
       final db = FirebaseFirestore.instance;
       
       // 1. Find User by Email
-      final userQuery = await db.collection('users').where('email', '==', email).limit(1).get();
+      final userQuery = await db.collection('users').where('email', isEqualTo: email).limit(1).get();
       if (userQuery.docs.isEmpty) {
         throw Exception("Пользователь с email $email не найден");
       }

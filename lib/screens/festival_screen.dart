@@ -989,19 +989,9 @@ class _FestivalScreenState extends State<FestivalScreen> {
                   padding: const EdgeInsets.only(bottom: 12),
                   child: FestivalGameCard(
                     game: g,
-                    currentUserId: _userId, // Or pass isRegistered directly if card supports it? 
-                    // Wait, FestivalGameCard takes currentUserId and checks itself usually, 
-                    // but looking at previous code: 
-                    // FestivalGameCard(game: game, isRegistered: isRegistered, ... )
-                    // Let's check FestivalGameCard signature. 
-                    // Assuming old signature was: FestivalGameCard(game: game, ...)
-                    // Re-checking old code from view_file:
-                    // FestivalGameCard(game: game, isRegistered: isRegistered, onRegister: ..., onManage: ...)
-                    
                     isRegistered: isRegistered,
                     onRegister: () => _registerForGame(g),
                     onManage: (_userRole == 'admin' || isMyGame) ? () => _showManageGameDialog(g) : null,
-                    onEdit: (_userRole == 'admin' || isMyGame) ? () => _showCreateGameDialog(game: g) : null,
                   ),
                );
              }
@@ -1062,7 +1052,7 @@ class _FestivalScreenState extends State<FestivalScreen> {
      );
   }
 
-  void _registerForGame(FestivalGame game) async {
+  Future<void> _registerForGame(FestivalGame game) async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Сначала войдите в систему")));
