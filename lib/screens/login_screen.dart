@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import '../services/auth_service.dart';
 import '../app.dart';
+import 'festival_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   final bool isTicketMode;
@@ -94,9 +95,15 @@ class _LoginScreenState extends State<LoginScreen> {
       
       // Navigate
       if (mounted) {
-         Navigator.of(context).pushReplacement(
-            MaterialPageRoute(builder: (context) => const AppHome()),
-         );
+         if (_isTicketMode) {
+            Navigator.of(context).pushReplacement(
+              MaterialPageRoute(builder: (context) => const FestivalScreen(initialTab: 'schedule')),
+            );
+         } else {
+            Navigator.of(context).pushReplacement(
+               MaterialPageRoute(builder: (context) => const AppHome()),
+            );
+         }
       }
 
     } catch (e) {
