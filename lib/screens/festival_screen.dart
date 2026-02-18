@@ -725,6 +725,29 @@ class _FestivalScreenState extends State<FestivalScreen> {
   }
 
   Widget _buildSchedule() {
+    if (_userRole != 'admin') {
+      return SizedBox.expand(
+        child: Container(
+          color: Colors.black54,
+          child: const Center(
+            child: Padding(
+              padding: EdgeInsets.all(24.0),
+              child: Text(
+                "Расписание игр формируется.\n19 февраля в 18 часов откроется предзапись на игры.",
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w500,
+                  height: 1.5,
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
     return SizedBox.expand(
       child: Container(
         color: Colors.black54, // Partially opaque background for readability

@@ -154,5 +154,16 @@ service cloud.firestore {
       allow create: if true; // Allow public applications (userId can be null)
       allow read, update: if isAdmin();
     }
+    // Check if user is a Master
+    function isMaster() {
+       return isAuthenticated() && 
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'master';
+    }
+
+    // 6. Festival Games
+    match /festival_games/{gameId} {
+       allow read: if true; // Public read for schedule
+       allow write: if isAdmin() || isMaster();
+    }
   }
 }
