@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/festival_game.dart';
 import '../services/firestore_service.dart';
 import 'package:intl/intl.dart';
+import '../data/festival_master_data.dart';
 
 class GameEditorDialog extends StatefulWidget {
   final FestivalGame? game; // If null, create new
@@ -28,10 +29,13 @@ class _GameEditorDialogState extends State<GameEditorDialog> {
   String? _selectedMasterUid;
   bool _loadingMasters = true;
 
-  // Activity Catalog
+  // Activity Catalog (Old)
   List<Map<String, dynamic>> _activities = [];
   String? _selectedActivityId;
   List<String> _activityMasterTickets = [];
+
+  // Excel Data Selection
+  Map<String, String>? _selectedExcelMaster;
 
   DateTime _selectedDate = DateTime(2026, 2, 21, 12, 0); 
   bool _isLoading = false;
@@ -113,6 +117,77 @@ class _GameEditorDialogState extends State<GameEditorDialog> {
      }
   }
 
+  Future<void> _onExcelMasterSelected(Map<String, String>? selection) async {
+    if (selection == null) return;
+    
+    setState(() {
+      _selectedExcelMaster = selection;
+      _titleController.text = selection['gameTitle']!;
+      // _masterNameController.text = selection['masterName']!; // Don't set yet, wait for user lookup
+      _activityMasterTickets = [selection['ticketLogin']!];
+      _isLoading = true; // Show loading while fetching user
+    });
+
+    try {
+      final ticketLogin = selection['ticketLogin']!;
+      
+      // 1. Try to find user linked to this ticket
+      final usersRef = FirebaseFirestore.instance.collection('users');
+      
+      // Query 1: Real user linked to ticket
+      final ticketQuery = await usersRef.where('ticket', isEqualTo: ticketLogin).limit(1).get();
+      
+      String? foundUid;
+      String? foundName;
+
+      if (ticketQuery.docs.isNotEmpty) {
+        final userDoc = ticketQuery.docs.first;
+        foundUid = userDoc.id;
+        final data = userDoc.data();
+        foundName = "${data['first_name'] ?? ''} ${data['last_name'] ?? ''}".trim();
+        if (foundName.isEmpty) foundName = data['username'] ?? 'User';
+        debugPrint("Found Real User for ticket $ticketLogin: $foundName ($foundUid)");
+      } else {
+        // Query 2: Technical user (email fallback)
+        final techEmail = "$ticketLogin@idpotential.festival";
+        final emailQuery = await usersRef.where('email', isEqualTo: techEmail).limit(1).get();
+        if (emailQuery.docs.isNotEmpty) {
+           final userDoc = emailQuery.docs.first;
+           foundUid = userDoc.id;
+           debugPrint("Found Technical User for ticket $ticketLogin: $foundUid");
+        }
+      }
+
+      if (mounted) {
+        setState(() {
+          if (foundUid != null) {
+             _selectedMasterUid = foundUid;
+             // If real user found, use their name. Otherwise use Excel name.
+             if (ticketQuery.docs.isNotEmpty && foundName != null && foundName.isNotEmpty) {
+                _masterNameController.text = foundName;
+             } else {
+                _masterNameController.text = selection['masterName']!;
+             }
+          } else {
+             // No user found at all? Just set name from Excel
+             _selectedMasterUid = null;
+             _masterNameController.text = selection['masterName']!;
+          }
+        });
+      }
+
+    } catch (e) {
+      debugPrint("Error finding user for ticket: $e");
+      if (mounted) {
+         setState(() {
+            _masterNameController.text = selection['masterName']!;
+         });
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
@@ -124,6 +199,32 @@ class _GameEditorDialogState extends State<GameEditorDialog> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
+              // 0. Excel Selector (New)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 16),
+                child: DropdownButtonFormField<Map<String, String>>(
+                  decoration: const InputDecoration(
+                    labelText: "Выбрать из списка (Excel)",
+                    labelStyle: TextStyle(color: Colors.amberAccent),
+                    enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: Colors.amberAccent)),
+                    focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: Colors.amber, width: 2)),
+                  ),
+                  dropdownColor: const Color(0xFF1E293B),
+                  style: const TextStyle(color: Colors.white),
+                  items: [
+                    const DropdownMenuItem(value: null, child: Text("Вручную", style: TextStyle(color: Colors.white54))),
+                    ...festivalMasterData.map((e) => DropdownMenuItem(
+                      value: e,
+                      child: SizedBox(
+                        width: 200,
+                        child: Text("${e['masterName']} - ${e['gameTitle']}", overflow: TextOverflow.ellipsis),
+                      ),
+                    ))
+                  ],
+                  onChanged: _onExcelMasterSelected,
+                ),
+              ),
+
               // 1. Activity Selector
               if (_activities.isNotEmpty)
                   Padding(
@@ -133,9 +234,9 @@ class _GameEditorDialogState extends State<GameEditorDialog> {
                       dropdownColor: const Color(0xFF1E293B),
                       style: const TextStyle(color: Colors.white),
                       decoration: const InputDecoration(
-                        labelText: "Выбрать из каталога (Автозаполнение)",
-                        labelStyle: TextStyle(color: Colors.amberAccent),
-                        enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: Colors.amberAccent)),
+                        labelText: "Выбрать из каталога (Старый)",
+                        labelStyle: TextStyle(color: Colors.white54),
+                        enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: Colors.white24)),
                         focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: Colors.amber, width: 2)),
                       ),
                       items: [
