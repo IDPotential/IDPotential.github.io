@@ -14,6 +14,7 @@ import '../widgets/game_editor_dialog.dart';
 import '../widgets/game_editor_dialog.dart';
 import '../widgets/game_manager_dialog.dart';
 import '../widgets/ticket_link_dialog.dart';
+import '../widgets/profile_settings_dialog.dart';
 import 'package:intl/intl.dart';
 
 class FestivalScreen extends StatefulWidget {
@@ -142,6 +143,11 @@ class _FestivalScreenState extends State<FestivalScreen> {
               tooltip: "Привязать билет",
               onPressed: _showTicketLinkDialog,
             ),
+          IconButton(
+             icon: const Icon(Icons.account_circle, color: Colors.white),
+             tooltip: "Профиль",
+             onPressed: _showProfileSettings,
+          ),
           PopupMenuButton<dynamic>(
             icon: const Icon(Icons.menu, color: Colors.white),
             color: const Color(0xFF1E293B),
@@ -1531,6 +1537,13 @@ class _FestivalScreenState extends State<FestivalScreen> {
     showDialog(
       context: context,
       builder: (context) => const TicketLinkDialog(),
+    );
+  }
+
+  void _showProfileSettings() {
+    showDialog(
+      context: context,
+      builder: (context) => const ProfileSettingsDialog(),
     );
   }
 }

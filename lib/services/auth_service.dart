@@ -196,6 +196,26 @@ class AuthService {
     }
   }
 
+  Future<void> linkEmailAndPassword(String email, String password) async {
+    final user = _auth.currentUser;
+    if (user == null) throw Exception("No user logged in");
+
+    try {
+      AuthCredential credential = EmailAuthProvider.credential(email: email, password: password);
+      await user.linkWithCredential(credential);
+      
+      // Update Firestore
+      await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
+        'email': email,
+        'email_linked_at': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
+      
+    } catch (e) {
+      debugPrint("Link Email Error: $e");
+      rethrow;
+    }
+  }
+
   Future<void> _migrateTelegramData(FirebaseFirestore telegramDb, String sourceUid, String targetUid) async {
     final mainDb = FirebaseFirestore.instance;
     debugPrint("Starting Migration: $sourceUid -> $targetUid");
