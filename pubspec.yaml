@@ -1,7 +1,7 @@
 name: id_diagnostic_app
 description: Диагностика потенциала личности
 publish_to: 'none'
-version: 1.54.0+11
+version: 1.54.0+15
 
 environment:
   sdk: '>=3.0.0 <4.0.0'

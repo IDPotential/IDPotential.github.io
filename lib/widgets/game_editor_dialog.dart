@@ -330,7 +330,15 @@ class _GameEditorDialogState extends State<GameEditorDialog> {
                   DropdownMenuItem(value: 2, child: Text("Слот 2 (14:45 - 16:15)")),
                   DropdownMenuItem(value: 3, child: Text("Слот 3 (16:30 - 18:00)")),
                 ],
-                onChanged: (val) => setState(() => _selectedSlotId = val),
+                onChanged: (val) {
+                   setState(() {
+                      _selectedSlotId = val;
+                      // Auto-set time
+                      if (val == 1) _selectedDate = DateTime(2026, 2, 21, 12, 45);
+                      if (val == 2) _selectedDate = DateTime(2026, 2, 21, 14, 45);
+                      if (val == 3) _selectedDate = DateTime(2026, 2, 21, 16, 30);
+                   });
+                },
               ),
               const SizedBox(height: 16),
               ListTile(
@@ -395,7 +403,10 @@ class _GameEditorDialogState extends State<GameEditorDialog> {
   }
 
   Future<void> _saveGame() async {
-    if (!_formKey.currentState!.validate()) return;
+    if (!_formKey.currentState!.validate()) {
+       debugPrint("Form validation failed");
+       return;
+    }
     
     setState(() => _isLoading = true);
     
@@ -419,15 +430,23 @@ class _GameEditorDialogState extends State<GameEditorDialog> {
         masterTickets: _activityMasterTickets,
       );
 
-      if (widget.game == null) {
-          await FirestoreService().createFestivalGame(game);
-      } else {
-          await FirestoreService().updateFestivalGame(game);
-      }
+      // Add timeout to prevent hanging on Web Iframe
+      await Future.any([
+        widget.game == null 
+            ? FirestoreService().createFestivalGame(game) 
+            : FirestoreService().updateFestivalGame(game),
+        Future.delayed(const Duration(seconds: 10), () => throw Exception("Timeout saving game. Check connection.")),
+      ]);
       
       if (mounted) Navigator.pop(context);
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Ошибка: $e")));
+      debugPrint("Save Game Error: $e");
+      if (mounted) {
+         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text("Ошибка: $e"),
+            backgroundColor: Colors.red,
+         ));
+      }
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }

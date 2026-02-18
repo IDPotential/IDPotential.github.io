@@ -50,8 +50,10 @@ class _MyAppState extends State<MyApp> {
   @override
   void initState() {
     super.initState();
-    _initFuture = _initApp();
-    _initDeepLinks();
+    super.initState();
+    _initFuture = _initApp().then((_) {
+      _initDeepLinks(); // Chain it to run ONLY after Firebase is ready
+    });
   }
   
   @override
@@ -136,25 +138,36 @@ class _MyAppState extends State<MyApp> {
   Future<void> _initApp() async {
     try {
       // 1. Firebase
-      _loadingStatus.value = "Подключение к базе данных...";
+      _loadingStatus.value = "Подключение к облаку...";
       await Firebase.initializeApp(
         options: DefaultFirebaseOptions.currentPlatform,
-      );
-      // Set localization for Auth (Emails, SMS)
+      ).timeout(const Duration(seconds: 10), onTimeout: () {
+         throw Exception("Firebase Init Timeout");
+      });
+      
       FirebaseAuth.instance.setLanguageCode('ru');
       
       // 2. Config
-      _loadingStatus.value = "Загрузка конфигурации...";
-      await ConfigService().initialize();
+      _loadingStatus.value = "Загрузка настроек...";
+      await ConfigService().initialize().timeout(const Duration(seconds: 5), onTimeout: () {
+         debugPrint("Config Init Timeout - skipping");
+         return; // Skip config if fails
+      });
 
       // 3. Database
-      _loadingStatus.value = "Открытие базы данных...";
-      await DatabaseService().init();
+      _loadingStatus.value = "Запуск локальной базы...";
+      try {
+        await DatabaseService().init().timeout(const Duration(seconds: 5));
+      } catch (e) {
+         debugPrint("Database Init Failed (Storage Restricted?): $e");
+         _loadingStatus.value = "Ошибка базы данных (Storage blocked)";
+         // Proceed without local DB if possible, or rethrow if critical
+         // reusing Hive might crash app if not init, but we want to see UI.
+      }
       
     } catch (e, stack) {
       debugPrint("Initialization Failed: $e");
       debugPrint(stack.toString());
-      // Re-throw to show error screen if crucial
       rethrow; 
     }
   }

@@ -15,6 +15,8 @@ import '../widgets/game_editor_dialog.dart';
 import '../widgets/game_manager_dialog.dart';
 import '../widgets/ticket_link_dialog.dart';
 import '../widgets/profile_settings_dialog.dart';
+import '../data/festival_content.dart';
+import '../widgets/participant_list_dialog.dart';
 
 
 class FestivalScreen extends StatefulWidget {
@@ -468,232 +470,22 @@ class _FestivalScreenState extends State<FestivalScreen> {
                         ),
                         const SizedBox(height: 20),
                         
-                        _buildMasterCard(
-                           context,
-                           "Ксения Варакина",
-                           "Коуч, психолог, бизнес-тренер",
-                           "МАГИЯ ЛИЧНОСТИ",
-                           "«Магия личности» — игра, после которой вы определите 1 стратегическое решение, меняющее вашу траекторию.\n\nЭто сочетание коучинговой глубины, психологической точности и игрового формата, который позволяет увидеть свои слепые зоны быстрее, чем за месяцы самокопания.\n\nЧто даёт игра?\nЭто не «ещё одно упражнение». Это формат, в котором:\n➡️ Заметны привычные, но уже неработающие стратегии,\n➡️ Легко найти решение, даже если откладывали его несколько месяцев или лет,\n➡️ За пару шагов можно увидеть то, что сдерживает и не даёт шагнуть вперёд.\n\nПосле игры вы:\n⚡️ Поймёте, какой шаг сделать в ближайшие 72 часа\n⚡️ Уйдёте с 3 чёткими решениями\n⚡️ Получите заряд энергии на конкретные действия\n\nНе просто веду игру, а помогаю увидеть в вас то, что вы давно перестали замечать.",
-                           Colors.orangeAccent,
-                           "assets/images/ksenia_varakina.jpg",
-                           [
-                              {'icon': Icons.send, 'url': 'https://t.me/ksvarakina', 'tooltip': 'Написать'},
-                              {'icon': Icons.language, 'url': 'https://www.ksvarakina.ru', 'tooltip': 'Сайт'},
-                              {'icon': Icons.campaign, 'url': 'https://t.me/varakina_fm', 'tooltip': 'Канал'},
-                           ]
-                        ),
-                        const SizedBox(height: 24),
-                        
-                        _buildMasterCard(
-                           context,
-                           "Владимир Папушин",
-                           "Предприниматель, игропрактик",
-                           "РЫБАКОВ. ИГРА НА МИЛЛИАРД",
-                           "«Рыбаков. Игра на миллиард» — Коммуникация, переговоры, стратегия.\n\nУникальный бизнес-тренажер, развивающий навыки предпринимательского мышления и масштабного видения.\n\nНа игре вы прокачаете:\n🎲 Навыки коммуникации и построения партнерств\n🎲 Стратегическое мышление\n🎲 Умение видеть возможности там, где другие видят проблемы\n\nВладимир — серийный предприниматель (20+ лет) и ведущий игропрактик (8+ лет), основатель компании «Pro Cash Flow» и клуба «Время лидеров».",
-                           Colors.blue,
-                           "assets/images/vladimir_papushin.jpg",
-                           [
-                              {'icon': Icons.language, 'url': 'https://cashflowpiter.ru/', 'tooltip': 'Сайт'},
-                              {'icon': Icons.group, 'url': 'https://vk.com/pro_cashflow_spb', 'tooltip': 'VK'},
-                              {'icon': Icons.send, 'url': 'https://t.me/cash_flow_piter', 'tooltip': 'Telegram'},
-                              {'icon': Icons.play_circle_fill, 'url': 'http://www.youtube.com/@PRO-Cash-Flow', 'tooltip': 'YouTube'},
-                              {'icon': Icons.camera_alt, 'url': 'https://www.instagram.com/vladimir4v', 'tooltip': 'Instagram'},
-                           ]
-                        ),
-                        const SizedBox(height: 24),
-
-                        _buildMasterCard(
-                           context,
-                           "Олег Баранец",
-                           "Психолог, бизнес-аналитик",
-                           "ТЕРРИТОРИЯ СЕБЯ",
-                           "«Территория Себя» — Авторская трансформационная игра.\n\nИгра, которая помогает превратить хаос в ясную структуру развития. Это инструмент для глубокой диагностики и нахождения скрытых ресурсов личности.\n\nОлег — эксперт по систематизации жизни и бизнеса, основатель Info Cards Club.\n\n«Преобразую хаос в ясность».",
-                           Colors.lightBlueAccent,
-                           "assets/images/olegbaranets.jpg",
-                           [
-                              {'icon': Icons.send, 'url': 'https://t.me/id_territory', 'tooltip': 'Канал'},
-                              {'icon': Icons.language, 'url': 'https://infocards.club', 'tooltip': 'Сайт'},
-                           ]
-                        ),
-                        const SizedBox(height: 24),
-
-                        _buildMasterCard(
-                           context,
-                           "Тома Стулова",
-                           "Генератор идей, игропрактик",
-                           "НЕТИПИЧНЫЙ НЕТВОРКИНГ",
-                           "«Нетипичный нетворкинг» — Нетворкинг, без шаблонов, где нет скуки, а есть драйв, игры и настоящие связи!\n\nТебя ждут:\n✔️ Знакомства через игру — никаких заученных презентаций.\n✔️ Импровизация вместо скучных вопросов — прокачаем спонтанность.\n✔️ Формат \"как в жизни\" — общаемся легко, без официоза.\n\nИгры снимают барьеры — вы знакомитесь через эмоции, а не должности.\n— Нетворкинг \"по интересам\" — находите тех, кто вам действительно близок.\n— Уходите не только с контактами, но и с идеями для совместных дел.\n\nЭто необычный способ расширить круг деловых или дружеских знакомств, а также весело и с пользой провести время, тогда тебе к нам!",
-                           Colors.pinkAccent,
-                           "assets/images/toma.jpg",
-                           [
-                              {'icon': Icons.send, 'url': 'https://t.me/tomastulova', 'tooltip': 'Telegram'},
-                              {'icon': Icons.campaign, 'url': 'https://t.me/bla_bla_game', 'tooltip': 'Канал'},
-                              {'icon': Icons.camera_alt, 'url': 'https://instagram.com/tomastulova', 'tooltip': 'Instagram'},
-                           ]
-                        ),
-                        const SizedBox(height: 24),
-
-                        _buildMasterCard(
-                           context,
-                           "Ольга Дорошкевич",
-                           "Ресурсный коуч, игропрактик",
-                           "ТЕРРИТОРИЯ ДЕНЕГ",
-                           "«Территория Денег» — Трансформационная игра.\n\nЭто игра-помощник при переходе на новый денежный уровень. В игре Вы сможете изменить мышление «дефицита» на мышление «изобилия».\n\nИгра помогает:\n📍 Найти причины ограничивающие доход\n📍 Понять какой блок в теме денег\n📍 Выстроить эффективную денежную стратегию\n\nОльга — Ресурсный КОУЧ, автор игр, МАК карт, книги Живые Строки, мастер игровых техник, ченнелер.",
-                           Colors.green,
-                           "assets/images/olga.jpg",
-                           [
-                              {'icon': Icons.send, 'url': 'https://t.me/olga_doroshkevich', 'tooltip': 'Telegram'},
-                              {'icon': Icons.campaign, 'url': 'https://t.me/OlgaDoroshkevichVselennya', 'tooltip': 'Канал'},
-                              {'icon': Icons.play_circle_fill, 'url': 'https://www.youtube.com/@ODoroshkevich', 'tooltip': 'YouTube'},
-                           ]
-                        ),
-
-                        const SizedBox(height: 24),
-
-                        _buildMasterCard(
-                           context,
-                           "Вера Майнакская",
-                           "Игропрактик, эксперт по желаниям",
-                           "ПУТЬ ЖЕЛАНИЙ",
-                           "«Путь Желаний» — Большая напольная игра пространство для честного диалога с собой.\n\nЗдесь можно мягко и безопасно заглянуть во внутренний мир, услышать своё сердце и дать голос своим настоящим мечтам.\n\nИгра помогает увидеть:\n✨ что мешает исполнению желаемого\n✨ какие страхи стоят на пути к цели\n✨ какая сфера жизни сейчас может стать точкой ресурса\n\nЭто не гадание — это структурная работа с запросом.",
-                           Colors.cyanAccent,
-                           "assets/images/vera.jpg",
-                           [
-                              {'icon': Icons.send, 'url': 'https://t.me/Vera_Maynakskaya', 'tooltip': 'Telegram'},
-                              {'icon': Icons.campaign, 'url': 'https://t.me/VeraMaynakskaya', 'tooltip': 'Канал'},
-                              {'icon': Icons.camera_alt, 'url': 'https://www.instagram.com/vera_maynakskaya', 'tooltip': 'Instagram'},
-                              {'icon': Icons.group, 'url': 'https://vk.com/vera_maynakskaya', 'tooltip': 'VK'},
-                           ]
-                        ),
-
-                        const SizedBox(height: 24),
-
-                        _buildMasterCard(
-                           context,
-                           "Ирина Визнюк",
-                           "Предприниматель, художник",
-                           "АРТ-ТЕРАПЕВТИЧЕСКАЯ ПРАКТИКА",
-                           "«Арт-терапевтическая практика» — Практика помогает вынести страх в образ, снизить его влияние и открыть движение к целям.\n\nЧто происходит в процессе:\n— ты выносишь свой страх из головы во внешний образ\n— мозг перестаёт воспринимать его как угрозу\n— напряжение снижается, появляется ясность\n— открывается движение туда, где раньше было «не могу»\n\nСтрах перестаёт управлять. Он становится видимым, конечным и… не таким страшным.\n\nПрактика помогает:\n— увидеть, что именно тормозит твои цели и желания\n— сбросить внутренний блок, который держит в напряжении\n— освободить энергию для шага вперёд\n— почувствовать опору и пространство возможностей\n\nЭто безопасный, бережный формат. Умение рисовать здесь не играет роли. Главное ваше присутствие.",
-                           Colors.purple,
-                           "assets/images/irina_viznyuk.jpg",
-                           [
-                              {'icon': Icons.send, 'url': 'https://t.me/IV_digitalart', 'tooltip': 'Telegram'},
-                              {'icon': Icons.campaign, 'url': 'https://t.me/irinaviznuk', 'tooltip': 'Канал'},
-                           ]
-                        ),
-                        const SizedBox(height: 24),
-
-                        _buildMasterCard(
-                           context,
-                           "Светлана Гурина",
-                           "Женский коуч, мастер МАК",
-                           "ОЧЕРЕДЬ ИЗ ДЕНЕГ",
-                           "«Очередь из денег» — Трансформационная игра про отношения с деньгами через состояние, внутренние роли и выборы.\n\nВ процессе становится видно:\n— из какого внутреннего места человек заходит в деньги,\n— где он себя ограничивает,\n— какие ресурсы уже есть, но не используются,\n— что мешает двигаться дальше.\n\nИгра помогает не искать «волшебные схемы», а глубже понять себя и выстроить более устойчивые отношения с деньгами.",
-                           Colors.deepPurpleAccent,
-                           "assets/images/svetlana_gurina.jpg",
-                           [
-                              {'icon': Icons.send, 'url': 'https://t.me/svetlana_gurina_aroma_candles', 'tooltip': 'Telegram'},
-                              {'icon': Icons.campaign, 'url': 'https://t.me/tvoe_sostoyanie_sveta', 'tooltip': 'Канал'},
-                           ]
-                        ),
-                        const SizedBox(height: 24),
-
-                        _buildMasterCard(
-                           context,
-                           "Екатерина Волкова",
-                           "Психолог, расстановщик",
-                           "ЛИЛА",
-                           "«Лила» — это глубокая психологическая игра-практика, которая помогает исследовать важные жизненные темы, отношения с собой и найти ответы, уже живущие внутри.\n\nЗачем играть?\n— Исследовать свой внутренний мир и ситуации.\n— Выйти из замкнутого круга мыслей.\n— Услышать свою интуицию.\n\nКакой результат?\n— Ясность в ситуации.\n— Опора и контакт с собой.\n— Инсайт и энергия для следующего шага.\n\n«Лила» — это мостик между вашим внутренним миром и внешней жизнью.",
-                           Colors.indigo,
-                           "assets/images/ekaterina_volkova.jpg",
-                           [
-                              {'icon': Icons.send, 'url': 'https://t.me/ekaterinavteta', 'tooltip': 'Личные сообщения'},
-                              {'icon': Icons.campaign, 'url': 'https://t.me/lilaprotebja', 'tooltip': 'Канал'},
-                           ]
-                        ),
-
-                        const SizedBox(height: 24),
-
-                        _buildMasterCard(
-                           context,
-                           "Ирина Абрамова",
-                           "Переговорщик, медиатор, эксперт по межличностным отношениям и коммуникациям",
-                           "РЫБАКОВ. ИГРА НА МИЛЛИАРД",
-                           "Для меня «Игра на миллиард» — это диагностика:\n- ваших навыков коммуникации;\n- умения оценивать стоимость ваших ресурсов;\n- ваших способностей доносить ценность сотрудничества с вами.\n\nЕсли:\n➡️ вас не слышат,\n▶️ вам сложно договариваться,\n➡️ кажется, что вас не понимают,\n➡️ и ваше общение можно описать поговорками:\n✳️ что в лоб, что по лбу;\n✳️ хоть головой об стену;\n✳️ разговор слепого с глухим;\n✳️ в одно ухо влетело, в другое вылетело,\n\nтогда я иду к вам!",
-                           Colors.teal,
-                           "assets/images/irina_abramova.jpg",
-                           [
-                              {'icon': Icons.send, 'url': 'https://t.me/Irina_mediator', 'tooltip': 'Написать'},
-                              {'icon': Icons.campaign, 'url': 'https://t.me/razvitiebussnes', 'tooltip': 'Канал'},
-                           ]
-                        ),
-
-                        const SizedBox(height: 24),
-
-                        _buildMasterCard(
-                           context,
-                           "Надежда Ланская",
-                           "Маркетолог для экспертов, организатор мероприятий",
-                           "Недостатки vs SuperСпособности",
-                           "⭐️Недостатки vs SuperСпособности Коммуникативная игра со смыслом ⭐️\n\nТы когда-нибудь задумывался, что твои недостатки могут оказаться суперспособностями?\n\nМы, Надя и Тома, маркетолог и игропрактик, приглашаем тебя на необычное мероприятие, где в игровом формате ты сможешь проработать свои недостатки и сильные стороны. Откроем двери в мир детских игр и забавных упражнений, где смех и общение помогут изменить твоё внутреннее отношение к себе и к своим так называемым недостаткам😏\n\nА еще мы знаем, что то, что ты считаешь недостатком, для кого-то другого — план развития. И мы уверены, что любую свою черту можно продать и использовать, ведь это часть твоей личности, которая точно уже в чём-то тебе помогала.\n\nЧто будет:\n✨ Увидишь, как то, что ты считал минусом, может стать твоим главным козырем.\n✨ Научишься «продавать» и использовать любую свою черту характера.\n✨ Прокачаешь самооценку и найдёшь новый ресурс в себе через игру и общение.\n\nЭто не лекция, а игровой опыт, который меняет восприятие.",
-                           Colors.orange,
-                           "assets/images/nadezhda_lanskaya.jpg",
-                           [
-                              {'icon': Icons.send, 'url': 'https://t.me/landusha', 'tooltip': 'Написать'},
-                              {'icon': Icons.campaign, 'url': 'https://t.me/landusha_thinks', 'tooltip': 'Канал'},
-                              {'icon': Icons.video_library, 'url': 'https://youtube.com/@landushathinks?si=WZIfAByFoXN3uImh', 'tooltip': 'YouTube'},
-                           ],
-                           "assets/images/nadya_toma_game.jpg"
-                        ),
-
-                        const SizedBox(height: 24),
-
-                        _buildMasterCard(
-                           context,
-                           "Екатерина Курчавина",
-                           "Психолог, педагог",
-                           "ТЕРРИТОРИЯ СЕБЯ (Специальный сет)",
-                           "Екатерина — уникальный специалист, объединяющий точность и творчество. Преподаватель ментальной арифметики и английского языка, педагог и сертифицированный диагност.\n\nВ то время как автор игры Олег Баранец дает структуру и стратегию, Екатерина предлагает альтернативное прочтение методики — творческое и игривое.\n\nЧто вас ждет за столом Екатерины:\n🎲 Работа с 22 ролями-архетипами через призму творчества.\n🎲 Расширение границ: переключение между логикой и интуицией.\n🎲 Безопасное пространство для исследования своих стратегий без давления.\n\nКому подойдет: Тем, кто хочет проработать серьезный запрос, но устал от «сложных схем» и жестких рамок.\n\n\"У меня реально часто спрашивают дорогу , путь или что-либо.\n\nИногда внутри нас застаиваются вопросы, которые кажутся неподъемными. Мой метод - это не магия, а бережная навигация. Через простое и доверительное общение мы вместе разберем твой самый сложный маршрут и найдем изящный выход.\"",
-                           Colors.deepOrangeAccent,
-                           "assets/images/ekaterina_kurchavina.jpg",
-                           [
-                              {'icon': Icons.send, 'url': 'https://t.me/Katya_psySoul', 'tooltip': 'Telegram'},
-                           ]
-                        ),
-
-                        const SizedBox(height: 24),
-
-                        _buildMasterCard(
-                           context,
-                           "Анна Торпан",
-                           "Эксперт телесной терапии, мастер гвоздестояния, наставник",
-                           "ПРАКТИКА ГВОЗДЕСТОЯНИЯ",
-                           "«Найди точку опоры внутри себя»\n\nВ суете дней мы теряем контакт с самым главным — с собой. Нас захлестывают мысли, тревоги, телесные зажимы и ограничивающие убеждения.\n\nПриглашаем вас на глубокую практику Стояния на гвоздях Садху — мощный инструмент для возвращения к себе. Главное, быстрый и эффективный, для тех кто не любит ждать.\n\nЭто путешествие, в котором вы:\n· Остановите бесконечный поток мыслей и обретете тишину внутри.\n· Освободите тело от накопленного напряжения, стресса и тревоги.\n· Осознаете и отпустите убеждения, блокирующие ваш финансовый рост.\n· Снимите внутренние барьеры, мешающие выстраивать искренние и гармоничные отношения.\n· Наполнитесь чувством энергии и лёгкости.\n· Наладите свой внутренний навигатор — ту самую связь между телом, умом и душой, которая ведет к целостности и гармонии.\n· И самое главное, вернете любовь к себе и жизни.\n\nПод моим опытным руководством, бережно и безопасно пройдете через этот мощный опыт и откроете в себе новые источники силы и спокойствия.",
-                           Colors.redAccent,
-                           "assets/images/Anya_Torpan.jpg",
-                           [
-                              {'icon': Icons.send, 'url': 'https://t.me/aniitorpan', 'tooltip': 'Написать'},
-                              {'icon': Icons.campaign, 'url': 'https://t.me/aniitorpan_I', 'tooltip': 'Канал'},
-                           ]
-                        ),
-                        
-                        const SizedBox(height: 24),
-
-                        _buildMasterCard(
-                           context,
-                           "ВарВара Ардель",
-                           "Квантовый психолог, игропрактик",
-                           "КАГОМЭ-КАГОМЭ (Трансформация)",
-                           "ВарВара — уникальный проводник, работающий на стыке психологии и телесности. В своей практике она соединяет Душу и тело через методы «Правка» и «Ладка». Её подход основан на квантовой психологии.\n\nИгра-переход. Инструмент для тех, кто готов к качественным изменениям в жизни.\n\nЧто вас ждет:\n🕊 Сила стихий: осознание и активация силы природных стихий.\n🕊 Новый уровень мышления: ресурсы для перехода на новый этаж сознания.\n🕊 Поддержка на пути: мифическая птичка Кагомэ поддержит в трансформации.\n\nКому подойдет: Тем, кто чувствует, что «застрял» и ищет выход на новый уровень.",
-                           Colors.lime,
-                           "assets/images/varvara_ardel.jpg",
-                           [
-                              {'icon': Icons.send, 'url': 'https://t.me/apelsin44', 'tooltip': 'Telegram'},
-                              {'icon': Icons.campaign, 'url': 'https://t.me/VarVara_VEdOM', 'tooltip': 'Канал'},
-                           ]
-                        ),
-
-                        const SizedBox(height: 50),
+                        ...festivalContent.values.map((content) {
+                           return Padding(
+                             padding: const EdgeInsets.only(bottom: 24),
+                             child: _buildMasterCard(
+                               context,
+                               content.masterName,
+                               content.role,
+                               content.title,
+                               content.description,
+                               content.color,
+                               content.imagePath,
+                               content.links,
+                               content.secondaryImagePath
+                             ),
+                           );
+                        }),
 
                         // --- ORGANIZERS ---
                         Text(
@@ -1003,8 +795,10 @@ class _FestivalScreenState extends State<FestivalScreen> {
                   child: FestivalGameCard(
                     game: g,
                     isRegistered: isRegistered,
-                    onRegister: () => _registerForGame(g),
+                    isMaster: isMyGame,
+                    onRegister: () => _handleGameAction(g, isRegistered),
                     onManage: (_userRole == 'admin' || isMyGame) ? () => _showManageGameDialog(g) : null,
+                    onShowParticipants: isMyGame ? () => showDialog(context: context, builder: (_) => ParticipantListDialog(game: g)) : null,
                   ),
                );
              }
@@ -1054,9 +848,18 @@ class _FestivalScreenState extends State<FestivalScreen> {
                 ElevatedButton(
                    onPressed: () async {
                       Navigator.pop(ctx);
-                      if (s1 != null) await _registerForGame(s1);
-                      if (s2 != null) await _registerForGame(s2);
-                      if (s3 != null) await _registerForGame(s3);
+                      final name = _firstName ?? 'Участник';
+                      final contact = _phoneNumber ?? 'Не указан';
+                      
+                      try {
+                        if (s1 != null) await FirestoreService().joinFestivalGame(game: s1, userName: name, contact: contact);
+                        if (s2 != null) await FirestoreService().joinFestivalGame(game: s2, userName: name, contact: contact);
+                        if (s3 != null) await FirestoreService().joinFestivalGame(game: s3, userName: name, contact: contact);
+                        
+                        if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Вы записаны на выбранные игры!")));
+                      } catch (e) {
+                        if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Ошибка: $e")));
+                      }
                    },
                    child: const Text("Записаться на всё"),
                 )
@@ -1065,18 +868,54 @@ class _FestivalScreenState extends State<FestivalScreen> {
      );
   }
 
-  Future<void> _registerForGame(FestivalGame game) async {
+  Future<void> _handleGameAction(FestivalGame game, bool isRegistered) async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Сначала войдите в систему")));
       return;
     }
-    
-    try {
-       await FirestoreService().registerForFestivalGame(game.id);
-       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Вы записаны на игру '${game.title}'!")));
-    } catch (e) {
-       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Ошибка: ${e.toString().replaceAll('Exception: ', '')}")));
+
+    if (isRegistered) {
+       // Cancel Flow
+       final confirm = await showDialog<bool>(
+          context: context,
+          builder: (ctx) => AlertDialog(
+             backgroundColor: const Color(0xFF1E293B),
+             title: const Text("Отмена записи", style: TextStyle(color: Colors.white)),
+             content: Text("Вы действительно хотите отменить запись на игру '${game.title}'?", style: const TextStyle(color: Colors.white70)),
+             actions: [
+                TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text("Нет")),
+                ElevatedButton(
+                   style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent),
+                   onPressed: () => Navigator.pop(ctx, true),
+                   child: const Text("Отменить запись"),
+                )
+             ],
+          )
+       );
+       
+       if (confirm == true) {
+          try {
+             await FirestoreService().cancelFestivalRegistration(game);
+             if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Запись отменена")));
+          } catch (e) {
+             if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Ошибка отмены: $e")));
+          }
+       }
+
+    } else {
+       // Register Flow
+       try {
+         // Using new method with logging
+         await FirestoreService().joinFestivalGame(
+            game: game,
+            userName: _firstName ?? 'Участник',
+            contact: _phoneNumber ?? 'Не указан'
+         );
+         if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Вы записаны на игру '${game.title}'!")));
+       } catch (e) {
+          if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Ошибка записи: ${e.toString().replaceAll('Exception: ', '')}")));
+       }
     }
   }
 

@@ -1225,3 +1225,97 @@ class FirestoreService {
 
 }
 
+  // --- Festival Specifics ---
+
+  Future<void> logFestivalAction({
+    required String action,
+    required String gameId,
+    required String masterId,
+    required Map<String, dynamic> details,
+  }) async {
+     final user = _auth.currentUser;
+     await _db.collection('festival_logs').add({
+        'action': action, // 'signup', 'cancel'
+        'gameId': gameId,
+        'masterId': masterId,
+        'userId': user?.uid ?? 'anonymous',
+        'details': details,
+        'timestamp': FieldValue.serverTimestamp(),
+        'processed': false, // For bot to pick up
+     });
+  }
+
+  Future<void> joinFestivalGame({
+    required FestivalGame game,
+    required String userName,
+    required String contact,
+  }) async {
+     final user = _auth.currentUser;
+     if (user == null) throw Exception("User not logged in");
+
+     // 1. Add to participants sub-collection
+     await _db.collection('festival_games').doc(game.id).collection('participants').doc(user.uid).set({
+        'userId': user.uid,
+        'name': userName,
+        'contact': contact,
+        'joinedAt': FieldValue.serverTimestamp(),
+        'status': 'confirmed'
+     });
+
+     // 2. Update Main Document (Sync for UI)
+     await _db.collection('festival_games').doc(game.id).update({
+        'participants': FieldValue.arrayUnion([
+           {'userId': user.uid, 'name': userName, 'contact': contact}
+        ])
+     });
+
+     // 3. Log Action (Triggers Notification)
+     await logFestivalAction(
+        action: 'signup', 
+        gameId: game.id, 
+        masterId: game.masterId, 
+        details: {
+           'gameTitle': game.title,
+           'userName': userName,
+           'contact': contact,
+           'startTime': game.startTime.toIso8601String(),
+        }
+     );
+  }
+
+  Future<void> cancelFestivalRegistration(FestivalGame game) async {
+     final user = _auth.currentUser;
+     if (user == null) return;
+
+     // 1. Remove from participants sub-collection
+     await _db.collection('festival_games').doc(game.id).collection('participants').doc(user.uid).delete();
+
+     // 2. Update Main Document (Sync for UI)
+     await _db.runTransaction((transaction) async {
+        final docRef = _db.collection('festival_games').doc(game.id);
+        final snapshot = await transaction.get(docRef);
+        if (!snapshot.exists) return;
+        
+        List<dynamic> participants = List.from(snapshot.data()?['participants'] ?? []);
+        participants.removeWhere((p) => p['userId'] == user.uid);
+        
+        transaction.update(docRef, {'participants': participants});
+     });
+
+     // 3. Log Action (Triggers Notification)
+     await logFestivalAction(
+        action: 'cancel', 
+        gameId: game.id, 
+        masterId: game.masterId, 
+        details: {
+           'gameTitle': game.title,
+           'startTime': game.startTime.toIso8601String(),
+        }
+     );
+  }
+
+  Future<List<Map<String, dynamic>>> getFestivalGameParticipants(String gameId) async {
+     final snapshot = await _db.collection('festival_games').doc(gameId).collection('participants').orderBy('joinedAt').get();
+     return snapshot.docs.map((d) => d.data()).toList();
+  }
+}
