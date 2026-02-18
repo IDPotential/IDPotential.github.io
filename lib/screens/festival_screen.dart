@@ -892,15 +892,13 @@ class _FestivalScreenState extends State<FestivalScreen> {
     return SizedBox.expand(
       child: Container(
         color: Colors.black54, // Partially opaque background for readability
-        child: Column(
-          children: [
-             const SizedBox(height: 100), // Space for AppBar
-     return Center(
-        child: ConstrainedBox(
-           constraints: const BoxConstraints(maxWidth: 800),
-           child: Column(
-             children: [
-                Padding(
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 800),
+            child: Column(
+              children: [
+                 const SizedBox(height: 100), // Space for AppBar
+                 Padding(
                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
                    child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -915,11 +913,11 @@ class _FestivalScreenState extends State<FestivalScreen> {
                         children: [
                            const Text("Расписание игр", style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold)),
                            if (_userRole == 'admin' || _userRole == 'master')
-                              IconButton(
-                                onPressed: _showCreateGameDialog,
-                                icon: const Icon(Icons.add, color: Colors.amberAccent),
-                                tooltip: "Создать игру",
-                              ),
+                               IconButton(
+                                 onPressed: _showCreateGameDialog,
+                                 icon: const Icon(Icons.add, color: Colors.amberAccent),
+                                 tooltip: "Создать игру",
+                               ),
                         ],
                      ),
                      const SizedBox(height: 8),
@@ -930,8 +928,8 @@ class _FestivalScreenState extends State<FestivalScreen> {
                            icon: const Icon(Icons.auto_awesome),
                            label: const Text("Довериться потоку"),
                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.purpleAccent,
-                              foregroundColor: Colors.white,
+                               backgroundColor: Colors.purpleAccent,
+                               foregroundColor: Colors.white,
                            ),
                         ),
                      ),
@@ -958,9 +956,9 @@ class _FestivalScreenState extends State<FestivalScreen> {
                    return ListView(
                       padding: const EdgeInsets.all(16),
                       children: [
-                         if (slot1.isNotEmpty) _buildSlotSection("12:45 \u2014 14:15 | Первый Сет", slot1),
-                         if (slot2.isNotEmpty) _buildSlotSection("14:45 \u2014 16:15 | Второй Сет", slot2),
-                         if (slot3.isNotEmpty) _buildSlotSection("16:30 \u2014 18:00 | Третий Сет", slot3),
+                         if (slot1.isNotEmpty) _buildSlotSection("12:45 — 14:15 | Первый Сет", slot1),
+                         if (slot2.isNotEmpty) _buildSlotSection("14:45 — 16:15 | Второй Сет", slot2),
+                         if (slot3.isNotEmpty) _buildSlotSection("16:30 — 18:00 | Третий Сет", slot3),
                          if (other.isNotEmpty) _buildSlotSection("Другие игры", other),
                          const SizedBox(height: 100),
                       ],
@@ -969,8 +967,10 @@ class _FestivalScreenState extends State<FestivalScreen> {
                ),
              ),
            ],
+          ),
          ),
-       ),
+        ),
+      ),
     );
   }
 
