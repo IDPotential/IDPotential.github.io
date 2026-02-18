@@ -26,6 +26,16 @@ class FirestoreService {
     }, SetOptions(merge: true));
   }
 
+  Future<void> updateUserProfile(String uid, {String? firstName, String? phoneNumber}) async {
+    final Map<String, dynamic> data = {};
+    if (firstName != null) data['first_name'] = firstName;
+    if (phoneNumber != null) data['phoneNumber'] = phoneNumber; // Consistent naming
+    
+    if (data.isNotEmpty) {
+      await _db.collection('users').doc(uid).update(data);
+    }
+  }
+
   Stream<DocumentSnapshot<Map<String, dynamic>>> getUserData() {
     final user = _auth.currentUser;
     if (user == null) return const Stream.empty();

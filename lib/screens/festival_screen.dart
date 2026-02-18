@@ -15,7 +15,8 @@ import '../widgets/game_manager_dialog.dart';
 import 'package:intl/intl.dart';
 
 class FestivalScreen extends StatefulWidget {
-  const FestivalScreen({super.key});
+  final String? initialTab;
+  const FestivalScreen({super.key, this.initialTab});
 
   @override
   State<FestivalScreen> createState() => _FestivalScreenState();
@@ -32,34 +33,75 @@ class _FestivalScreenState extends State<FestivalScreen> {
   int _currentIndex = 0;
   String? _userRole;
   String? _userId;
+  String? _firstName;
+  String? _phoneNumber;
+  bool _isLoadingProfile = true;
+
+  final _formKey = GlobalKey<FormState>();
+  final _nameController = TextEditingController();
+  final _phoneController = TextEditingController();
+  bool _consent = false;
 
   @override
   void initState() {
     super.initState();
-    _checkUserRole();
-  }
-
-  Future<void> _checkUserRole() async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user != null) {
-      _userId = user.uid;
-      final doc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
-      if (mounted) {
-        setState(() {
-          _userRole = doc.data()?['role'];
-        });
-      }
+    _fetchUserData();
+    if (widget.initialTab == 'schedule') {
+      _currentIndex = 1;
     }
   }
 
-  void _scrollToSection(GlobalKey? key) {
-    if (key == null || key.currentContext == null) return;
-    Scrollable.ensureVisible(
-      key.currentContext!,
-      duration: const Duration(milliseconds: 600),
-      curve: Curves.easeInOut,
-      alignment: 0.1, // Scroll slightly above the target
-    );
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _phoneController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _fetchUserData() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      _userId = user.uid;
+      try {
+        final doc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
+        if (mounted) {
+          setState(() {
+            final data = doc.data();
+            _userRole = data?['role'];
+            _firstName = data?['first_name'];
+            _phoneNumber = data?['phoneNumber'];
+            _isLoadingProfile = false;
+          });
+        }
+      } catch (e) {
+         debugPrint("Error fetching profile: $e");
+         if(mounted) setState(() => _isLoadingProfile = false);
+      }
+    } else {
+       if(mounted) setState(() => _isLoadingProfile = false);
+    }
+  }
+
+  void _onMenuSelected(dynamic value) {
+    if (value is int) {
+      setState(() {
+        _currentIndex = value;
+      });
+    } else if (value is GlobalKey) {
+       setState(() {
+          _currentIndex = 0; // Ensure we are on the landing page
+       });
+       WidgetsBinding.instance.addPostFrameCallback((_) {
+         if (value.currentContext != null) {
+            Scrollable.ensureVisible(
+              value.currentContext!,
+              duration: const Duration(milliseconds: 600),
+              curve: Curves.easeInOut,
+              alignment: 0.1,
+            );
+         }
+       });
+    }
   }
 
   @override
@@ -87,11 +129,14 @@ class _FestivalScreenState extends State<FestivalScreen> {
           },
         ),
         actions: [
-          PopupMenuButton<GlobalKey?>(
+          PopupMenuButton<dynamic>(
             icon: const Icon(Icons.menu, color: Colors.white),
             color: const Color(0xFF1E293B),
-            onSelected: _scrollToSection,
+            onSelected: _onMenuSelected,
             itemBuilder: (context) => [
+              const PopupMenuItem(value: 0, child: Text("Информация", style: TextStyle(color: Colors.white))),
+              const PopupMenuItem(value: 1, child: Text("Расписание", style: TextStyle(color: Colors.white))),
+              const PopupMenuDivider(),
               const PopupMenuItem(value: null, enabled: false, child: Text("НАВИГАЦИЯ", style: TextStyle(color: Colors.white54, fontSize: 12))),
               PopupMenuItem(value: _visitorsKey, child: const Text("Посетителям", style: TextStyle(color: Colors.white))),
               PopupMenuItem(value: _expertsKey, child: const Text("Экспертам", style: TextStyle(color: Colors.white))),
@@ -710,22 +755,43 @@ class _FestivalScreenState extends State<FestivalScreen> {
           ),
         ],
       ),
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _currentIndex,
-        onTap: (index) => setState(() => _currentIndex = index),
-        backgroundColor: const Color(0xFF1E293B),
-        selectedItemColor: Colors.amberAccent,
-        unselectedItemColor: Colors.white54,
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.info), label: "Информация"),
-          BottomNavigationBarItem(icon: Icon(Icons.calendar_month), label: "Расписание"),
-        ],
-      ),
     );
   }
 
   Widget _buildSchedule() {
-    if (_userRole != 'admin') {
+     // 1. Strict Gate: Only Admin or Deep Link Access allowed
+     // Everyone else sees "Schedule Forming"
+     bool canAccess = _userRole == 'admin' || (widget.initialTab == 'schedule');
+     
+     if (!canAccess) {
+        return _buildSchedulePlaceholder();
+     }
+
+     // 2. Auth Check for those who CAN access
+     if (_isLoadingProfile) {
+        return const Center(child: CircularProgressIndicator());
+     }
+     
+     if (_userId == null) {
+        return Center(
+          child: ElevatedButton(
+            onPressed: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const LoginScreen())),
+            child: const Text("Войти для просмотра расписания"),
+          )
+        );
+     }
+
+     // 3. Profile Check for Regular Users (Admins bypass)
+     if (_userRole != 'admin' && _userRole != 'master') {
+        if ((_firstName?.isEmpty ?? true) || (_phoneNumber?.isEmpty ?? true)) {
+            return _buildProfileForm();
+        }
+     }
+     
+     return _buildScheduleContent();
+  }
+
+  Widget _buildSchedulePlaceholder() {
       return SizedBox.expand(
         child: Container(
           color: Colors.black54,
@@ -746,8 +812,70 @@ class _FestivalScreenState extends State<FestivalScreen> {
           ),
         ),
       );
-    }
+  }
 
+  Widget _buildProfileForm() {
+     return SizedBox.expand(
+       child: Container(
+         color: Colors.black87,
+         padding: const EdgeInsets.all(24),
+         child: Center(
+           child: SingleChildScrollView(
+             child: Form(
+               key: _formKey,
+               child: Column(
+                 mainAxisSize: MainAxisSize.min,
+                 children: [
+                    const Text("Заполните профиль", style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 16),
+                    const Text("Для доступа к расписанию и быстрой записи необходимы ваши данные.", textAlign: TextAlign.center, style: TextStyle(color: Colors.white70)),
+                    const SizedBox(height: 24),
+                    TextFormField(
+                       controller: _nameController,
+                       decoration: const InputDecoration(labelText: "Имя Фамилия"),
+                       style: const TextStyle(color: Colors.white),
+                       validator: (v) => v?.isEmpty ?? true ? "Введите имя" : null,
+                    ),
+                    const SizedBox(height: 16),
+                    TextFormField(
+                       controller: _phoneController,
+                       decoration: const InputDecoration(labelText: "Телефон"),
+                       style: const TextStyle(color: Colors.white),
+                       validator: (v) => v?.isEmpty ?? true ? "Введите телефон" : null,
+                    ),
+                    const SizedBox(height: 16),
+                    CheckboxListTile(
+                       value: _consent,
+                       onChanged: (v) => setState(() => _consent = v ?? false),
+                       title: const Text("Согласен на обработку персональных данных", style: TextStyle(color: Colors.white70, fontSize: 12)),
+                       checkColor: Colors.black,
+                       activeColor: Colors.white,
+                       contentPadding: EdgeInsets.zero,
+                    ),
+                    const SizedBox(height: 24),
+                    ElevatedButton(
+                       onPressed: _submitProfile,
+                       child: const Text("Сохранить и перейти к расписанию"),
+                    )
+                 ],
+               ),
+             ),
+           ),
+         ),
+       ),
+     );
+  }
+
+  Future<void> _submitProfile() async {
+     if (_formKey.currentState!.validate() && _consent) {
+        await FirestoreService().updateUserProfile(_userId!, firstName: _nameController.text, phoneNumber: _phoneController.text);
+        await _fetchUserData(); 
+     } else if (!_consent) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Необходимо согласие")));
+     }
+  }
+
+  Widget _buildScheduleContent() {
     return SizedBox.expand(
       child: Container(
         color: Colors.black54, // Partially opaque background for readability

@@ -45,6 +45,7 @@ class _MyAppState extends State<MyApp> {
   final _appLinks = AppLinks();
   StreamSubscription<Uri>? _linkSubscription;
   bool _showFestival = false; // Flag for guest access
+  String? _festivalInitialTab;
 
   @override
   void initState() {
@@ -65,22 +66,15 @@ class _MyAppState extends State<MyApp> {
     try {
       initialUri = await _appLinks.getInitialLink();
       if (initialUri != null && initialUri.path.contains('festival')) {
-         setState(() {
-            _showFestival = true;
-         });
+         _handleDeepLink(initialUri); // Re-use logic
       }
-      // Note: MaterialApp handles the initial route automatically via 'routes'.
-      // We only need to listen to the stream for subsequent links,
-      // but the stream often emits the initial link too.
     } catch (e) {
       debugPrint("Deep Link Init Error: $e");
     }
 
     _linkSubscription = _appLinks.uriLinkStream.listen((uri) {
-       // Check if this is the generic initial link event to avoid double-push
        if (initialUri != null && uri.path == initialUri!.path) {
-          debugPrint("Skipping initial link handled by framework: $uri");
-          initialUri = null; // Consume it so future clicks work
+          initialUri = null; 
           return;
        }
        _handleDeepLink(uri);
@@ -89,40 +83,52 @@ class _MyAppState extends State<MyApp> {
     });
   }
 
-  void _handleDeepLink(Uri uri) {
+  Future<void> _handleDeepLink(Uri uri) async {
     debugPrint("Deep link received: $uri");
     final path = uri.path;
+
+    // Auto-Login Logic
+    final login = uri.queryParameters['login'];
+    final password = uri.queryParameters['password'];
+    
+    if (login != null && password != null) {
+       try {
+          await AuthService().signInWithEmailAndPassword(login, password);
+          debugPrint("Auto-login successful for $login");
+       } catch (e) {
+          debugPrint("Auto-login failed: $e");
+       }
+    }
+
+    String? tab;
+    if (uri.queryParameters['tab'] == 'schedule') {
+       tab = 'schedule';
+    }
     
     // 1. Festival -> Open directly (Guest allowed)
     if (path.contains('festival')) {
-       // If app is already running, push. 
-       // If starting up, this might be called early.
        if (_navigatorKey.currentState != null) {
-          _navigatorKey.currentState?.pushNamed('/festival');
+          _navigatorKey.currentState?.push(
+            MaterialPageRoute(builder: (_) => FestivalScreen(initialTab: tab))
+          );
        } else {
           // Fallback for startup
           setState(() {
             _showFestival = true;
+            _festivalInitialTab = tab;
           });
        }
        return;
     }
     
     // 2. Games List -> AppHome(3)
-    // Supports both /game and /games
     if (path.contains('game')) {
        final user = FirebaseAuth.instance.currentUser;
        if (user != null) {
-          // Logged in -> Go to Games Tab
-          // We use pushNamedAndRemoveUntil to reset stack but keep bottom nav logic if possible
-          // But since AppHome handles tabs, pushing '/games' works as a new route or replacement.
-          // Better: pushRepalcement or pushNamedAndRemoveUntil
           _navigatorKey.currentState?.pushNamedAndRemoveUntil('/games', (route) => false);
        } else {
-          // Not logged in -> Go to Login
           debugPrint("User not logged in, redirecting to login for game");
           _navigatorKey.currentState?.pushNamedAndRemoveUntil('/', (route) => false);
-           // Ideally we should pass 'redirect: /games' to login screen to handle post-login nav
        }
     }
   }
@@ -245,7 +251,7 @@ class _MyAppState extends State<MyApp> {
                       setState(() => _showFestival = false);
                       return false; // Don't exit app, just switch state
                    },
-                   child: const FestivalScreen()
+                   child: FestivalScreen(initialTab: _festivalInitialTab)
                 );
              }
 
