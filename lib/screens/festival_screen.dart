@@ -895,13 +895,18 @@ class _FestivalScreenState extends State<FestivalScreen> {
         child: Column(
           children: [
              const SizedBox(height: 100), // Space for AppBar
-             Padding(
-               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-               child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                     if (_firstName != null)
-                        Text("$_firstName, рады видеть тебя на фестивале!", style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+     return Center(
+        child: ConstrainedBox(
+           constraints: const BoxConstraints(maxWidth: 800),
+           child: Column(
+             children: [
+                Padding(
+                   padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+                   child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                         if (_firstName != null)
+                            Text("$_firstName, рады видеть тебя на фестивале!", style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
                      const SizedBox(height: 4),
                      const Text("Можешь записаться на сеты игр или выбрать случайное распределение.", style: TextStyle(color: Colors.white70, fontSize: 14)),
                      const SizedBox(height: 12),
@@ -963,9 +968,9 @@ class _FestivalScreenState extends State<FestivalScreen> {
                  },
                ),
              ),
-          ],
-        ),
-      ),
+           ],
+         ),
+       ),
     );
   }
 
