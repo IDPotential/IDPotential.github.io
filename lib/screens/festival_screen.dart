@@ -890,11 +890,13 @@ class _FestivalScreenState extends State<FestivalScreen> {
                   // Conflict logic
                   String? conflictTitle;
                   
-                  // 1. Check if I am a master of ANY game in this slot
+                  // 1. Check if I am a master of ANY game in this slot (Strict UID check)
                   if (!isMyGame && !isRegistered) {
                      // Check if I am leading another game in this slot
                      try {
-                        final leadingGame = games.firstWhere((other) => other.hasMasterAccess(_userId, _ticketNumber));
+                        // Strict check: Only block if I am explicitly the master by UID.
+                        // Do NOT use hasMasterAccess which includes tickets, because tickets might be shared (e.g. organizers)
+                        final leadingGame = games.firstWhere((other) => other.masterId == _userId || other.masterIds.contains(_userId));
                         conflictTitle = "Веду: ${leadingGame.title}";
                      } catch (_) {
                         // Not leading any other game in this slot

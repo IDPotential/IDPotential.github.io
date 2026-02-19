@@ -1330,7 +1330,8 @@ class FirestoreService {
      // Enhance data if name is missing or placeholder
      return Future.wait(snapshot.docs.map((d) async {
         final data = d.data();
-        if (data['name'] == null || data['name'] == 'unknown' || data['name'] == 'Участник') { // "Participant" placeholder
+        final name = data['name']?.toString().trim().toLowerCase();
+        if (name == null || name.isEmpty || name == 'unknown' || name == 'участник') { // Enhanced check
            try {
               final userDoc = await _db.collection('users').doc(d.id).get(); // doc ID is userId
               if (userDoc.exists) {
