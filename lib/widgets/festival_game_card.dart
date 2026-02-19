@@ -5,7 +5,6 @@ import '../models/festival_game.dart';
 import 'package:id_diagnostic_app/widgets/game_details_dialog.dart';
 
 import '../data/festival_content.dart';
-import '../widgets/festival_game_card.dart'; // Self-referential if needed, but we are inside it.
 // We need to remove the loop import if FestivalGameCard is in widgets.
 // Actually we stand alone.
 

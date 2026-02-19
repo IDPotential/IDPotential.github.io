@@ -401,6 +401,8 @@ class _GameEditorDialogState extends State<GameEditorDialog> {
                   ),
 
               _buildTextField(_locationController, "Локация (стол/зал)"),
+              Row(
+                children: [
                   Expanded(child: _buildTextField(_maxPlayersController, "Мест", isNumber: true)),
                   const SizedBox(width: 16),
                   Expanded(child: _buildTextField(_durationController, "Мин.", isNumber: true)),
