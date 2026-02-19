@@ -18,7 +18,8 @@ import 'dart:async';
 import 'package:record/record.dart';
 import 'package:record/record.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:universal_io/io.dart';
+// import 'package:universal_io/io.dart';
+import 'package:web/web.dart' as web;
 // import 'package:universal_html/html.dart' as html; // Incompatible with WASM
 // If we need user agent, we should use a safer way or skip check for now (or use package:web)
 
@@ -772,6 +773,8 @@ class _ActiveGameScreenState extends State<ActiveGameScreen> {
                 // We define stream/encoder in config if needed, but default is fine
                 await _audioRecorder.start(const RecordConfig(), path: ''); 
              } else {
+                 // WASM Debug: Disabled IO
+                 /*
                  final directory = await getApplicationDocumentsDirectory();
                  final gameDir = Directory('${directory.path}/GameRecordings/${_targetGameId}');
                  if (!await gameDir.exists()) {
@@ -779,6 +782,7 @@ class _ActiveGameScreenState extends State<ActiveGameScreen> {
                  }
                  path = '${gameDir.path}/Round${round}_$timestamp.m4a';
                  await _audioRecorder.start(const RecordConfig(), path: path);
+                 */
              }
              
              if (mounted) {
@@ -826,7 +830,8 @@ class _ActiveGameScreenState extends State<ActiveGameScreen> {
             final timestamp = DateFormat('yyyyMMdd_HHmmss').format(DateTime.now());
             final filename = 'Game_${_targetGameTitle}_Round${round}_$timestamp.m4a';
 
-            final anchor = html.AnchorElement(href: path);
+            final anchor = web.document.createElement('a') as web.HTMLAnchorElement;
+            anchor.href = path;
             anchor.download = filename;
             anchor.click();
             anchor.remove();

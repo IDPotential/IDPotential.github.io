@@ -1,6 +1,6 @@
 import 'dart:convert';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:universal_io/io.dart';
+// import 'package:universal_io/io.dart'; // Commented out to debug WASM build
 import 'package:flutter/foundation.dart';
 import 'package:path_provider/path_provider.dart';
 
@@ -47,6 +47,10 @@ class FileSaver {
   }
 
   static Future<String> _saveFile(Uint8List bytes, String fileName) async {
+    // TEMP FIX: Disable IO saving to check WASM build
+    if (kIsWeb) return 'Not supported';
+    return 'Saving not implemented for this build debugging session';
+    /*
     try {
       String? downloadPath;
       
@@ -70,5 +74,6 @@ class FileSaver {
     } catch (e) {
       throw Exception('Ошибка сохранения файла: $e');
     }
+    */
   }
 }

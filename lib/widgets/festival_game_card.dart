@@ -8,7 +8,14 @@ import '../data/festival_content.dart';
 // We need to remove the loop import if FestivalGameCard is in widgets.
 // Actually we stand alone.
 
+class FestivalGameCard extends StatelessWidget {
   final String? conflictTitle; // New: Title of the game already registered in this slot
+  final FestivalGame game;
+  final bool isRegistered;
+  final VoidCallback onRegister;
+  final bool isMaster;
+  final VoidCallback? onManage;
+  final VoidCallback? onShowParticipants;
 
   const FestivalGameCard({
     super.key,
@@ -21,16 +28,7 @@ import '../data/festival_content.dart';
     this.onShowParticipants,
   });
 
-  @override
-  Widget build(BuildContext context) {
-    // ... existing build ... Since replace_file_content context is small, I will focus on where I need changes.
-    // I need to update the constructor above, and _buildActionBtn below.
-    // Wait, the tool requires contiguous replacement. I should probably replace the whole class or large chunks if I can't target specific lines easily without context.
-    // I'll try to do it in two chunks or one if close enough. 
-    // They are far apart (constructor at top, _buildActionBtn at bottom).
-    // I'll use `multi_replace_file_content` instead.
-    return Container(); // Placeholder to cancel this tool call and use multi_replace
-  }
+
 
   @override
   Widget build(BuildContext context) {
