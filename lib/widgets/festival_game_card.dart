@@ -103,35 +103,30 @@ class FestivalGameCard extends StatelessWidget {
             ),
             const SizedBox(height: 6),
             
-            // Title
-            Expanded(
-              child: Column(
-                 crossAxisAlignment: CrossAxisAlignment.start,
-                 children: [
-                    Text(
-                      game.title,
-                      style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      game.masterName,
-                      style: const TextStyle(color: Colors.white70, fontSize: 12),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const SizedBox(height: 4),
-                    // Description (Hidden if too small space, or strictly limited)
-                    Text(
-                      content.description.isNotEmpty ? content.description : game.description,
-                      style: const TextStyle(color: Colors.white54, fontSize: 10),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                 ]
-              ),
+            // Title & Info
+            Column(
+               crossAxisAlignment: CrossAxisAlignment.start,
+               mainAxisSize: MainAxisSize.min, // Compact
+               children: [
+                   Text(
+                     game.title,
+                     style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold, height: 1.2),
+                     maxLines: 2,
+                     overflow: TextOverflow.ellipsis,
+                   ),
+                   const SizedBox(height: 2),
+                   Text(
+                     game.masterName,
+                     style: const TextStyle(color: Colors.white70, fontSize: 11),
+                     maxLines: 1,
+                     overflow: TextOverflow.ellipsis,
+                   ),
+                   // Description hidden on card to save space, available in dialog
+               ]
             ),
+            
+            const Spacer(), // Push footer to bottom ONLY if there is space
+
             
             const SizedBox(height: 8),
             

@@ -221,17 +221,22 @@ class _GameEditorDialogState extends State<GameEditorDialog> {
            }
 
            // Auto-fill Description & Master Name from FestivalContent
-           final content = festivalContent[currentTitle] ?? festivalContent.values.firstWhere(
-               (c) => c.title == currentTitle,
-               orElse: () => FestivalActivityContent(
+           final normalizedTitle = currentTitle.trim().toLowerCase();
+           final contentEntry = festivalContent.entries.firstWhere(
+               (e) => e.key.trim().toLowerCase() == normalizedTitle ||
+                      e.key.trim().toLowerCase().contains(normalizedTitle) ||
+                      normalizedTitle.contains(e.key.trim().toLowerCase()),
+               orElse: () => MapEntry("", FestivalActivityContent(
                    masterName: "", title: "", description: "", imagePath: "", color: Colors.white, role: ""
-               )
+               ))
            );
            
-           if (content.description.isNotEmpty) {
+           final content = contentEntry.value;
+           
+           if (content.description.isNotEmpty && _descController.text.isEmpty) {
                _descController.text = content.description;
            }
-           if (content.masterName.isNotEmpty) {
+           if (content.masterName.isNotEmpty && _masterNameController.text.isEmpty) {
                _masterNameController.text = content.masterName;
            }
         });
