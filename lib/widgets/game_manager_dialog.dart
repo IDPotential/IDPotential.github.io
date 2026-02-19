@@ -25,25 +25,41 @@ class GameManagerDialog extends StatelessWidget {
             const Divider(color: Colors.white24),
             const Text("Участники:", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
             const SizedBox(height: 8),
-            if (game.participants.isEmpty)
-              const Text("Нет участников", style: TextStyle(color: Colors.white30))
-            else
-              ConstrainedBox(
-                constraints: const BoxConstraints(maxHeight: 200),
-                child: ListView.builder(
-                  shrinkWrap: true,
-                  itemCount: game.participants.length,
-                  itemBuilder: (context, index) {
-                    final p = game.participants[index];
-                    final date = (p['registeredAt'] as dynamic)?.toDate() ?? DateTime.now();
-                    return ListTile(
-                      contentPadding: EdgeInsets.zero,
-                      title: Text(p['userName'] ?? 'Unknown', style: const TextStyle(color: Colors.white)),
-                      subtitle: Text(DateFormat('dd.MM HH:mm').format(date), style: const TextStyle(color: Colors.white30, fontSize: 12)),
-                    );
-                  },
-                ),
+            const Text("Участники:", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 8),
+            
+            Expanded( // Use Expanded to take available space
+              child: FutureBuilder<List<Map<String, dynamic>>>(
+                future: FirestoreService().getFestivalGameParticipants(game.id),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
+                  
+                  final participants = snapshot.data ?? [];
+                  if (participants.isEmpty) {
+                    return const Text("Нет участников", style: TextStyle(color: Colors.white30));
+                  }
+                  
+                  return ListView.builder(
+                    shrinkWrap: true,
+                    itemCount: participants.length,
+                    itemBuilder: (context, index) {
+                      final p = participants[index];
+                      // Handle registeredAt/joinedAt
+                      final ts = p['joinedAt'] ?? p['registeredAt'];
+                      final date = (ts as dynamic)?.toDate() ?? DateTime.now();
+                      
+                      return ListTile(
+                        contentPadding: EdgeInsets.zero,
+                        title: Text(p['name'] ?? p['userName'] ?? 'Unknown', style: const TextStyle(color: Colors.white)),
+                        subtitle: Text(DateFormat('dd.MM HH:mm').format(date), style: const TextStyle(color: Colors.white30, fontSize: 12)),
+                      );
+                    },
+                  );
+                }
               ),
+            ),
           ],
         ),
       ),

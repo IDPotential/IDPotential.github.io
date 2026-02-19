@@ -1,10 +1,8 @@
-import 'dart:convert';
-import 'package:url_launcher/url_launcher.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import '../models/festival_game.dart';
 import '../services/firestore_service.dart';
 import 'package:intl/intl.dart';
+import '../utils/file_saver.dart';
 
 class ParticipantListDialog extends StatelessWidget {
   final FestivalGame game;
@@ -65,7 +63,7 @@ class ParticipantListDialog extends StatelessWidget {
                        
                        return ListTile(
                          leading: CircleAvatar(
-                           backgroundColor: Colors.blueAccent.withOpacity(0.2),
+                           backgroundColor: Colors.blueAccent.withValues(alpha: 0.2),
                            child: Text("${index + 1}", style: const TextStyle(color: Colors.blueAccent)),
                          ),
                          title: Text(p['name'] ?? 'Без имени', style: const TextStyle(color: Colors.white)),
@@ -99,6 +97,9 @@ class ParticipantListDialog extends StatelessWidget {
   Future<void> _downloadList(BuildContext context) async {
       try {
         final participants = await FirestoreService().getFestivalGameParticipants(game.id);
+        
+        if (!context.mounted) return;
+        
         if (participants.isEmpty) {
            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Список пуст")));
            return;
@@ -107,33 +108,32 @@ class ParticipantListDialog extends StatelessWidget {
         final buffer = StringBuffer();
         buffer.writeln("Игра: ${game.title}");
         buffer.writeln("Мастер: ${game.masterName}");
-        buffer.writeln("Время: ${DateFormat('dd.MM HH:mm').format(game.startTime)}");
+        buffer.writeln("Время игры: ${DateFormat('dd.MM.yyyy HH:mm').format(game.startTime)}");
         buffer.writeln("------------------------------------------------");
         
         for (int i = 0; i < participants.length; i++) {
            final p = participants[i];
+           
+           // Format: 1. Name (Contact) [DOB: dd.mm.yyyy] [Registered: HH:mm dd.MM]
            String line = "${i+1}. ${p['name']} (${p['contact']})";
            
            if (p['birthDate'] != null) {
               final dob = (p['birthDate'] as dynamic).toDate();
-              line += " [${DateFormat('dd.MM.yyyy').format(dob)}]";
+              line += " [ДР: ${DateFormat('dd.MM.yyyy').format(dob)}]";
+           }
+           
+           if (p['joinedAt'] != null) {
+               final joined = (p['joinedAt'] as dynamic).toDate();
+               line += " [Записан: ${DateFormat('HH:mm dd.MM').format(joined)}]";
            }
            
            buffer.writeln(line);
         }
         
-        // Trigger Download via url_launcher (WASM safe)
-        final uri = Uri.dataFromString(
-           buffer.toString(), 
-           mimeType: 'text/plain', 
-           encoding: utf8
-        );
+        final fileName = "participants_${game.title.replaceAll(RegExp(r'[^\w\u0400-\u04FF]'), '_')}.txt";
+        await FileSaver.saveText(buffer.toString(), fileName);
         
-        if (await canLaunchUrl(uri)) {
-           await launchUrl(uri);
-        } else {
-           if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Не удалось открыть список")));
-        }
+        if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Скачивание началось")));
 
       } catch (e) {
          if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Ошибка скачивания: $e")));

@@ -1,13 +1,13 @@
 import 'dart:convert';
-import 'package:url_launcher/url_launcher.dart';
-// import 'package:universal_io/io.dart'; // Commented out to debug WASM build
 import 'package:flutter/foundation.dart';
-import 'package:path_provider/path_provider.dart';
+// import 'package:path_provider/path_provider.dart'; // Unused in current build
+
+import 'web_helpers_stub.dart' if (dart.library.js_interop) 'web_helpers.dart';
 
 class FileSaver {
   static Future<String> saveImage(Uint8List bytes, String fileName) async {
     if (kIsWeb) {
-      _saveWeb(bytes, fileName);
+      downloadFileWeb(bytes, fileName);
       return 'Изображение сохранено в загрузки';
     } else {
       return await _saveFile(bytes, fileName);
@@ -16,35 +16,18 @@ class FileSaver {
 
   static Future<String> saveText(String text, String fileName) async {
     if (kIsWeb) {
-      _saveWebText(text, fileName);
-      return 'Файл сохранен в загрузки';
+       // Convert string to bytes for blob download
+       final bytes = utf8.encode(text);
+       downloadFileWeb(bytes, fileName);
+       return 'Файл сохранен в загрузки';
     } else {
       // Use existing _saveFile but convert string to bytes
       return await _saveFile(Uint8List.fromList(text.codeUnits), fileName); // Basic UTF8
     }
   }
 
-  static void _saveWeb(Uint8List bytes, String fileName) async {
-    // WASM compatible: Use Data URI
-    final String base64 = base64Encode(bytes);
-    final String uri = 'data:application/octet-stream;base64,$base64';
-    if (await canLaunchUrl(Uri.parse(uri))) {
-       await launchUrl(Uri.parse(uri));
-    }
-  }
+  // Deprecated internal helpers removed
 
-  static void _saveWebText(String text, String fileName) async {
-    // WASM compatible: Use Data URI
-    final uri = Uri.dataFromString(
-       text, 
-       mimeType: 'text/plain', 
-       encoding: utf8
-    ).toString();
-    
-    if (await canLaunchUrl(Uri.parse(uri))) {
-       await launchUrl(Uri.parse(uri));
-    }
-  }
 
   static Future<String> _saveFile(Uint8List bytes, String fileName) async {
     // TEMP FIX: Disable IO saving to check WASM build
