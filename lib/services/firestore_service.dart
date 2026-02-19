@@ -1326,6 +1326,26 @@ class FirestoreService {
 
   Future<List<Map<String, dynamic>>> getFestivalGameParticipants(String gameId) async {
      final snapshot = await _db.collection('festival_games').doc(gameId).collection('participants').orderBy('joinedAt').get();
-     return snapshot.docs.map((d) => d.data()).toList();
+     
+     // Enhance data if name is missing or placeholder
+     return Future.wait(snapshot.docs.map((d) async {
+        final data = d.data();
+        if (data['name'] == null || data['name'] == 'unknown' || data['name'] == 'Участник') { // "Participant" placeholder
+           try {
+              final userDoc = await _db.collection('users').doc(d.id).get(); // doc ID is userId
+              if (userDoc.exists) {
+                 final userData = userDoc.data();
+                 return {
+                    ...data,
+                    'name': userData?['first_name'] ?? data['name'],
+                    'contact': userData?['phoneNumber'] ?? data['contact'],
+                    // Prioritize participant birthDate if exists (registered with specific date), else fallback
+                    'birthDate': data['birthDate'] ?? userData?['birthDate'] 
+                 };
+              }
+           } catch (_) {}
+        }
+        return data;
+     }));
   }
 }

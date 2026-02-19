@@ -49,6 +49,7 @@ class _FestivalScreenState extends State<FestivalScreen> {
   final _phoneController = TextEditingController();
   final _dobController = TextEditingController();
   bool _consent = false;
+  bool _isProfileReady = false; // Prevents immediate navigation and ensures profile is complete
 
   @override
   void initState() {
@@ -119,6 +120,10 @@ class _FestivalScreenState extends State<FestivalScreen> {
                _birthDate = (data!['birthDate'] as Timestamp).toDate();
                _dobController.text = "${_birthDate!.day.toString().padLeft(2,'0')}.${_birthDate!.month.toString().padLeft(2,'0')}.${_birthDate!.year}";
             }
+            
+            _isProfileReady = _firstName != null && _firstName!.isNotEmpty && 
+                              _phoneNumber != null && _phoneNumber!.isNotEmpty && 
+                              _birthDate != null;
           });
         }
       } catch (e) {
@@ -621,9 +626,8 @@ class _FestivalScreenState extends State<FestivalScreen> {
         return _buildLoginPlaceholder();
      }
      
-     // 2. Check minimal profile (optional, but good for UX)
-     // Modified: Now mandatory including birthDate for ticket users (or everyone)
-     if (_firstName == null || _phoneNumber == null || _birthDate == null) {
+     // 2. Check minimal profile
+     if (!_isProfileReady) {
         return _buildProfileForm();
      }
 
@@ -1012,8 +1016,14 @@ class _FestivalScreenState extends State<FestivalScreen> {
                    ElevatedButton(
                       onPressed: () async {
                          Navigator.pop(ctx);
-                         final name = _firstName ?? 'Участник';
-                         final contact = _phoneNumber ?? 'Не указан';
+                         
+                         if (!_isProfileReady) {
+                             if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Заполните профиль для записи")));
+                             return;
+                         }
+
+                         final name = _firstName!;
+                         final contact = _phoneNumber!;
                          
                          int successCount = 0;
                          
@@ -1046,6 +1056,8 @@ class _FestivalScreenState extends State<FestivalScreen> {
                            
                            if (successCount > 0 && mounted) {
                               ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Вы успешно записаны на $successCount игр(ы)!")));
+                              // Update to show schedule/refresh
+                              await _fetchUserData();
                            }
                          } catch (e) {
                            if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Ошибка: $e")));
@@ -1146,10 +1158,15 @@ class _FestivalScreenState extends State<FestivalScreen> {
        // Register Flow
        try {
          // Using new method with logging
+         if (!_isProfileReady) {
+             ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Заполните профиль для записи")));
+             return;
+         }
+
          await FirestoreService().joinFestivalGame(
           game: game,
-          userName: _firstName ?? 'Участник',
-          contact: _phoneNumber ?? 'Не указан',
+          userName: _firstName!, // Safe because _isProfileReady is true
+          contact: _phoneNumber!,
           ticket: _ticketNumber,
           birthDate: _birthDate // Pass birthDate
        );
