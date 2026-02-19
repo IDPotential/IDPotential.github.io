@@ -149,17 +149,17 @@ final Map<String, FestivalActivityContent> festivalContent = {
 
   // 11. Надежда Ланская / Тома Стулова
   "Недостатки vs SuperСпособности": FestivalActivityContent(
-    masterName: "Надежда Ланская",
+    masterName: "Надежда Ланская / Тома Стулова",
     title: "Недостатки vs SuperСпособности",
     description: "⭐️Недостатки vs SuperСпособности Коммуникативная игра со смыслом ⭐️\n\nТы когда-нибудь задумывался, что твои недостатки могут оказаться суперспособностями?\n\nМы, Надя и Тома, маркетолог и игропрактик, приглашаем тебя на необычное мероприятие, где в игровом формате ты сможешь проработать свои недостатки и сильные стороны.\n\nЧто будет:\n✨ Увидишь, как то, что ты считал минусом, может стать твоим главным козырем.\n✨ Научишься «продавать» и использовать любую свою черту характера.",
-    imagePath: "assets/images/nadezhda_lanskaya.jpg",
+    imagePath: "assets/images/nadya_toma_game.jpg",
     color: Colors.orange,
-    role: "Маркетолог для экспертов",
+    role: "Маркетолог и Игропрактик",
     links: [
-       {'icon': Icons.send, 'url': 'https://t.me/landusha', 'tooltip': 'Написать'},
-       {'icon': Icons.campaign, 'url': 'https://t.me/landusha_thinks', 'tooltip': 'Канал'},
+       {'icon': Icons.send, 'url': 'https://t.me/landusha', 'tooltip': 'Надежда'},
+       {'icon': Icons.campaign, 'url': 'https://t.me/tomastulova', 'tooltip': 'Тома'},
     ],
-    secondaryImagePath: "assets/images/nadya_toma_game.jpg"
+    secondaryImagePath: "assets/images/nadezhda_lanskaya.jpg"
   ),
 
   // 12. Екатерина Курчавина

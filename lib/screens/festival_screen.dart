@@ -784,7 +784,7 @@ class _FestivalScreenState extends State<FestivalScreen> {
               physics: const NeverScrollableScrollPhysics(),
               gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                  crossAxisCount: 2,
-                 childAspectRatio: 0.70, // Adjust based on card content height
+                 childAspectRatio: 0.85, // Adjust based on card content height
                  crossAxisSpacing: 10,
                  mainAxisSpacing: 10,
               ),

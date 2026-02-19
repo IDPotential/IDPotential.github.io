@@ -163,7 +163,24 @@ service cloud.firestore {
     // 6. Festival Games
     match /festival_games/{gameId} {
        allow read: if true; // Public read for schedule
-       allow write: if isAdmin() || isMaster();
+       // Allow write if Admin or if User is listed as a master (or creating new)
+       allow write: if isAdmin() || (isAuthenticated() && (
+          resource == null || // Create
+          request.auth.uid == resource.data.masterId || 
+          (resource.data.masterIds is list && request.auth.uid in resource.data.masterIds)
+       ));
+       
+       match /participants/{participantId} {
+          // Masters can read participants
+          allow read: if isAdmin() || (isAuthenticated() && (
+             request.auth.uid == get(/databases/$(database)/documents/festival_games/$(gameId)).data.masterId ||
+             (get(/databases/$(database)/documents/festival_games/$(gameId)).data.masterIds is list && 
+              request.auth.uid in get(/databases/$(database)/documents/festival_games/$(gameId)).data.masterIds)
+          ));
+          
+          // Users can write their own participant doc (join/leave)
+          allow write: if isAuthenticated() && (request.auth.uid == participantId || isAdmin());
+       }
     }
   }
 }

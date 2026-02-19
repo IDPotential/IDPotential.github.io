@@ -171,3 +171,10 @@ key.properties
 telegram/
 n8n-master/
 ATS_bot/
+
+web_viznuk_site/
+
+read_docx.py
+output.txt
+docx_content.txt
+copy_assets.py

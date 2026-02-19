@@ -54,7 +54,7 @@ class FestivalGameCard extends StatelessWidget {
       },
       child: Container(
         // margin: const EdgeInsets.only(bottom: 12), // Handled by GridView spacing
-        padding: const EdgeInsets.all(12), // Reduced padding
+        padding: const EdgeInsets.all(8), // Reduced padding
         decoration: BoxDecoration(
           color: Colors.white.withOpacity(0.05),
           border: Border.all(color: Colors.white10),
