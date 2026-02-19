@@ -15,8 +15,10 @@
 
         #irina-viznuk-site {
             font-family: 'Montserrat', sans-serif;
-            color: #e0e0e0;
-            background-color: #1a1a1a;
+            color: #333333;
+            /* Dark text */
+            background-color: #F9F8F6;
+            /* Light background */
             line-height: 1.6;
             width: 100%;
         }
@@ -27,7 +29,8 @@
         #irina-viznuk-site h4 {
             font-family: 'Cormorant Garamond', serif;
             font-weight: 400;
-            color: #fff;
+            color: #1a1a1a;
+            /* Dark headers */
             margin: 0;
         }
 
@@ -49,7 +52,7 @@
             padding: 0 20px;
         }
 
-        /* BUTTONS - Force overrides */
+        /* BUTTONS - GOLD */
         #irina-viznuk-site .btn {
             display: inline-block;
             padding: 12px 24px !important;
@@ -61,61 +64,63 @@
             cursor: pointer;
             text-align: center;
             line-height: normal !important;
+            transition: all 0.3s ease !important;
         }
 
         #irina-viznuk-site .btn-primary {
-            background-color: #c4a484 !important;
-            /* Soft Gold/Beige */
-            color: #1a1a1a !important;
+            background-color: #C4A484 !important;
+            /* Gold */
+            color: #FFFFFF !important;
             font-weight: 600 !important;
         }
 
         #irina-viznuk-site .btn-primary:hover {
-            background-color: #dcc0a0 !important;
-            color: #1a1a1a !important;
+            background-color: #B08D69 !important;
+            /* Darker Gold */
+            color: #FFFFFF !important;
+            transform: translateY(-2px);
         }
 
         #irina-viznuk-site .btn-outline {
-            border-color: #c4a484 !important;
+            border-color: #C4A484 !important;
             background-color: transparent !important;
-            color: #c4a484 !important;
+            color: #C4A484 !important;
         }
 
         #irina-viznuk-site .btn-outline:hover {
-            background-color: #c4a484 !important;
+            background-color: #C4A484 !important;
             color: #1a1a1a !important;
+            /* Dark text on hover for contrast */
         }
 
         #irina-viznuk-site .btn-small {
             padding: 8px 16px !important;
             font-size: 12px !important;
-            background-color: rgba(255, 255, 255, 0.1) !important;
-            color: #fff !important;
-            border: 1px solid rgba(255, 255, 255, 0.2) !important;
+            background-color: transparent !important;
+            color: #C4A484 !important;
+            border: 1px solid #C4A484 !important;
         }
 
         #irina-viznuk-site .btn-small:hover {
-            background-color: rgba(255, 255, 255, 0.2) !important;
+            background-color: #C4A484 !important;
+            color: #FFFFFF !important;
         }
 
         /* HERO SECTION */
         #irina-viznuk-site .hero {
             position: relative;
-            height: 100vh;
+            min-height: 90vh;
             display: flex;
             align-items: center;
-            background: #121212;
+            background: #F9F8F6;
+            /* Light */
             overflow: hidden;
+            padding: 100px 0;
         }
 
         #irina-viznuk-site .hero-overlay {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: radial-gradient(circle at 70% 30%, #2a2a2a 0%, #1a1a1a 60%, #000000 100%);
-            z-index: 1;
+            display: none;
+            /* No dark overlay */
         }
 
         #irina-viznuk-site .hero-content {
@@ -125,7 +130,7 @@
             align-items: center;
             justify-content: space-between;
             width: 100%;
-            gap: 40px;
+            gap: 60px;
         }
 
         #irina-viznuk-site .hero-text {
@@ -134,32 +139,36 @@
         }
 
         #irina-viznuk-site .hero-text h1 {
-            font-size: 4rem;
+            font-size: 4.5rem;
             line-height: 1.1;
-            letter-spacing: 2px;
-            margin-bottom: 10px;
+            letter-spacing: -1px;
+            margin-bottom: 20px;
+            color: #1a1a1a;
         }
 
         #irina-viznuk-site .hero-text .subtitle {
             font-size: 1.2rem;
             text-transform: uppercase;
-            letter-spacing: 1px;
-            color: #a0a0a0;
-            margin-bottom: 20px;
+            letter-spacing: 2px;
+            color: #C4A484;
+            /* Gold accent */
+            margin-bottom: 30px;
+            font-weight: 500;
         }
 
         #irina-viznuk-site .divider {
-            width: 60px;
-            height: 2px;
-            background-color: #c4a484;
-            margin-bottom: 20px;
+            width: 80px;
+            height: 1px;
+            background-color: #C4A484;
+            margin-bottom: 30px;
         }
 
         #irina-viznuk-site .hero-text .description {
-            font-size: 1.1rem;
-            color: #d0d0d0;
-            margin-bottom: 40px;
-            font-style: italic;
+            font-size: 1.2rem;
+            color: #555;
+            margin-bottom: 50px;
+            font-style: normal;
+            font-weight: 300;
         }
 
         #irina-viznuk-site .hero-buttons {
@@ -169,47 +178,52 @@
 
         #irina-viznuk-site .hero-image {
             flex: 1;
-            max-width: 500px;
+            max-width: 450px;
             height: 600px;
-            overflow: hidden;
-            border-radius: 8px;
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+            position: relative;
         }
 
         #irina-viznuk-site .hero-image img {
             width: 100%;
             height: 100%;
             object-fit: cover;
-            opacity: 0.9;
+            border-radius: 4px;
+            box-shadow: 20px 20px 0px rgba(196, 164, 132, 0.2);
+            /* Gold shadow */
         }
 
         /* SECTIONS */
         #irina-viznuk-site section {
-            padding: 80px 0;
+            padding: 100px 0;
         }
 
         #irina-viznuk-site .section-title {
-            font-size: 2.5rem;
+            font-size: 3rem;
             text-align: center;
-            margin-bottom: 40px;
-            letter-spacing: 1px;
-            color: #c4a484;
+            margin-bottom: 20px;
+            letter-spacing: 0;
+            color: #1a1a1a;
         }
 
         #irina-viznuk-site .section-subtitle {
             text-align: center;
             font-size: 1.1rem;
-            color: #a0a0a0;
-            margin-bottom: 60px;
+            color: #666;
+            margin-bottom: 80px;
             max-width: 600px;
             margin-left: auto;
             margin-right: auto;
+            font-weight: 300;
         }
 
         /* ABOUT */
+        #irina-viznuk-site .about-section {
+            background-color: #FFFFFF;
+        }
+
         #irina-viznuk-site .about-grid {
             display: flex;
-            gap: 60px;
+            gap: 80px;
             align-items: center;
         }
 
@@ -218,28 +232,32 @@
         }
 
         #irina-viznuk-site .about-text p {
-            margin-bottom: 20px;
-            font-size: 1.1rem;
+            margin-bottom: 25px;
+            font-size: 1.15rem;
+            color: #444;
         }
 
         #irina-viznuk-site .about-text .highlight {
-            color: #fff;
-            font-size: 1.2rem;
-            border-left: 2px solid #c4a484;
-            padding-left: 20px;
-            margin: 30px 0;
+            color: #1a1a1a;
+            font-size: 1.3rem;
+            border-left: 3px solid #C4A484;
+            /* Gold */
+            padding-left: 25px;
+            margin: 40px 0;
             font-family: 'Cormorant Garamond', serif;
+            font-style: italic;
         }
 
         #irina-viznuk-site .about-text .location {
-            color: #a0a0a0;
+            color: #888;
             font-size: 0.9rem;
             text-transform: uppercase;
+            letter-spacing: 1px;
         }
 
         #irina-viznuk-site .about-visual {
             flex: 0.8;
-            height: 400px;
+            height: 450px;
             position: relative;
             display: flex;
             justify-content: center;
@@ -247,18 +265,14 @@
         }
 
         #irina-viznuk-site .circle-visual {
-            width: 300px;
-            height: 300px;
-            border-radius: 50%;
-            border: 1px solid rgba(196, 164, 132, 0.3);
+            width: 350px;
+            height: 350px;
+            border-radius: 50% 50% 0 0;
+            /* Arch */
+            border: none;
+            background: #F0EEE9;
             position: relative;
             overflow: hidden;
-        }
-
-        #irina-viznuk-site .circle-visual img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
         }
 
         #irina-viznuk-site .circle-visual::before {
@@ -273,43 +287,50 @@
             background: radial-gradient(circle, rgba(196, 164, 132, 0.1) 0%, transparent 70%);
         }
 
+        #irina-viznuk-site .circle-visual img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
         /* GALLERY */
         #irina-viznuk-site .gallery-section {
-            background-color: #141414;
+            background-color: #F9F8F6;
         }
 
         #irina-viznuk-site .gallery-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 20px;
-            margin-bottom: 40px;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 40px;
+            margin-bottom: 60px;
         }
 
         #irina-viznuk-site .gallery-item {
-            background-color: #222;
+            background-color: #FFFFFF;
             display: flex;
             flex-direction: column;
-            border-radius: 4px;
-            overflow: hidden;
-            transition: transform 0.3s;
+            border: 1px solid #EDEDED;
+            transition: transform 0.4s ease, box-shadow 0.4s ease;
         }
 
         #irina-viznuk-site .gallery-item:hover {
-            transform: translateY(-5px);
+            transform: translateY(-10px);
+            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.05);
         }
 
         #irina-viznuk-site .gallery-img-container {
             width: 100%;
-            aspect-ratio: 3/4;
+            aspect-ratio: 4/5;
             position: relative;
             overflow: hidden;
+            background-color: #f0f0f0;
         }
 
         #irina-viznuk-site .gallery-img-container img {
             width: 100%;
             height: 100%;
             object-fit: cover;
-            transition: transform 0.5s;
+            transition: transform 0.8s ease;
         }
 
         #irina-viznuk-site .gallery-item:hover .gallery-img-container img {
@@ -318,70 +339,75 @@
 
         #irina-viznuk-site .status-badge {
             position: absolute;
-            top: 10px;
-            right: 10px;
-            padding: 4px 10px;
-            border-radius: 12px;
-            font-size: 0.8rem;
-            font-weight: 500;
+            top: 15px;
+            right: 15px;
+            padding: 6px 12px;
+            font-size: 0.75rem;
+            font-weight: 600;
             text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-
-        #irina-viznuk-site .status-badge.available {
-            background-color: rgba(196, 164, 132, 0.9);
+            letter-spacing: 1px;
+            background-color: #FFFFFF;
             color: #1a1a1a;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
         }
 
         #irina-viznuk-site .status-badge.sold {
-            background-color: rgba(100, 100, 100, 0.8);
-            color: #ccc;
+            background-color: #C4A484;
+            /* Gold */
+            color: #FFFFFF;
         }
 
         #irina-viznuk-site .status-badge.unavailable {
-            background-color: rgba(200, 50, 50, 0.7);
-            color: #fff;
+            background-color: #F5F5F5;
+            color: #999;
+            text-decoration: line-through;
         }
 
         #irina-viznuk-site .gallery-info {
-            padding: 20px;
+            padding: 30px;
             flex: 1;
             display: flex;
             flex-direction: column;
         }
 
         #irina-viznuk-site .gallery-info h4 {
-            font-size: 1.4rem;
-            margin-bottom: 5px;
-            color: #fff;
+            font-size: 1.6rem;
+            margin-bottom: 8px;
+            color: #1a1a1a;
         }
 
         #irina-viznuk-site .specs {
             font-size: 0.85rem;
-            color: #888;
-            margin-bottom: 12px;
-            font-style: italic;
+            color: #999;
+            margin-bottom: 15px;
+            font-style: normal;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
 
         #irina-viznuk-site .description {
-            font-size: 0.95rem;
-            color: #ccc;
-            margin-bottom: 20px;
+            font-size: 1rem;
+            color: #666;
+            margin-bottom: 25px;
             flex: 1;
-            /* Pushes price down */
+            line-height: 1.5;
         }
 
         #irina-viznuk-site .item-price {
-            font-size: 1.2rem;
-            color: #c4a484;
-            font-weight: 600;
+            font-size: 1.3rem;
+            color: #1a1a1a;
+            font-weight: 500;
             margin-top: auto;
+            font-family: 'Cormorant Garamond', serif;
         }
 
         #irina-viznuk-site .gallery-footer {
             text-align: center;
             max-width: 800px;
-            margin: 60px auto 0;
+            margin: 40px auto 0;
+            padding: 40px;
+            background: #FFFFFF;
+            border: 1px solid #EEE;
         }
 
         #irina-viznuk-site .request-types {
@@ -393,102 +419,137 @@
         }
 
         #irina-viznuk-site .request-types li {
-            padding: 6px 16px;
-            border: 1px solid #333;
-            border-radius: 20px;
-            font-size: 0.9rem;
-            color: #888;
+            padding: 8px 20px;
+            background-color: #F9F8F6;
+            border: 1px solid #E0E0E0;
+            font-size: 0.95rem;
+            color: #555;
+            transition: 0.3s;
+        }
+
+        #irina-viznuk-site .request-types li:hover {
+            border-color: #C4A484;
+            /* Gold */
+            color: #C4A484;
         }
 
         #irina-viznuk-site .process-steps {
-            margin-bottom: 30px;
-            color: #c4a484;
+            margin-bottom: 40px;
+            color: #1a1a1a;
             font-family: 'Cormorant Garamond', serif;
-            font-size: 1.1rem;
+            font-size: 1.3rem;
+        }
+
+        #irina-viznuk-site .process-steps span {
+            border-bottom: 1px solid #C4A484;
         }
 
         /* SERVICES */
         #irina-viznuk-site .services-section {
-            background-color: #1a1a1a;
+            background-color: #FFFFFF;
         }
 
         #irina-viznuk-site .service-card {
-            background: #222;
-            margin-bottom: 30px;
-            padding: 40px;
-            border-radius: 8px;
-            border: 1px solid #2a2a2a;
+            background: #F9F8F6;
+            margin-bottom: 40px;
+            padding: 60px;
             transition: transform 0.3s;
+            border: 1px solid transparent;
         }
 
         #irina-viznuk-site .service-card:hover {
             transform: translateY(-5px);
-            border-color: #333;
+            border-color: #E0E0E0;
         }
 
         #irina-viznuk-site .service-card.flagship {
-            background: linear-gradient(135deg, #252525 0%, #1e1e1e 100%);
-            border: 1px solid #c4a484;
+            background: #FFFEFC;
+            border: 1px solid #C4A484;
+            position: relative;
+        }
+
+        #irina-viznuk-site .service-card.flagship::after {
+            content: "Популярное";
+            position: absolute;
+            top: -15px;
+            right: 40px;
+            background: #800000;
+            color: #fff;
+            padding: 5px 15px;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
         }
 
         #irina-viznuk-site .service-card h3 {
-            font-size: 1.8rem;
-            margin-bottom: 10px;
-            color: #fff;
+            font-size: 2.2rem;
+            margin-bottom: 15px;
+            color: #1a1a1a;
         }
 
         #irina-viznuk-site .service-subtitle {
-            margin-bottom: 20px;
-            color: #aaa;
+            margin-bottom: 30px;
+            color: #777;
+            font-size: 1.1rem;
         }
 
         #irina-viznuk-site .service-variants {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 20px;
-            margin-top: 20px;
+            gap: 40px;
+            margin-top: 40px;
         }
 
         #irina-viznuk-site .variant {
-            background: rgba(255, 255, 255, 0.03);
-            padding: 20px;
-            border-radius: 4px;
+            background: #FFFFFF;
+            padding: 30px;
+            border: 1px solid #EEE;
         }
 
         #irina-viznuk-site .variant h4 {
-            margin-bottom: 10px;
+            margin-bottom: 15px;
             font-family: 'Montserrat', sans-serif;
-            font-size: 1rem;
+            font-size: 1.1rem;
             text-transform: uppercase;
-            color: #c4a484;
+            color: #C4A484;
+            /* Gold */
+            letter-spacing: 1px;
         }
 
         #irina-viznuk-site .variant ul {
-            margin-bottom: 20px;
+            margin-bottom: 25px;
             margin-left: 20px;
-            list-style: disc;
-            color: #ccc;
-            font-size: 0.9rem;
+            list-style: square;
+            color: #555;
+            font-size: 1rem;
+            line-height: 1.8;
+        }
+
+        #irina-viznuk-site .variant ul li::marker {
+            color: #C4A484;
         }
 
         #irina-viznuk-site .price {
-            font-size: 1.3rem;
-            font-weight: 600;
-            margin-bottom: 15px;
-            color: #fff;
+            font-size: 1.4rem;
+            font-weight: 500;
+            margin-bottom: 20px;
+            color: #1a1a1a;
+            font-family: 'Cormorant Garamond', serif;
         }
 
         /* FOOTER */
         #irina-viznuk-site .footer {
-            padding: 80px 0 40px;
-            background-color: #000;
+            padding: 100px 0 60px;
+            background-color: #1a1a1a;
+            /* Dark footer anchors well */
+            color: #fff;
             text-align: center;
         }
 
         #irina-viznuk-site .footer h2 {
-            font-size: 2rem;
+            font-size: 2.5rem;
             margin-bottom: 40px;
-            line-height: 1.4;
+            color: #fff;
         }
 
         #irina-viznuk-site .contact-info {
@@ -496,19 +557,20 @@
         }
 
         #irina-viznuk-site .contact-info p {
-            color: #666;
+            color: #aaa;
             margin-top: 10px;
         }
 
         #irina-viznuk-site .copyright {
             color: #444;
             font-size: 0.8rem;
+            margin-top: 40px;
         }
 
         /* RESPONSIVE */
         @media (max-width: 1024px) {
             #irina-viznuk-site .hero-text h1 {
-                font-size: 3rem;
+                font-size: 3.5rem;
             }
 
             #irina-viznuk-site .section-title {
@@ -522,42 +584,23 @@
             }
 
             #irina-viznuk-site .hero {
-                height: auto;
-                padding: 100px 0 60px;
+                padding: 80px 0;
                 text-align: center;
             }
 
             #irina-viznuk-site .hero-content {
                 flex-direction: column;
-                gap: 30px;
+                gap: 40px;
             }
 
             #irina-viznuk-site .hero-text {
-                max-width: 100%;
-            }
-
-            #irina-viznuk-site .hero-text h1 {
-                font-size: 2.2rem;
-                margin-bottom: 15px;
-            }
-
-            #irina-viznuk-site .hero-text .subtitle {
-                font-size: 1rem;
-            }
-
-            #irina-viznuk-site .hero-text .description {
-                font-size: 1rem;
-            }
-
-            #irina-viznuk-site .divider {
-                margin: 20px auto;
+                order: 1;
             }
 
             #irina-viznuk-site .hero-image {
-                height: 350px;
+                height: 400px;
                 width: 100%;
-                max-width: 350px;
-                box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3);
+                max-width: 100%;
             }
 
             #irina-viznuk-site .hero-buttons {
@@ -570,6 +613,10 @@
                 width: 100%;
             }
 
+            #irina-viznuk-site .divider {
+                margin: 20px auto;
+            }
+
             #irina-viznuk-site .about-grid {
                 flex-direction: column;
                 gap: 40px;
@@ -577,7 +624,7 @@
 
             #irina-viznuk-site .about-visual {
                 order: -1;
-                height: 250px;
+                height: 300px;
             }
 
             #irina-viznuk-site .circle-visual {
@@ -787,7 +834,7 @@
                     </div>
                 </div>
                 <div class="gallery-footer">
-                    <a href="#services" class="btn btn-primary"
+                    <a href="#popup:art" class="btn btn-primary"
                         style="margin-bottom: 30px; font-size: 1.1rem; padding: 15px 40px !important;">Заказать
                         картину</a>
                     <p>Если вы не нашли «свою» работу — я создам картину под ваш запрос или пространство.</p>
@@ -803,7 +850,6 @@
                         <span>Передача</span>
                     </div>
                     <div style="margin-top: 20px;">
-                        <a href="#popup:art" class="btn btn-outline" style="margin-right: 15px;">Заказать картину</a>
                         <a href="#popup:indiv" class="btn btn-primary">Заказать индивидуальную работу</a>
                     </div>
                 </div>
@@ -814,6 +860,41 @@
         <section id="services" class="services-section">
             <div class="container">
                 <h2 class="section-title">Услуги и Форматы</h2>
+
+
+
+                <!-- Service 2: Interior Painting -->
+                <div class="service-card">
+                    <div class="service-content">
+                        <h3>СОЗДАЙ СВОЮ ИНТЕРЬЕРНУЮ КАРТИНУ</h3>
+                        <p>Вы создаёте свою картину — через разные техники, материалы и состояния.</p>
+                        <ul>
+                            <li>2–3 встречи</li>
+                            <li>Работа с цветом, формой, символом</li>
+                            <li>Поддержка и ведение процесса</li>
+                        </ul>
+                        <p class="price">от 15 000 ₽</p>
+                        <a href="#popup:create" class="btn btn-outline">Записаться</a>
+                    </div>
+                </div>
+
+                <!-- Service 3: Events -->
+                <div class="service-card">
+                    <div class="service-content">
+                        <h3>«В ГОСТЯХ У ХУДОЖНИКА»</h3>
+                        <p>Разовые мероприятия и встречи с психологами, искусствоведами, телесными практиками.</p>
+                        <a href="#contact" class="btn btn-outline">Посмотреть расписание</a>
+                    </div>
+                </div>
+
+                <!-- Service 4: Rent -->
+                <div class="service-card">
+                    <div class="service-content">
+                        <h3>АРЕНДА ПРОСТРАНСТВА</h3>
+                        <p>Творческая студия на 8 мест. Подходит для МК, арт-встреч, камерных мероприятий.</p>
+                        <a href="#popup:rent" class="btn btn-outline">Арендовать</a>
+                    </div>
+                </div>
 
                 <!-- Service 1: Energy Key -->
                 <div class="service-card flagship">
@@ -846,39 +927,6 @@
                                 <a href="#popup:key" class="btn btn-small">Записаться на сопровождение</a>
                             </div>
                         </div>
-                    </div>
-                </div>
-
-                <!-- Service 2: Interior Painting -->
-                <div class="service-card">
-                    <div class="service-content">
-                        <h3>СОЗДАЙ СВОЮ ИНТЕРЬЕРНУЮ КАРТИНУ</h3>
-                        <p>Вы создаёте свою картину — через разные техники, материалы и состояния.</p>
-                        <ul>
-                            <li>2–3 встречи</li>
-                            <li>Работа с цветом, формой, символом</li>
-                            <li>Поддержка и ведение процесса</li>
-                        </ul>
-                        <p class="price">от 15 000 ₽</p>
-                        <a href="#popup:create" class="btn btn-outline">Записаться</a>
-                    </div>
-                </div>
-
-                <!-- Service 3: Events -->
-                <div class="service-card">
-                    <div class="service-content">
-                        <h3>«В ГОСТЯХ У ХУДОЖНИКА»</h3>
-                        <p>Разовые мероприятия и встречи с психологами, искусствоведами, телесными практиками.</p>
-                        <a href="#contact" class="btn btn-outline">Посмотреть расписание</a>
-                    </div>
-                </div>
-
-                <!-- Service 4: Rent -->
-                <div class="service-card">
-                    <div class="service-content">
-                        <h3>АРЕНДА ПРОСТРАНСТВА</h3>
-                        <p>Творческая студия на 8 мест. Подходит для МК, арт-встреч, камерных мероприятий.</p>
-                        <a href="#popup:rent" class="btn btn-outline">Арендовать</a>
                     </div>
                 </div>
 

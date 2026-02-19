@@ -24,10 +24,11 @@ class FirestoreService {
     }, SetOptions(merge: true));
   }
 
-  Future<void> updateUserProfile(String uid, {String? firstName, String? phoneNumber}) async {
+  Future<void> updateUserProfile(String uid, {String? firstName, String? phoneNumber, DateTime? birthDate}) async {
     final Map<String, dynamic> data = {};
     if (firstName != null) data['first_name'] = firstName;
     if (phoneNumber != null) data['phoneNumber'] = phoneNumber; // Consistent naming
+    if (birthDate != null) data['birthDate'] = Timestamp.fromDate(birthDate);
     
     if (data.isNotEmpty) {
       await _db.collection('users').doc(uid).update(data);
@@ -1250,6 +1251,7 @@ class FirestoreService {
     required String userName,
     required String contact,
     String? ticket,
+    DateTime? birthDate, // New
   }) async {
      final user = _auth.currentUser;
      if (user == null) throw Exception("User not logged in");
@@ -1260,14 +1262,20 @@ class FirestoreService {
         'name': userName,
         'contact': contact,
         'ticket': ticket,
+        if (birthDate != null) 'birthDate': Timestamp.fromDate(birthDate), // Save separate field
         'joinedAt': FieldValue.serverTimestamp(),
         'status': 'confirmed'
      });
 
      // 2. Update Main Document (Sync for UI)
+     // Note: We might want to keep `participants` array lightweight or include birthDate there too?
+     // The array is used for logs and maybe counting, but full details are in subcollection.
+     // However, `ParticipantListDialog` uses `getFestivalGameParticipants` which queries the subcollection.
+     // So saving in subcollection is enough for the export feature.
+     // But let's add to array just in case we need it elsewhere without extra query.
      await _db.collection('festival_games').doc(game.id).update({
         'participants': FieldValue.arrayUnion([
-           {'userId': user.uid, 'name': userName, 'contact': contact, 'ticket': ticket}
+           {'userId': user.uid, 'name': userName, 'contact': contact, 'ticket': ticket} // Array remains lightweight for now
         ])
      });
 

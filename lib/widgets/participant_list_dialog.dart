@@ -113,7 +113,14 @@ class ParticipantListDialog extends StatelessWidget {
         
         for (int i = 0; i < participants.length; i++) {
            final p = participants[i];
-           buffer.writeln("${i+1}. ${p['name']} (${p['contact']})");
+           String line = "${i+1}. ${p['name']} (${p['contact']})";
+           
+           if (p['birthDate'] != null) {
+              final dob = (p['birthDate'] as dynamic).toDate();
+              line += " [${DateFormat('dd.MM.yyyy').format(dob)}]";
+           }
+           
+           buffer.writeln(line);
         }
         
         // Trigger Download (Web compatible)

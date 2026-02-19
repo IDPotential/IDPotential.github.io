@@ -8,13 +8,7 @@ import '../data/festival_content.dart';
 // We need to remove the loop import if FestivalGameCard is in widgets.
 // Actually we stand alone.
 
-class FestivalGameCard extends StatelessWidget {
-  final FestivalGame game;
-  final bool isRegistered;
-  final bool isMaster; // New flag
-  final VoidCallback onRegister;
-  final VoidCallback? onManage; // For masters/admins
-  final VoidCallback? onShowParticipants; // New callback
+  final String? conflictTitle; // New: Title of the game already registered in this slot
 
   const FestivalGameCard({
     super.key,
@@ -22,9 +16,21 @@ class FestivalGameCard extends StatelessWidget {
     required this.isRegistered,
     required this.onRegister,
     this.isMaster = false,
+    this.conflictTitle,
     this.onManage,
     this.onShowParticipants,
   });
+
+  @override
+  Widget build(BuildContext context) {
+    // ... existing build ... Since replace_file_content context is small, I will focus on where I need changes.
+    // I need to update the constructor above, and _buildActionBtn below.
+    // Wait, the tool requires contiguous replacement. I should probably replace the whole class or large chunks if I can't target specific lines easily without context.
+    // I'll try to do it in two chunks or one if close enough. 
+    // They are far apart (constructor at top, _buildActionBtn at bottom).
+    // I'll use `multi_replace_file_content` instead.
+    return Container(); // Placeholder to cancel this tool call and use multi_replace
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -299,9 +305,31 @@ class FestivalGameCard extends StatelessWidget {
             borderRadius: BorderRadius.circular(8),
             border: Border.all(color: Colors.green),
           ),
-          child: const Text("Вы идут", style: TextStyle(color: Colors.green, fontSize: 12, fontWeight: FontWeight.bold)),
+          child: const Text("Ваш выбор", style: TextStyle(color: Colors.green, fontSize: 12, fontWeight: FontWeight.bold)),
         ),
       );
+    }
+    
+    // Conflict Check
+    if (conflictTitle != null) {
+       if (isDialog) {
+          return Container(
+             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+             decoration: BoxDecoration(color: Colors.white10, borderRadius: BorderRadius.circular(8)),
+             child: Text("Вы идете на: $conflictTitle", style: const TextStyle(color: Colors.orangeAccent)),
+          );
+       }
+       return Container(
+          height: 32,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: Colors.orange.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: Colors.orange.withOpacity(0.3)),
+          ),
+          // Shorten text for card
+          child: const Text("Занято", style: TextStyle(color: Colors.orangeAccent, fontSize: 11)), 
+       );
     }
 
     if (game.placesLeft <= 0) {

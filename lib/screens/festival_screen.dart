@@ -41,11 +41,13 @@ class _FestivalScreenState extends State<FestivalScreen> {
    String? _firstName;
    String? _phoneNumber;
    String? _ticketNumber;
+   DateTime? _birthDate;
    bool _isLoadingProfile = true;
 
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _phoneController = TextEditingController();
+  final _dobController = TextEditingController();
   bool _consent = false;
 
   @override
@@ -61,6 +63,7 @@ class _FestivalScreenState extends State<FestivalScreen> {
   void dispose() {
     _nameController.dispose();
     _phoneController.dispose();
+    _dobController.dispose();
     super.dispose();
   }
 
@@ -77,6 +80,11 @@ class _FestivalScreenState extends State<FestivalScreen> {
             _firstName = data?['first_name'];
             _phoneNumber = data?['phoneNumber'];
             _ticketNumber = data?['ticketLogin'] ?? data?['ticket'];
+            
+            if (data?['birthDate'] != null) {
+               _birthDate = (data!['birthDate'] as Timestamp).toDate();
+               _dobController.text = "${_birthDate!.day.toString().padLeft(2,'0')}.${_birthDate!.month.toString().padLeft(2,'0')}.${_birthDate!.year}";
+            }
           });
         }
       } catch (e) {
@@ -574,35 +582,7 @@ class _FestivalScreenState extends State<FestivalScreen> {
   }
 
   Widget _buildSchedule() {
-     // 1. Strict Gate: Only Admin or Deep Link Access allowed
-     // Everyone else sees "Schedule Forming"
-     bool canAccess = _userRole == 'admin' || (widget.initialTab == 'schedule');
-     
-     if (!canAccess) {
-        return _buildSchedulePlaceholder();
-     }
-
-     // 2. Auth Check for those who CAN access
-     if (_isLoadingProfile) {
-        return const Center(child: CircularProgressIndicator());
-     }
-     
-     if (_userId == null) {
-        return Center(
-          child: ElevatedButton(
-            onPressed: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const LoginScreen())),
-            child: const Text("Войти для просмотра расписания"),
-          )
-        );
-     }
-
-     // 3. Profile Check for Regular Users (Admins bypass)
-     if (_userRole != 'admin' && _userRole != 'master') {
-        if ((_firstName?.isEmpty ?? true) || (_phoneNumber?.isEmpty ?? true)) {
-            return _buildProfileForm();
-        }
-     }
-     
+     // Open to everyone
      return _buildScheduleContent();
   }
 
@@ -652,11 +632,37 @@ class _FestivalScreenState extends State<FestivalScreen> {
                        validator: (v) => v?.isEmpty ?? true ? "Введите имя" : null,
                     ),
                     const SizedBox(height: 16),
+                    const SizedBox(height: 16),
                     TextFormField(
                        controller: _phoneController,
                        decoration: const InputDecoration(labelText: "Телефон"),
                        style: const TextStyle(color: Colors.white),
                        validator: (v) => v?.isEmpty ?? true ? "Введите телефон" : null,
+                    ),
+                    const SizedBox(height: 16),
+                    TextFormField(
+                       controller: _dobController,
+                       decoration: const InputDecoration(
+                          labelText: "Дата рождения",
+                          suffixIcon: Icon(Icons.calendar_today, color: Colors.white54),
+                       ),
+                       style: const TextStyle(color: Colors.white),
+                       readOnly: true,
+                       onTap: () async {
+                          final date = await showDatePicker(
+                             context: context,
+                             initialDate: _birthDate ?? DateTime(1990),
+                             firstDate: DateTime(1900),
+                             lastDate: DateTime.now(),
+                          );
+                          if (date != null) {
+                             setState(() {
+                                _birthDate = date;
+                                _dobController.text = "${date.day.toString().padLeft(2,'0')}.${date.month.toString().padLeft(2,'0')}.${date.year}";
+                             });
+                          }
+                       },
+                       validator: (v) => v?.isEmpty ?? true ? "Укажите дату рождения" : null,
                     ),
                     const SizedBox(height: 16),
                     CheckboxListTile(
@@ -683,7 +689,12 @@ class _FestivalScreenState extends State<FestivalScreen> {
 
   Future<void> _submitProfile() async {
      if (_formKey.currentState!.validate() && _consent) {
-        await FirestoreService().updateUserProfile(_userId!, firstName: _nameController.text, phoneNumber: _phoneController.text);
+        await FirestoreService().updateUserProfile(
+            _userId!, 
+            firstName: _nameController.text, 
+            phoneNumber: _phoneController.text,
+            birthDate: _birthDate
+        );
         await _fetchUserData(); 
      } else if (!_consent) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Необходимо согласие")));
@@ -785,27 +796,50 @@ class _FestivalScreenState extends State<FestivalScreen> {
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
               gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                 crossAxisCount: 2,
+                crossAxisCount: 2,
                  childAspectRatio: 1.0,
                  crossAxisSpacing: 10,
                  mainAxisSpacing: 10,
               ),
-              itemCount: games.length,
-              itemBuilder: (ctx, index) {
-                 final g = games[index];
-                 final isRegistered = g.isUserRegistered(_userId ?? '', _ticketNumber);
-                 final isMyGame = g.hasMasterAccess(_userId, _ticketNumber);
-                 
-                 return FestivalGameCard(
-                   game: g,
-                   isRegistered: isRegistered,
-                   isMaster: isMyGame,
-                   onRegister: () => _handleGameAction(g, isRegistered),
-                   onManage: (_userRole == 'admin' || isMyGame) ? () => _showManageGameDialog(g) : null,
-                   onShowParticipants: isMyGame ? () => showDialog(context: context, builder: (_) => ParticipantListDialog(game: g)) : null,
-                 );
-              }
-           ),
+               itemCount: games.length,
+               itemBuilder: (ctx, index) {
+                  final g = games[index];
+                  final isRegistered = g.isUserRegistered(_userId ?? '', _ticketNumber);
+                  final isMyGame = g.hasMasterAccess(_userId, _ticketNumber); // I am the master
+                  
+                  // Conflict logic
+                  String? conflictTitle;
+                  
+                  // 1. Check if I am a master of ANY game in this slot
+                  if (!isMyGame && !isRegistered) {
+                     // Check if I am leading another game in this slot
+                     try {
+                        final leadingGame = games.firstWhere((other) => other.hasMasterAccess(_userId, _ticketNumber));
+                        conflictTitle = "Веду: ${leadingGame.title}";
+                     } catch (_) {
+                        // Not leading any other game in this slot
+                        // 2. Check if I am registered for another game
+                         final registeredInSlot = games.firstWhere(
+                            (other) => other.isUserRegistered(_userId ?? '', _ticketNumber), 
+                            orElse: () => g // Dummy
+                         );
+                         if (registeredInSlot != g) {
+                            conflictTitle = registeredInSlot.title;
+                         }
+                     }
+                  }
+                  
+                  return FestivalGameCard(
+                    game: g,
+                    isRegistered: isRegistered,
+                    isMaster: isMyGame,
+                    conflictTitle: conflictTitle,
+                    onRegister: () => _handleGameAction(g, isRegistered),
+                    onManage: (_userRole == 'admin' || isMyGame) ? () => _showManageGameDialog(g) : null,
+                    onShowParticipants: isMyGame ? () => showDialog(context: context, builder: (_) => ParticipantListDialog(game: g)) : null,
+                  );
+               }
+            ),
            const SizedBox(height: 24),
         ],
      );
@@ -823,64 +857,169 @@ class _FestivalScreenState extends State<FestivalScreen> {
      }
 
      final allGames = await FirestoreService().getFestivalGamesOnce();
-     final slot1 = allGames.where((g) => g.slotId == 1 && g.placesLeft > 0).toList();
-     final slot2 = allGames.where((g) => g.slotId == 2 && g.placesLeft > 0).toList();
-     final slot3 = allGames.where((g) => g.slotId == 3 && g.placesLeft > 0).toList();
      
-     if (slot1.isEmpty && slot2.isEmpty && slot3.isEmpty) {
+     // Helper to get available games for a slot, excluding already full ones
+     List<FestivalGame> getAvailable(int slotId) {
+        return allGames.where((g) => g.slotId == slotId && g.placesLeft > 0).toList();
+     }
+     
+     // 1. Check existing registrations OR master roles
+     FestivalGame? reg1; 
+     FestivalGame? reg2; 
+     FestivalGame? reg3;
+     
+     // Helper to check standard registration or master role
+     FestivalGame? checkSlot(int slot) {
+        try {
+           // First check if I am leading a game
+           return allGames.firstWhere((g) => g.slotId == slot && g.hasMasterAccess(_userId, _ticketNumber));
+        } catch (_) {
+           try {
+              // Then check if registered
+              return allGames.firstWhere((g) => g.slotId == slot && g.isUserRegistered(_userId ?? '', _ticketNumber));
+           } catch (_) {
+              return null;
+           }
+        }
+     }
+
+     reg1 = checkSlot(1);
+     reg2 = checkSlot(2);
+     reg3 = checkSlot(3);
+
+     // 2. Pick Random for empty slots
+     final rng = DateTime.now().millisecondsSinceEpoch;
+     final slot1Opts = getAvailable(1);
+     final slot2Opts = getAvailable(2);
+     final slot3Opts = getAvailable(3);
+     
+     final s1 = reg1 ?? (slot1Opts.isNotEmpty ? slot1Opts[rng % slot1Opts.length] : null);
+     final s2 = reg2 ?? (slot2Opts.isNotEmpty ? slot2Opts[(rng + 1) % slot2Opts.length] : null);
+     final s3 = reg3 ?? (slot3Opts.isNotEmpty ? slot3Opts[(rng + 2) % slot3Opts.length] : null);
+     
+     if (s1 == null && s2 == null && s3 == null) {
         if(mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Нет доступных игр для случайного выбора")));
         return;
      }
-
-     final rng = DateTime.now().millisecondsSinceEpoch;
-     final s1 = slot1.isNotEmpty ? slot1[rng % slot1.length] : null;
-     final s2 = slot2.isNotEmpty ? slot2[(rng + 1) % slot2.length] : null;
-     final s3 = slot3.isNotEmpty ? slot3[(rng + 2) % slot3.length] : null;
      
      if (!mounted) return;
 
+     // Selection state for NEW suggestions only
+     // If regX is null and sX is suggested, checked by default.
+     final Map<int, bool> selected = {
+        1: s1 != null && reg1 == null,
+        2: s2 != null && reg2 == null,
+        3: s3 != null && reg3 == null,
+     };
+
      showDialog(
        context: context,
-       builder: (ctx) => AlertDialog(
-          backgroundColor: const Color(0xFF1E293B),
-          title: const Text("Твой Путь Фестиваля", style: TextStyle(color: Colors.white)),
-          content: Column(
-             mainAxisSize: MainAxisSize.min,
-             crossAxisAlignment: CrossAxisAlignment.start,
-             children: [
-                if (s1 != null) Text("12:45: ${s1.title}", style: const TextStyle(color: Colors.white)),
-                if (s2 != null) Text("14:45: ${s2.title}", style: const TextStyle(color: Colors.white)),
-                if (s3 != null) Text("16:30: ${s3.title}", style: const TextStyle(color: Colors.white)),
-                if (s1 == null && s2 == null && s3 == null) const Text("К сожалению, все места заняты.", style: TextStyle(color: Colors.white54)),
-             ],
-          ),
-          actions: [
-             TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("Отмена")),
-             if (s1 != null || s2 != null || s3 != null)
-                ElevatedButton(
-                   onPressed: () async {
-                      Navigator.pop(ctx);
-                      final name = _firstName ?? 'Участник';
-                      final contact = _phoneNumber ?? 'Не указан';
-                      
-                      try {
-                        if (s1 != null) await FirestoreService().joinFestivalGame(game: s1, userName: name, contact: contact, ticket: _ticketNumber);
-                        if (s2 != null) await FirestoreService().joinFestivalGame(game: s2, userName: name, contact: contact, ticket: _ticketNumber);
-                        if (s3 != null) await FirestoreService().joinFestivalGame(game: s3, userName: name, contact: contact, ticket: _ticketNumber);
-                        
-                        if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Вы записаны на выбранные игры!")));
-                      } catch (e) {
-                        if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Ошибка: $e")));
-                      }
-                   },
-                   child: const Text("Записаться на всё"),
-                )
-          ],
+       builder: (ctx) => StatefulBuilder(
+          builder: (context, setState) {
+             return AlertDialog(
+                backgroundColor: const Color(0xFF1E293B),
+                title: const Text("Твой Путь Фестиваля", style: TextStyle(color: Colors.white)),
+                content: Column(
+                   mainAxisSize: MainAxisSize.min,
+                   crossAxisAlignment: CrossAxisAlignment.start,
+                   children: [
+                      _buildFlowRow(s1, reg1 != null, selected[1] ?? false, (val) => setState(() => selected[1] = val ?? false)),
+                      _buildFlowRow(s2, reg2 != null, selected[2] ?? false, (val) => setState(() => selected[2] = val ?? false)),
+                      _buildFlowRow(s3, reg3 != null, selected[3] ?? false, (val) => setState(() => selected[3] = val ?? false)),
+                      if (s1 == null && s2 == null && s3 == null) const Text("К сожалению, все места заняты.", style: TextStyle(color: Colors.white54)),
+                   ],
+                ),
+                actions: [
+                   TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("Отмена")),
+                   ElevatedButton(
+                      onPressed: () async {
+                         Navigator.pop(ctx);
+                         final name = _firstName ?? 'Участник';
+                         final contact = _phoneNumber ?? 'Не указан';
+                         
+                         int successCount = 0;
+                         
+                         try {
+                           // 1. Double check capacity for picked games before trying to join
+                           List<FestivalGame> toJoin = [];
+                           if (selected[1] == true && s1 != null) toJoin.add(s1);
+                           if (selected[2] == true && s2 != null) toJoin.add(s2);
+                           if (selected[3] == true && s3 != null) toJoin.add(s3);
+                           
+                           // We need fresh capacity check? 
+                           // Currently we have 'sX' from when dialog opened.
+                           // joinFestivalGame checks capacity internally and throws if full.
+                           // So we can just try/catch individually.
+                           
+                           for (var game in toJoin) {
+                              try {
+                                 await FirestoreService().joinFestivalGame(
+                                    game: game, 
+                                    userName: name, 
+                                    contact: contact, 
+                                    ticket: _ticketNumber, 
+                                    birthDate: _birthDate
+                                 );
+                                 successCount++;
+                              } catch (e) {
+                                 if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Не удалось записаться на '${game.title}': ${e.toString().replaceAll('Exception: ', '')}")));
+                              }
+                           }
+                           
+                           if (successCount > 0 && mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Вы успешно записаны на $successCount игр(ы)!")));
+                           }
+                         } catch (e) {
+                           if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Ошибка: $e")));
+                         }
+                      },
+                      child: const Text("Подтвердить выбор"),
+                   )
+                ],
+             );
+          }
        )
      );
   }
+  
+  Widget _buildFlowRow(FestivalGame? game, bool isAlreadyRegistered, bool isSelected, Function(bool?) onChanged) {
+     if (game == null) return const SizedBox.shrink();
+     final time = game.slotId == 1 ? "12:45" : (game.slotId == 2 ? "14:45" : "16:30");
+     
+     return Padding(
+       padding: const EdgeInsets.symmetric(vertical: 4),
+       child: Row(
+          children: [
+             if (!isAlreadyRegistered)
+                Checkbox(
+                   value: isSelected, 
+                   onChanged: onChanged,
+                   fillColor: MaterialStateProperty.all(Colors.purpleAccent),
+                )
+             else
+                const Padding(
+                  padding: EdgeInsets.all(12.0), // Match checkbox size roughly
+                  child: Icon(Icons.check_circle, size: 20, color: Colors.greenAccent),
+                ),
+             
+             Text("$time: ", style: const TextStyle(color: Colors.white54, fontWeight: FontWeight.bold)),
+             Expanded(
+                child: Text(
+                   game.title, 
+                   style: TextStyle(
+                      color: isAlreadyRegistered ? Colors.greenAccent : (isSelected ? Colors.white : Colors.white38),
+                      decoration: (!isAlreadyRegistered && !isSelected) ? TextDecoration.lineThrough : null
+                   ),
+                   maxLines: 2,
+                   overflow: TextOverflow.ellipsis,
+                )
+             ),
+          ],
+       ),
+     );
+  }
 
-  Future<void> _handleGameAction(FestivalGame game, bool isRegistered) async {
+   Future<void> _handleGameAction(FestivalGame game, bool isRegistered) async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) {
     ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Сначала войдите в систему")));
@@ -933,7 +1072,8 @@ class _FestivalScreenState extends State<FestivalScreen> {
           game: game,
           userName: _firstName ?? 'Участник',
           contact: _phoneNumber ?? 'Не указан',
-          ticket: _ticketNumber
+          ticket: _ticketNumber,
+          birthDate: _birthDate // Pass birthDate
        );
          if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Вы записаны на игру '${game.title}'!")));
        } catch (e) {
@@ -1405,6 +1545,10 @@ class _FestivalScreenState extends State<FestivalScreen> {
   }
 
   void _showProfileSettings() {
+    if (_userId == null) {
+       Navigator.push(context, MaterialPageRoute(builder: (_) => const LoginScreen(isTicketMode: true)));
+       return;
+    }
     showDialog(
       context: context,
       builder: (context) => const ProfileSettingsDialog(),
