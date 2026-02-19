@@ -808,9 +808,7 @@ class _FestivalScreenState extends State<FestivalScreen> {
         ],
      );
   }
-        ],
-     );
-  }
+
 
   void _trustTheFlow() async {
      if (_ticketNumber == null) {
