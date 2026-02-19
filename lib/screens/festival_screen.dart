@@ -582,26 +582,63 @@ class _FestivalScreenState extends State<FestivalScreen> {
   }
 
   Widget _buildSchedule() {
-     // Open to everyone
+     // 1. Check Auth
+     if (_userId == null) {
+        return _buildLoginPlaceholder();
+     }
+     
+     // 2. Check minimal profile (optional, but good for UX)
+     // if (_firstName == null || _phoneNumber == null) {
+     //    return _buildProfileForm();
+     // }
+
+     // 3. Show Schedule
      return _buildScheduleContent();
   }
 
-  Widget _buildSchedulePlaceholder() {
+  Widget _buildLoginPlaceholder() {
       return SizedBox.expand(
         child: Container(
           color: Colors.black54,
-          child: const Center(
+          child: Center(
             child: Padding(
-              padding: EdgeInsets.all(24.0),
-              child: Text(
-                "Расписание игр формируется.\n19 февраля в 18 часов откроется предзапись на игры.",
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 18,
-                  fontWeight: FontWeight.w500,
-                  height: 1.5,
-                ),
+              padding: const EdgeInsets.all(24.0),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.lock_outline, color: Colors.white54, size: 64),
+                  const SizedBox(height: 24),
+                  const Text(
+                    "Войти для просмотра расписания",
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  const Text(
+                    "Расписание и запись на игры доступны только участникам фестиваля.",
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: Colors.white70, fontSize: 14),
+                  ),
+                  const SizedBox(height: 32),
+                  ElevatedButton(
+                    onPressed: () {
+                       Navigator.push(
+                          context, 
+                          MaterialPageRoute(builder: (_) => const LoginScreen(isTicketMode: true))
+                       );
+                    },
+                    style: ElevatedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+                      backgroundColor: Colors.amber,
+                      foregroundColor: Colors.black,
+                    ),
+                    child: const Text("Войти по билету"),
+                  ),
+                ],
               ),
             ),
           ),
