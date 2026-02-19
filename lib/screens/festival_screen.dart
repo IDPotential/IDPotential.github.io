@@ -787,7 +787,7 @@ class _FestivalScreenState extends State<FestivalScreen> {
               ),
            ),
            ...games.map((g) {
-               final isRegistered = g.isUserRegistered(_userId ?? '');
+               final isRegistered = g.isUserRegistered(_userId ?? '', _ticketNumber);
                final isMyGame = g.hasMasterAccess(_userId, _ticketNumber);
                
                return Padding(
@@ -810,6 +810,15 @@ class _FestivalScreenState extends State<FestivalScreen> {
 
 
   void _trustTheFlow() async {
+     if (_ticketNumber == null) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+           content: Text("Для записи на игру необходим билет. Приобретите билет или привяжите его в настройках."),
+           backgroundColor: Colors.orange,
+           duration: Duration(seconds: 4),
+        ));
+        return;
+     }
+
      final allGames = await FirestoreService().getFestivalGamesOnce();
      final slot1 = allGames.where((g) => g.slotId == 1 && g.placesLeft > 0).toList();
      final slot2 = allGames.where((g) => g.slotId == 2 && g.placesLeft > 0).toList();
@@ -852,9 +861,9 @@ class _FestivalScreenState extends State<FestivalScreen> {
                       final contact = _phoneNumber ?? 'Не указан';
                       
                       try {
-                        if (s1 != null) await FirestoreService().joinFestivalGame(game: s1, userName: name, contact: contact);
-                        if (s2 != null) await FirestoreService().joinFestivalGame(game: s2, userName: name, contact: contact);
-                        if (s3 != null) await FirestoreService().joinFestivalGame(game: s3, userName: name, contact: contact);
+                        if (s1 != null) await FirestoreService().joinFestivalGame(game: s1, userName: name, contact: contact, ticket: _ticketNumber);
+                        if (s2 != null) await FirestoreService().joinFestivalGame(game: s2, userName: name, contact: contact, ticket: _ticketNumber);
+                        if (s3 != null) await FirestoreService().joinFestivalGame(game: s3, userName: name, contact: contact, ticket: _ticketNumber);
                         
                         if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Вы записаны на выбранные игры!")));
                       } catch (e) {
@@ -871,11 +880,21 @@ class _FestivalScreenState extends State<FestivalScreen> {
   Future<void> _handleGameAction(FestivalGame game, bool isRegistered) async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Сначала войдите в систему")));
-      return;
-    }
+    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Сначала войдите в систему")));
+    return;
+  }
 
-    if (isRegistered) {
+  // Requirement: Must have a ticket to register
+  if (_ticketNumber == null && !isRegistered) { // Allow cancel even if ticket is missing? Maybe not.
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+         content: Text("Для записи на игру необходим билет. Приобретите билет или привяжите его в настройках."),
+         backgroundColor: Colors.orange,
+         duration: Duration(seconds: 4),
+      ));
+      return;
+  }
+
+  if (isRegistered) {
        // Cancel Flow
        final confirm = await showDialog<bool>(
           context: context,
@@ -896,7 +915,7 @@ class _FestivalScreenState extends State<FestivalScreen> {
        
        if (confirm == true) {
           try {
-             await FirestoreService().cancelFestivalRegistration(game);
+             await FirestoreService().cancelFestivalRegistration(game, _ticketNumber);
              if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Запись отменена")));
           } catch (e) {
              if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Ошибка отмены: $e")));
@@ -908,10 +927,11 @@ class _FestivalScreenState extends State<FestivalScreen> {
        try {
          // Using new method with logging
          await FirestoreService().joinFestivalGame(
-            game: game,
-            userName: _firstName ?? 'Участник',
-            contact: _phoneNumber ?? 'Не указан'
-         );
+          game: game,
+          userName: _firstName ?? 'Участник',
+          contact: _phoneNumber ?? 'Не указан',
+          ticket: _ticketNumber
+       );
          if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Вы записаны на игру '${game.title}'!")));
        } catch (e) {
           if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Ошибка записи: ${e.toString().replaceAll('Exception: ', '')}")));

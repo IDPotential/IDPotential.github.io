@@ -1249,6 +1249,7 @@ class FirestoreService {
     required FestivalGame game,
     required String userName,
     required String contact,
+    String? ticket,
   }) async {
      final user = _auth.currentUser;
      if (user == null) throw Exception("User not logged in");
@@ -1258,6 +1259,7 @@ class FirestoreService {
         'userId': user.uid,
         'name': userName,
         'contact': contact,
+        'ticket': ticket,
         'joinedAt': FieldValue.serverTimestamp(),
         'status': 'confirmed'
      });
@@ -1265,7 +1267,7 @@ class FirestoreService {
      // 2. Update Main Document (Sync for UI)
      await _db.collection('festival_games').doc(game.id).update({
         'participants': FieldValue.arrayUnion([
-           {'userId': user.uid, 'name': userName, 'contact': contact}
+           {'userId': user.uid, 'name': userName, 'contact': contact, 'ticket': ticket}
         ])
      });
 
@@ -1283,7 +1285,7 @@ class FirestoreService {
      );
   }
 
-  Future<void> cancelFestivalRegistration(FestivalGame game) async {
+  Future<void> cancelFestivalRegistration(FestivalGame game, [String? ticket]) async {
      final user = _auth.currentUser;
      if (user == null) return;
 
@@ -1297,7 +1299,7 @@ class FirestoreService {
         if (!snapshot.exists) return;
         
         List<dynamic> participants = List.from(snapshot.data()?['participants'] ?? []);
-        participants.removeWhere((p) => p['userId'] == user.uid);
+        participants.removeWhere((p) => p['userId'] == user.uid || (ticket != null && p['ticket'] == ticket));
         
         transaction.update(docRef, {'participants': participants});
      });

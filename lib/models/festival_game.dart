@@ -38,8 +38,8 @@ class FestivalGame {
   DateTime get endTime => startTime.add(Duration(minutes: durationMinutes));
   int get placesLeft => maxParticipants - participants.length;
 
-  bool isUserRegistered(String userId) {
-    return participants.any((p) => p['userId'] == userId);
+  bool isUserRegistered(String userId, [String? ticket]) {
+    return participants.any((p) => p['userId'] == userId || (ticket != null && p['ticket'] == ticket));
   }
   
   // Check if a user has master access
