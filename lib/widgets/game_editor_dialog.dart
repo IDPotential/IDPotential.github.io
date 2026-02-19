@@ -222,14 +222,26 @@ class _GameEditorDialogState extends State<GameEditorDialog> {
 
            // Auto-fill Description & Master Name from FestivalContent
            final normalizedTitle = currentTitle.trim().toLowerCase();
-           final contentEntry = festivalContent.entries.firstWhere(
-               (e) => e.key.trim().toLowerCase() == normalizedTitle ||
-                      e.key.trim().toLowerCase().contains(normalizedTitle) ||
-                      normalizedTitle.contains(e.key.trim().toLowerCase()),
-               orElse: () => MapEntry("", FestivalActivityContent(
-                   masterName: "", title: "", description: "", imagePath: "", color: Colors.white, role: ""
-               ))
-           );
+           final normalizedMaster = mainName?.trim().toLowerCase() ?? "";
+
+           // 1. Try master name match (High Priority)
+            var contentEntry = festivalContent.entries.firstWhere(
+                (e) => e.value.masterName.trim().toLowerCase() == normalizedMaster || 
+                       (normalizedMaster.isNotEmpty && e.value.masterName.toLowerCase().contains(normalizedMaster)),
+                orElse: () => const MapEntry("", FestivalActivityContent(masterName: "", title: "", description: "", imagePath: "", color: Colors.white, role: ""))
+            );
+
+            // 2. Try title match if not found
+            if (contentEntry.key.isEmpty) {
+                contentEntry = festivalContent.entries.firstWhere(
+                    (e) => e.key.trim().toLowerCase() == normalizedTitle ||
+                           e.key.trim().toLowerCase().contains(normalizedTitle) ||
+                           normalizedTitle.contains(e.key.trim().toLowerCase()),
+                    orElse: () => const MapEntry("", FestivalActivityContent(
+                        masterName: "", title: "", description: "", imagePath: "", color: Colors.white, role: ""
+                    ))
+                );
+            }
            
            final content = contentEntry.value;
            

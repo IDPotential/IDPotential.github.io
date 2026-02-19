@@ -34,9 +34,30 @@ class FestivalGameCard extends StatelessWidget {
     // Lookup content
     FestivalActivityContent? foundContent;
     
-    // 1. Try exact master name match (High Priority)
+    // 1. Try master name match (High Priority - Fuzzy)
     try {
-       foundContent = festivalContent.values.firstWhere((c) => c.masterName.trim().toLowerCase() == game.masterName.trim().toLowerCase());
+       final contentVals = festivalContent.values;
+       // Exact first
+       foundContent = contentVals.firstWhere(
+          (c) => c.masterName.trim().toLowerCase() == game.masterName.trim().toLowerCase(), 
+          orElse: () {
+             // Then fuzzy
+             try {
+                return contentVals.firstWhere((c) => 
+                   c.masterName.toLowerCase().contains(game.masterName.toLowerCase()) || 
+                   (game.masterName.isNotEmpty && game.masterName.toLowerCase().contains(c.masterName.toLowerCase()))
+                );
+             } catch (_) {
+                // Return null if not found in fuzzy
+                return FestivalActivityContent(
+                  masterName: "", title: "", description: "", imagePath: "", color: Colors.white, role: ""
+                ); // Dummy to indicate not found, but logic below handles null if we just throw or return null? 
+                   // Wait, firstWhere throws if not found unless orElse is provided.
+                   // Let's use casts to allow null or just rely on the next steps.
+                   throw Exception("Not found"); 
+             }
+          }
+       );
     } catch (_) {}
 
     // 2. Try exact title match

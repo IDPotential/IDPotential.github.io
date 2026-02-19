@@ -76,7 +76,7 @@ class _FestivalScreenState extends State<FestivalScreen> {
             _userRole = data?['role'];
             _firstName = data?['first_name'];
             _phoneNumber = data?['phoneNumber'];
-            _ticketNumber = data?['ticket'];
+            _ticketNumber = data?['ticketLogin'] ?? data?['ticket'];
           });
         }
       } catch (e) {
@@ -122,7 +122,9 @@ class _FestivalScreenState extends State<FestivalScreen> {
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white),
           onPressed: () {
-             if (Navigator.of(context).canPop()) {
+             if (_currentIndex != 0) {
+                setState(() => _currentIndex = 0);
+             } else if (Navigator.of(context).canPop()) {
                 Navigator.of(context).pop();
              } else {
                 // Handle Deep Link root case
@@ -772,7 +774,7 @@ class _FestivalScreenState extends State<FestivalScreen> {
          crossAxisAlignment: CrossAxisAlignment.start,
         children: [
            Padding(
-              padding: const EdgeInsets.only(top: 12, bottom: 8),
+              padding: const EdgeInsets.only(top: 12, bottom: 4),
               child: Container(
                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                  decoration: BoxDecoration(color: Colors.amberAccent.withOpacity(0.2), borderRadius: BorderRadius.circular(8)),
@@ -784,7 +786,7 @@ class _FestivalScreenState extends State<FestivalScreen> {
               physics: const NeverScrollableScrollPhysics(),
               gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                  crossAxisCount: 2,
-                 childAspectRatio: 1.4, // Compact height (was 0.85)
+                 childAspectRatio: 1.0,
                  crossAxisSpacing: 10,
                  mainAxisSpacing: 10,
               ),
