@@ -1223,7 +1223,7 @@ class FirestoreService {
   }
 
 
-}
+
 
   // --- Festival Specifics ---
 
