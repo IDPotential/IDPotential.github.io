@@ -73,9 +73,43 @@ class _FestivalScreenState extends State<FestivalScreen> {
       _userId = user.uid;
       try {
         final doc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
+        Map<String, dynamic>? data = doc.data();
+        
+        // --- TICKET USER SYNC LOGIC ---
+        // If this is a ticket user (email ends with @idpotential.festival) AND profile is empty,
+        // try to find the "real" user doc linked to this ticket and copy data.
+        if (user.email != null && user.email!.endsWith('@idpotential.festival') && (data == null || data['first_name'] == null)) {
+             try {
+                final ticket = user.email!.split('@')[0];
+                final query = await FirebaseFirestore.instance.collection('users')
+                   .where('ticketLogin', isEqualTo: ticket)
+                   .limit(1)
+                   .get();
+                
+                if (query.docs.isNotEmpty) {
+                   final realUserDoc = query.docs.first;
+                   final realData = realUserDoc.data();
+                   
+                   // Copy specified fields
+                   final updates = <String, dynamic>{};
+                   if (realData['first_name'] != null) updates['first_name'] = realData['first_name'];
+                   if (realData['phoneNumber'] != null) updates['phoneNumber'] = realData['phoneNumber'];
+                   if (realData['birthDate'] != null) updates['birthDate'] = realData['birthDate'];
+                   if (realData['telegram_login'] != null) updates['telegram_login'] = realData['telegram_login'];
+                   
+                   if (updates.isNotEmpty) {
+                      await FirebaseFirestore.instance.collection('users').doc(user.uid).set(updates, SetOptions(merge: true));
+                      data = (await FirebaseFirestore.instance.collection('users').doc(user.uid).get()).data(); // Refresh
+                   }
+                }
+             } catch (e) {
+                debugPrint("Error syncing ticket user profile: $e");
+             }
+        }
+        // ------------------------------
+
         if (mounted) {
           setState(() {
-            final data = doc.data();
             _userRole = data?['role'];
             _firstName = data?['first_name'];
             _phoneNumber = data?['phoneNumber'];
@@ -588,9 +622,10 @@ class _FestivalScreenState extends State<FestivalScreen> {
      }
      
      // 2. Check minimal profile (optional, but good for UX)
-     // if (_firstName == null || _phoneNumber == null) {
-     //    return _buildProfileForm();
-     // }
+     // Modified: Now mandatory including birthDate for ticket users (or everyone)
+     if (_firstName == null || _phoneNumber == null || _birthDate == null) {
+        return _buildProfileForm();
+     }
 
      // 3. Show Schedule
      return _buildScheduleContent();
