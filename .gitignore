@@ -178,3 +178,5 @@ read_docx.py
 output.txt
 docx_content.txt
 copy_assets.py
+import_excel_to_dart.py
+inspect_excel_header.py

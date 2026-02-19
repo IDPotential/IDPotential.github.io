@@ -159,7 +159,7 @@ final Map<String, FestivalActivityContent> festivalContent = {
        {'icon': Icons.send, 'url': 'https://t.me/landusha', 'tooltip': 'Надежда'},
        {'icon': Icons.campaign, 'url': 'https://t.me/tomastulova', 'tooltip': 'Тома'},
     ],
-    secondaryImagePath: "assets/images/nadezhda_lanskaya.jpg"
+    // secondaryImagePath removed as main image is now the pair photo
   ),
 
   // 12. Екатерина Курчавина

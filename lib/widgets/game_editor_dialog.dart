@@ -5,6 +5,7 @@ import '../models/festival_game.dart';
 import '../services/firestore_service.dart';
 import 'package:intl/intl.dart';
 import '../data/festival_master_data.dart';
+import '../data/festival_content.dart';
 
 class GameEditorDialog extends StatefulWidget {
   final FestivalGame? game; // If null, create new
@@ -23,6 +24,7 @@ class _GameEditorDialogState extends State<GameEditorDialog> {
   final _locationController = TextEditingController();
   final _maxPlayersController = TextEditingController(text: "10");
   final _durationController = TextEditingController(text: "60");
+  final _ageLimitController = TextEditingController(); // New Age Limit
   int? _selectedSlotId; 
   
   List<Map<String, dynamic>> _masters = [];
@@ -36,7 +38,7 @@ class _GameEditorDialogState extends State<GameEditorDialog> {
   List<String> _activityMasterTickets = [];
 
   // Excel Data Selection
-  Map<String, String>? _selectedExcelMaster;
+  Map<String, dynamic>? _selectedExcelMaster; // Changed to dynamic
 
   DateTime _selectedDate = DateTime(2026, 2, 21, 12, 0); 
   bool _isLoading = false;
@@ -52,6 +54,7 @@ class _GameEditorDialogState extends State<GameEditorDialog> {
       _locationController.text = widget.game!.location;
       _maxPlayersController.text = widget.game!.maxParticipants.toString();
       _durationController.text = widget.game!.durationMinutes.toString();
+      _ageLimitController.text = widget.game!.ageLimit?.toString() ?? ""; // Init Age
       _selectedDate = widget.game!.startTime;
       _selectedSlotId = widget.game!.slotId;
       _selectedMasterUid = widget.game!.masterId;
@@ -129,18 +132,29 @@ class _GameEditorDialogState extends State<GameEditorDialog> {
      }
   }
 
-  Future<void> _onExcelMasterSelected(Map<String, String>? selection) async {
+  Future<void> _onExcelMasterSelected(Map<String, dynamic>? selection) async {
     if (selection == null) return;
     
     setState(() {
       _selectedExcelMaster = selection;
-      _titleController.text = selection['gameTitle']!;
+      _titleController.text = selection['gameTitle'] as String;
+      
+      // Auto-fill max players if present
+      if (selection['maxPlayers'] != null) {
+          _maxPlayersController.text = selection['maxPlayers'].toString();
+      }
+      
+      // Auto-fill age limit if present
+      if (selection['ageLimit'] != null) {
+          _ageLimitController.text = selection['ageLimit'].toString();
+      }
+      
       _isLoading = true; 
     });
 
     try {
-      final String currentTitle = selection['gameTitle']!;
-      final String currentTicket = selection['ticketLogin']!;
+      final String currentTitle = selection['gameTitle'] as String;
+      final String currentTicket = selection['ticketLogin'] as String;
       
       // 1. Find ALL masters for this game title (e.g. Nadezhda & Toma)
       final allBriefs = festivalMasterData.where((e) => e['gameTitle'] == currentTitle).toList();
@@ -150,13 +164,13 @@ class _GameEditorDialogState extends State<GameEditorDialog> {
 
       String? mainUid;
       String? secondUid;
-      String? mainName = selection['masterName'];
+      String? mainName = selection['masterName'] as String;
 
       final usersRef = FirebaseFirestore.instance.collection('users');
 
       // 2. Resolve UIDs for all found tickets
       for (var entry in allBriefs) {
-         final t = entry['ticketLogin']!;
+         final t = entry['ticketLogin'] as String;
          tickets.add(t);
          
          // Lookup User
@@ -194,9 +208,9 @@ class _GameEditorDialogState extends State<GameEditorDialog> {
            _selectedSecondMasterUid = secondUid;
            
            if (mainUid != null && mainName != null) {
-              _masterNameController.text = mainName;
+              _masterNameController.text = mainName!;
            } else {
-              _masterNameController.text = selection['masterName']!;
+              _masterNameController.text = selection['masterName'] as String;
            }
            
            if (allBriefs.length > 1 && secondUid == null) {
@@ -205,6 +219,21 @@ class _GameEditorDialogState extends State<GameEditorDialog> {
                   _masterNameController.text = "${_masterNameController.text} / $otherNames";
                }
            }
+
+           // Auto-fill Description & Master Name from FestivalContent
+           final content = festivalContent[currentTitle] ?? festivalContent.values.firstWhere(
+               (c) => c.title == currentTitle,
+               orElse: () => FestivalActivityContent(
+                   masterName: "", title: "", description: "", imagePath: "", color: Colors.white, role: ""
+               )
+           );
+           
+           if (content.description.isNotEmpty) {
+               _descController.text = content.description;
+           }
+           if (content.masterName.isNotEmpty) {
+               _masterNameController.text = content.masterName;
+           }
         });
       }
 
@@ -212,7 +241,7 @@ class _GameEditorDialogState extends State<GameEditorDialog> {
       debugPrint("Error finding user for ticket: $e");
       if (mounted) {
          setState(() {
-            _masterNameController.text = selection['masterName']!;
+            _masterNameController.text = selection['masterName'] as String;
          });
       }
     } finally {
@@ -234,7 +263,7 @@ class _GameEditorDialogState extends State<GameEditorDialog> {
               // 0. Excel Selector (New)
               Padding(
                 padding: const EdgeInsets.only(bottom: 16),
-                child: DropdownButtonFormField<Map<String, String>>(
+                child: DropdownButtonFormField<Map<String, dynamic>>( // Changed to dynamic
                   decoration: const InputDecoration(
                     labelText: "Выбрать из списка (Excel)",
                     labelStyle: TextStyle(color: Colors.amberAccent),
@@ -372,11 +401,11 @@ class _GameEditorDialogState extends State<GameEditorDialog> {
                   ),
 
               _buildTextField(_locationController, "Локация (стол/зал)"),
-              Row(
-                children: [
                   Expanded(child: _buildTextField(_maxPlayersController, "Мест", isNumber: true)),
                   const SizedBox(width: 16),
                   Expanded(child: _buildTextField(_durationController, "Мин.", isNumber: true)),
+                  const SizedBox(width: 16),
+                  Expanded(child: _buildTextField(_ageLimitController, "Возраст", isNumber: true)),
                 ],
               ),
               const SizedBox(height: 16),
@@ -496,6 +525,7 @@ class _GameEditorDialogState extends State<GameEditorDialog> {
            if (_selectedMasterUid != null) _selectedMasterUid!,
            if (_selectedSecondMasterUid != null) _selectedSecondMasterUid!
         ].toSet().toList(), // Ensure uniqueness
+        ageLimit: int.tryParse(_ageLimitController.text),
       );
 
       // Add timeout to prevent hanging on Web Iframe

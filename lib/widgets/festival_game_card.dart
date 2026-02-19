@@ -78,6 +78,20 @@ class FestivalGameCard extends StatelessWidget {
                     style: TextStyle(color: content.color, fontWeight: FontWeight.bold, fontSize: 11),
                   ),
                 ),
+                if (game.ageLimit != null)
+                   Padding(
+                     padding: const EdgeInsets.only(left: 8),
+                     child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                        decoration: BoxDecoration(
+                           color: Colors.white10,
+                           borderRadius: BorderRadius.circular(4),
+                           border: Border.all(color: Colors.white24),
+                        ),
+                        child: Text("${game.ageLimit}+", style: const TextStyle(color: Colors.white70, fontSize: 10)),
+                     ),
+                   ),
+                const Spacer(),
                 if (onManage != null)
                   InkWell(
                      onTap: onManage,
@@ -180,7 +194,14 @@ class FestivalGameCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                     if (content.imagePath.isNotEmpty)
+                     if (content.secondaryImagePath != null && content.secondaryImagePath!.isNotEmpty)
+                        ClipRRect(
+                           borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+                           child: Image.asset(content.secondaryImagePath!, height: 200, width: double.infinity, fit: BoxFit.cover,
+                             errorBuilder: (c,e,s) => Container(height: 100, color: content.color.withOpacity(0.2), child: const Icon(Icons.image_not_supported, color: Colors.white54)),
+                           ),
+                        )
+                     else if (content.imagePath.isNotEmpty)
                         ClipRRect(
                            borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
                            child: Image.asset(content.imagePath, height: 200, width: double.infinity, fit: BoxFit.cover,

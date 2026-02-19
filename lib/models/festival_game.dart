@@ -17,6 +17,7 @@ class FestivalGame {
   final String? activityId; // Link to festival_activities catalog
   final List<String> masterIds; // List of UIDs who can manage this game
   final List<String> masterTickets; // List of Tickets (mXXXXX) that have access
+  final int? ageLimit; // Minimum age required
 
   FestivalGame({
     required this.id,
@@ -33,6 +34,7 @@ class FestivalGame {
     this.activityId,
     this.masterIds = const [],
     this.masterTickets = const [],
+    this.ageLimit,
   });
 
   DateTime get endTime => startTime.add(Duration(minutes: durationMinutes));
@@ -64,6 +66,7 @@ class FestivalGame {
       'activityId': activityId,
       'masterIds': masterIds,
       'masterTickets': masterTickets,
+      'ageLimit': ageLimit,
     };
   }
 
@@ -83,6 +86,7 @@ class FestivalGame {
       activityId: map['activityId'],
       masterIds: List<String>.from(map['masterIds'] ?? []),
       masterTickets: List<String>.from(map['masterTickets'] ?? []),
+      ageLimit: map['ageLimit'],
     );
   }
 }
