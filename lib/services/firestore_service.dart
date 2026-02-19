@@ -31,7 +31,7 @@ class FirestoreService {
     if (birthDate != null) data['birthDate'] = Timestamp.fromDate(birthDate);
     
     if (data.isNotEmpty) {
-      await _db.collection('users').doc(uid).update(data);
+      await _db.collection('users').doc(uid).set(data, SetOptions(merge: true));
     }
   }
 

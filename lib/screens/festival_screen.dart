@@ -793,7 +793,7 @@ class _FestivalScreenState extends State<FestivalScreen> {
             color: const Color(0xFF0F044C), // Deep Blue Background
             child: Center(
               child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 800),
+                constraints: const BoxConstraints(maxWidth: 1200), // Increased for 3 columns
                 child: ListView(
                   padding: const EdgeInsets.fromLTRB(16, 100, 16, 40),
                   physics: const BouncingScrollPhysics(),
@@ -864,15 +864,19 @@ class _FestivalScreenState extends State<FestivalScreen> {
                  child: Text(title, style: const TextStyle(color: Colors.amberAccent, fontSize: 18, fontWeight: FontWeight.bold)),
               ),
            ),
-           GridView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 2,
-                 childAspectRatio: 1.0,
-                 crossAxisSpacing: 10,
-                 mainAxisSpacing: 10,
-              ),
+           LayoutBuilder(
+             builder: (context, constraints) {
+               // Adaptive columns: 3 if wide enough, else 2
+               final int crossAxisCount = constraints.maxWidth > 900 ? 3 : 2;
+               return GridView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: crossAxisCount,
+                     childAspectRatio: 1.0,
+                     crossAxisSpacing: 10,
+                     mainAxisSpacing: 10,
+                  ),
                itemCount: games.length,
                itemBuilder: (ctx, index) {
                   final g = games[index];
