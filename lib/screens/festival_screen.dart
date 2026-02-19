@@ -769,10 +769,10 @@ class _FestivalScreenState extends State<FestivalScreen> {
 
   Widget _buildSlotSection(String title, List<FestivalGame> games) {
      return Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 12),
+              padding: const EdgeInsets.only(top: 12, bottom: 8),
               child: Container(
                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                  decoration: BoxDecoration(color: Colors.amberAccent.withOpacity(0.2), borderRadius: BorderRadius.circular(8)),
@@ -804,6 +804,10 @@ class _FestivalScreenState extends State<FestivalScreen> {
                  );
               }
            ),
+           const SizedBox(height: 24),
+        ],
+     );
+  }
         ],
      );
   }
@@ -884,7 +888,7 @@ class _FestivalScreenState extends State<FestivalScreen> {
   }
 
   // Requirement: Must have a ticket to register
-  if (_ticketNumber == null && !isRegistered) { // Allow cancel even if ticket is missing? Maybe not.
+  if ((_ticketNumber == null || _ticketNumber!.isEmpty) && !isRegistered) { // Allow cancel even if ticket is missing? Maybe not.
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
          content: Text("Для записи на игру необходим билет. Приобретите билет или привяжите его в настройках."),
          backgroundColor: Colors.orange,

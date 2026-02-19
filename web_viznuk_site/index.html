@@ -1,0 +1,905 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ирина Визнюк | Интуитивный художник</title>
+    <style>
+        /* RESET - Scoped */
+        #irina-viznuk-site * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        #irina-viznuk-site {
+            font-family: 'Montserrat', sans-serif;
+            color: #e0e0e0;
+            background-color: #1a1a1a;
+            line-height: 1.6;
+            width: 100%;
+        }
+
+        #irina-viznuk-site h1,
+        #irina-viznuk-site h2,
+        #irina-viznuk-site h3,
+        #irina-viznuk-site h4 {
+            font-family: 'Cormorant Garamond', serif;
+            font-weight: 400;
+            color: #fff;
+            margin: 0;
+        }
+
+        #irina-viznuk-site a {
+            text-decoration: none;
+            color: inherit;
+            transition: 0.3s;
+        }
+
+        #irina-viznuk-site ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        #irina-viznuk-site .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        /* BUTTONS - Force overrides */
+        #irina-viznuk-site .btn {
+            display: inline-block;
+            padding: 12px 24px !important;
+            border: 1px solid transparent !important;
+            border-radius: 4px !important;
+            font-size: 14px !important;
+            text-transform: uppercase !important;
+            letter-spacing: 1px !important;
+            cursor: pointer;
+            text-align: center;
+            line-height: normal !important;
+        }
+
+        #irina-viznuk-site .btn-primary {
+            background-color: #c4a484 !important;
+            /* Soft Gold/Beige */
+            color: #1a1a1a !important;
+            font-weight: 600 !important;
+        }
+
+        #irina-viznuk-site .btn-primary:hover {
+            background-color: #dcc0a0 !important;
+            color: #1a1a1a !important;
+        }
+
+        #irina-viznuk-site .btn-outline {
+            border-color: #c4a484 !important;
+            background-color: transparent !important;
+            color: #c4a484 !important;
+        }
+
+        #irina-viznuk-site .btn-outline:hover {
+            background-color: #c4a484 !important;
+            color: #1a1a1a !important;
+        }
+
+        #irina-viznuk-site .btn-small {
+            padding: 8px 16px !important;
+            font-size: 12px !important;
+            background-color: rgba(255, 255, 255, 0.1) !important;
+            color: #fff !important;
+            border: 1px solid rgba(255, 255, 255, 0.2) !important;
+        }
+
+        #irina-viznuk-site .btn-small:hover {
+            background-color: rgba(255, 255, 255, 0.2) !important;
+        }
+
+        /* HERO SECTION */
+        #irina-viznuk-site .hero {
+            position: relative;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            background: #121212;
+            overflow: hidden;
+        }
+
+        #irina-viznuk-site .hero-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle at 70% 30%, #2a2a2a 0%, #1a1a1a 60%, #000000 100%);
+            z-index: 1;
+        }
+
+        #irina-viznuk-site .hero-content {
+            position: relative;
+            z-index: 2;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            width: 100%;
+            gap: 40px;
+        }
+
+        #irina-viznuk-site .hero-text {
+            flex: 1;
+            max-width: 600px;
+        }
+
+        #irina-viznuk-site .hero-text h1 {
+            font-size: 4rem;
+            line-height: 1.1;
+            letter-spacing: 2px;
+            margin-bottom: 10px;
+        }
+
+        #irina-viznuk-site .hero-text .subtitle {
+            font-size: 1.2rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #a0a0a0;
+            margin-bottom: 20px;
+        }
+
+        #irina-viznuk-site .divider {
+            width: 60px;
+            height: 2px;
+            background-color: #c4a484;
+            margin-bottom: 20px;
+        }
+
+        #irina-viznuk-site .hero-text .description {
+            font-size: 1.1rem;
+            color: #d0d0d0;
+            margin-bottom: 40px;
+            font-style: italic;
+        }
+
+        #irina-viznuk-site .hero-buttons {
+            display: flex;
+            gap: 20px;
+        }
+
+        #irina-viznuk-site .hero-image {
+            flex: 1;
+            max-width: 500px;
+            height: 600px;
+            overflow: hidden;
+            border-radius: 8px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+        }
+
+        #irina-viznuk-site .hero-image img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            opacity: 0.9;
+        }
+
+        /* SECTIONS */
+        #irina-viznuk-site section {
+            padding: 80px 0;
+        }
+
+        #irina-viznuk-site .section-title {
+            font-size: 2.5rem;
+            text-align: center;
+            margin-bottom: 40px;
+            letter-spacing: 1px;
+            color: #c4a484;
+        }
+
+        #irina-viznuk-site .section-subtitle {
+            text-align: center;
+            font-size: 1.1rem;
+            color: #a0a0a0;
+            margin-bottom: 60px;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        /* ABOUT */
+        #irina-viznuk-site .about-grid {
+            display: flex;
+            gap: 60px;
+            align-items: center;
+        }
+
+        #irina-viznuk-site .about-text {
+            flex: 1;
+        }
+
+        #irina-viznuk-site .about-text p {
+            margin-bottom: 20px;
+            font-size: 1.1rem;
+        }
+
+        #irina-viznuk-site .about-text .highlight {
+            color: #fff;
+            font-size: 1.2rem;
+            border-left: 2px solid #c4a484;
+            padding-left: 20px;
+            margin: 30px 0;
+            font-family: 'Cormorant Garamond', serif;
+        }
+
+        #irina-viznuk-site .about-text .location {
+            color: #a0a0a0;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+        }
+
+        #irina-viznuk-site .about-visual {
+            flex: 0.8;
+            height: 400px;
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        #irina-viznuk-site .circle-visual {
+            width: 300px;
+            height: 300px;
+            border-radius: 50%;
+            border: 1px solid rgba(196, 164, 132, 0.3);
+            position: relative;
+            overflow: hidden;
+        }
+
+        #irina-viznuk-site .circle-visual img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        #irina-viznuk-site .circle-visual::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 250px;
+            height: 250px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(196, 164, 132, 0.1) 0%, transparent 70%);
+        }
+
+        /* GALLERY */
+        #irina-viznuk-site .gallery-section {
+            background-color: #141414;
+        }
+
+        #irina-viznuk-site .gallery-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+
+        #irina-viznuk-site .gallery-item {
+            background-color: #222;
+            display: flex;
+            flex-direction: column;
+            border-radius: 4px;
+            overflow: hidden;
+            transition: transform 0.3s;
+        }
+
+        #irina-viznuk-site .gallery-item:hover {
+            transform: translateY(-5px);
+        }
+
+        #irina-viznuk-site .gallery-img-container {
+            width: 100%;
+            aspect-ratio: 3/4;
+            position: relative;
+            overflow: hidden;
+        }
+
+        #irina-viznuk-site .gallery-img-container img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform 0.5s;
+        }
+
+        #irina-viznuk-site .gallery-item:hover .gallery-img-container img {
+            transform: scale(1.05);
+        }
+
+        #irina-viznuk-site .status-badge {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        #irina-viznuk-site .status-badge.available {
+            background-color: rgba(196, 164, 132, 0.9);
+            color: #1a1a1a;
+        }
+
+        #irina-viznuk-site .status-badge.sold {
+            background-color: rgba(100, 100, 100, 0.8);
+            color: #ccc;
+        }
+
+        #irina-viznuk-site .status-badge.unavailable {
+            background-color: rgba(200, 50, 50, 0.7);
+            color: #fff;
+        }
+
+        #irina-viznuk-site .gallery-info {
+            padding: 20px;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        #irina-viznuk-site .gallery-info h4 {
+            font-size: 1.4rem;
+            margin-bottom: 5px;
+            color: #fff;
+        }
+
+        #irina-viznuk-site .specs {
+            font-size: 0.85rem;
+            color: #888;
+            margin-bottom: 12px;
+            font-style: italic;
+        }
+
+        #irina-viznuk-site .description {
+            font-size: 0.95rem;
+            color: #ccc;
+            margin-bottom: 20px;
+            flex: 1;
+            /* Pushes price down */
+        }
+
+        #irina-viznuk-site .item-price {
+            font-size: 1.2rem;
+            color: #c4a484;
+            font-weight: 600;
+            margin-top: auto;
+        }
+
+        #irina-viznuk-site .gallery-footer {
+            text-align: center;
+            max-width: 800px;
+            margin: 60px auto 0;
+        }
+
+        #irina-viznuk-site .request-types {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 15px;
+            margin: 30px 0;
+        }
+
+        #irina-viznuk-site .request-types li {
+            padding: 6px 16px;
+            border: 1px solid #333;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            color: #888;
+        }
+
+        #irina-viznuk-site .process-steps {
+            margin-bottom: 30px;
+            color: #c4a484;
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 1.1rem;
+        }
+
+        /* SERVICES */
+        #irina-viznuk-site .services-section {
+            background-color: #1a1a1a;
+        }
+
+        #irina-viznuk-site .service-card {
+            background: #222;
+            margin-bottom: 30px;
+            padding: 40px;
+            border-radius: 8px;
+            border: 1px solid #2a2a2a;
+            transition: transform 0.3s;
+        }
+
+        #irina-viznuk-site .service-card:hover {
+            transform: translateY(-5px);
+            border-color: #333;
+        }
+
+        #irina-viznuk-site .service-card.flagship {
+            background: linear-gradient(135deg, #252525 0%, #1e1e1e 100%);
+            border: 1px solid #c4a484;
+        }
+
+        #irina-viznuk-site .service-card h3 {
+            font-size: 1.8rem;
+            margin-bottom: 10px;
+            color: #fff;
+        }
+
+        #irina-viznuk-site .service-subtitle {
+            margin-bottom: 20px;
+            color: #aaa;
+        }
+
+        #irina-viznuk-site .service-variants {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        #irina-viznuk-site .variant {
+            background: rgba(255, 255, 255, 0.03);
+            padding: 20px;
+            border-radius: 4px;
+        }
+
+        #irina-viznuk-site .variant h4 {
+            margin-bottom: 10px;
+            font-family: 'Montserrat', sans-serif;
+            font-size: 1rem;
+            text-transform: uppercase;
+            color: #c4a484;
+        }
+
+        #irina-viznuk-site .variant ul {
+            margin-bottom: 20px;
+            margin-left: 20px;
+            list-style: disc;
+            color: #ccc;
+            font-size: 0.9rem;
+        }
+
+        #irina-viznuk-site .price {
+            font-size: 1.3rem;
+            font-weight: 600;
+            margin-bottom: 15px;
+            color: #fff;
+        }
+
+        /* FOOTER */
+        #irina-viznuk-site .footer {
+            padding: 80px 0 40px;
+            background-color: #000;
+            text-align: center;
+        }
+
+        #irina-viznuk-site .footer h2 {
+            font-size: 2rem;
+            margin-bottom: 40px;
+            line-height: 1.4;
+        }
+
+        #irina-viznuk-site .contact-info {
+            margin-bottom: 40px;
+        }
+
+        #irina-viznuk-site .contact-info p {
+            color: #666;
+            margin-top: 10px;
+        }
+
+        #irina-viznuk-site .copyright {
+            color: #444;
+            font-size: 0.8rem;
+        }
+
+        /* RESPONSIVE */
+        @media (max-width: 1024px) {
+            #irina-viznuk-site .hero-text h1 {
+                font-size: 3rem;
+            }
+
+            #irina-viznuk-site .section-title {
+                font-size: 2rem;
+            }
+        }
+
+        @media (max-width: 768px) {
+            #irina-viznuk-site .container {
+                padding: 0 15px;
+            }
+
+            #irina-viznuk-site .hero {
+                height: auto;
+                padding: 100px 0 60px;
+                text-align: center;
+            }
+
+            #irina-viznuk-site .hero-content {
+                flex-direction: column;
+                gap: 30px;
+            }
+
+            #irina-viznuk-site .hero-text {
+                max-width: 100%;
+            }
+
+            #irina-viznuk-site .hero-text h1 {
+                font-size: 2.2rem;
+                margin-bottom: 15px;
+            }
+
+            #irina-viznuk-site .hero-text .subtitle {
+                font-size: 1rem;
+            }
+
+            #irina-viznuk-site .hero-text .description {
+                font-size: 1rem;
+            }
+
+            #irina-viznuk-site .divider {
+                margin: 20px auto;
+            }
+
+            #irina-viznuk-site .hero-image {
+                height: 350px;
+                width: 100%;
+                max-width: 350px;
+                box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3);
+            }
+
+            #irina-viznuk-site .hero-buttons {
+                justify-content: center;
+                flex-direction: column;
+                gap: 15px;
+            }
+
+            #irina-viznuk-site .hero-buttons .btn {
+                width: 100%;
+            }
+
+            #irina-viznuk-site .about-grid {
+                flex-direction: column;
+                gap: 40px;
+            }
+
+            #irina-viznuk-site .about-visual {
+                order: -1;
+                height: 250px;
+            }
+
+            #irina-viznuk-site .circle-visual {
+                width: 200px;
+                height: 200px;
+            }
+
+            #irina-viznuk-site .circle-visual::before {
+                width: 160px;
+                height: 160px;
+            }
+
+            #irina-viznuk-site .service-card {
+                padding: 25px;
+            }
+
+            #irina-viznuk-site .service-card h3 {
+                font-size: 1.5rem;
+            }
+
+            #irina-viznuk-site .service-variants {
+                grid-template-columns: 1fr;
+                gap: 15px;
+            }
+
+            #irina-viznuk-site .gallery-grid {
+                grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            }
+        }
+
+        @media (max-width: 480px) {
+            #irina-viznuk-site .hero-text h1 {
+                font-size: 1.8rem;
+            }
+
+            #irina-viznuk-site .section-title {
+                font-size: 1.8rem;
+            }
+
+            #irina-viznuk-site .hero-image {
+                height: 300px;
+            }
+
+            #irina-viznuk-site .footer h2 {
+                font-size: 1.5rem;
+            }
+        }
+    </style>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;600&family=Montserrat:wght@300;400;500&display=swap"
+        rel="stylesheet">
+</head>
+
+<body>
+    <div id="irina-viznuk-site">
+        <!-- HERO SECTION -->
+        <header class="hero">
+            <div class="hero-overlay"></div>
+            <div class="container hero-content">
+                <div class="hero-text">
+                    <h1>ИРИНА ВИЗНЮК</h1>
+                    <p class="subtitle">Интуитивный художник · арт-терапевт · создатель картин-артефактов</p>
+                    <div class="divider"></div>
+                    <p class="description">Картины, которые работают с состоянием человека и полем пространства через
+                        образ,
+                        символ и внутренний свет.</p>
+                    <div class="hero-buttons">
+                        <a href="#gallery" class="btn btn-primary">Выбрать картину</a>
+                        <a href="#services" class="btn btn-outline">Заказать работу под запрос</a>
+                    </div>
+                </div>
+                <div class="hero-image">
+                    <img src="https://static.tildacdn.com/tild3262-3163-4561-b663-393537363366/photo_2026-02-17_20-.jpg"
+                        alt="Ирина Визнюк" onerror="this.style.display='none'">
+                </div>
+            </div>
+        </header>
+
+        <!-- ABOUT SECTION -->
+        <section id="about" class="about-section">
+            <div class="container">
+                <h2 class="section-title">Коротко обо мне</h2>
+                <div class="about-grid">
+                    <div class="about-text">
+                        <p>Я создаю интуитивные картины, которые становятся точкой перехода — для человека, для
+                            пространства, для нового этапа жизни.</p>
+                        <p>Моя работа соединяет искусство, арт-терапию и нумерологию. Картины создаются не «для
+                            интерьера»,
+                            а для состояния — чтобы усиливать, заземлять, раскрывать и направлять.</p>
+                        <p class="highlight">Каждая работа — уникальна. Я не повторяю картины и не работаю массово.</p>
+                        <p class="location">📍 Студия в Санкт‑Петербурге</p>
+                    </div>
+                    <div class="about-visual">
+                        <!-- Decorative element or secondary photo -->
+                        <div class="circle-visual">
+                            <img src="https://static.tildacdn.com/tild6562-3939-4432-a231-383530666534/photo_2026-02-17_20-.jpg"
+                                alt="Ирина Визнюк">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- GALLERY SECTION -->
+        <section id="gallery" class="gallery-section">
+            <div class="container">
+                <h2 class="section-title">Галерея картин</h2>
+                <p class="section-subtitle">Картины, которые уже нашли свой дом или ждут его.</p>
+
+                <div class="gallery-grid">
+                    <!-- Item 1: Тишина -->
+                    <div class="gallery-item">
+                        <div class="gallery-img-container">
+                            <img src="https://static.tildacdn.com/tild3736-6431-4664-b432-626464386439/photo.png"
+                                alt="Тишина">
+                            <span class="status-badge available">В наличии</span>
+                        </div>
+                        <div class="gallery-info">
+                            <h4>«Тишина»</h4>
+                            <p class="specs">45х60 см, холст на подрамнике, смешанная техника, 2023</p>
+                            <p class="description">Картина-опора. О точке покоя и соединения с собой, где
+                                восстанавливается внутренний баланс. Помогает замедлиться.</p>
+                            <p class="item-price">45 000 руб</p>
+                        </div>
+                    </div>
+
+                    <!-- Item 2: Портал Времени -->
+                    <div class="gallery-item">
+                        <div class="gallery-img-container">
+                            <img src="https://static.tildacdn.com/tild6636-6265-4864-b166-666431306438/_.png"
+                                alt="Портал Времени">
+                            <span class="status-badge sold">Продана</span>
+                        </div>
+                        <div class="gallery-info">
+                            <h4>«Портал Времени»</h4>
+                            <p class="specs">80×80 см, холст на подрамнике, смешанная техника, 2024</p>
+                            <p class="description">Авторская работа для глубокой внутренней настройки. Объединяет тему
+                                времени, циклов и личного запроса.</p>
+                            <p class="item-price">88 000 руб</p>
+                        </div>
+                    </div>
+
+                    <!-- Item 3: Ключ Энергии -->
+                    <div class="gallery-item">
+                        <div class="gallery-img-container">
+                            <img src="https://static.tildacdn.com/tild3731-3164-4464-b039-643563363837/_.png"
+                                alt="Ключ Энергии">
+                            <span class="status-badge available">В наличии</span>
+                        </div>
+                        <div class="gallery-info">
+                            <h4>«Ключ Энергии»</h4>
+                            <p class="specs">80х100 см, холст на подрамнике, смешанная техника, 2025</p>
+                            <p class="description">Картина о соединении импульса и действия. Визуальный образ баланса
+                                женского и мужского начала.</p>
+                            <p class="item-price">180 000 руб</p>
+                        </div>
+                    </div>
+
+                    <!-- Item 4: Мечтай -->
+                    <div class="gallery-item">
+                        <div class="gallery-img-container">
+                            <img src="https://static.tildacdn.com/tild6232-6566-4137-b764-356533346666/photo.png"
+                                alt="Мечтай">
+                            <span class="status-badge available">В наличии</span>
+                        </div>
+                        <div class="gallery-info">
+                            <h4>«Мечтай»</h4>
+                            <p class="specs">80х100 см, холст на подрамнике, акрил, 2025</p>
+                            <p class="description">Картина о переходе и обновлении. Образ бабочки символизирует
+                                трансформацию и очищение.</p>
+                            <p class="item-price">160 000 руб</p>
+                        </div>
+                    </div>
+
+                    <!-- Item 5: Без Названия -->
+                    <div class="gallery-item">
+                        <div class="gallery-img-container">
+                            <img src="https://static.tildacdn.com/tild3361-6664-4639-b761-386336343063/_.png"
+                                alt="Без Названия">
+                            <span class="status-badge unavailable">Нет в наличии</span>
+                        </div>
+                        <div class="gallery-info">
+                            <h4>Без названия</h4>
+                            <p class="specs">80х100 см, холст, акрил, 2025</p>
+                            <p class="description">Многослойная абстракция о внутреннем ритме. Круговые формы создают
+                                ощущение потока и глубины.</p>
+                            <p class="item-price">120 000 руб</p>
+                        </div>
+                    </div>
+
+                    <!-- Item 6: Точка присутствия -->
+                    <div class="gallery-item">
+                        <div class="gallery-img-container">
+                            <img src="https://static.tildacdn.com/tild6130-6139-4839-a539-383834343263/_.png"
+                                alt="Точка присутствия">
+                            <span class="status-badge available">В наличии</span>
+                        </div>
+                        <div class="gallery-info">
+                            <h4>«Точка присутствия»</h4>
+                            <p class="specs">70х100 см, холст на подрамнике, смешанная техника, 2025</p>
+                            <p class="description">Работа о многослойности Вселенной. Образы считываются как следы
+                                памяти и сигналы.</p>
+                            <p class="item-price">60 000 руб</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="gallery-footer">
+                    <a href="#services" class="btn btn-primary"
+                        style="margin-bottom: 30px; font-size: 1.1rem; padding: 15px 40px !important;">Заказать
+                        картину</a>
+                    <p>Если вы не нашли «свою» работу — я создам картину под ваш запрос или пространство.</p>
+                    <ul class="request-types">
+                        <li>Тотемное животное</li>
+                        <li>Намерение / переход / новый этап</li>
+                        <li>Символы усиления поля</li>
+                        <li>Картина для дома, офиса, бизнеса</li>
+                        <li>Работа с личным кодом и нумерологией</li>
+                    </ul>
+                    <div class="process-steps">
+                        <span>Диалог</span> &rarr; <span>Выбор</span> &rarr; <span>Создание</span> &rarr;
+                        <span>Передача</span>
+                    </div>
+                    <div style="margin-top: 20px;">
+                        <a href="#popup:art" class="btn btn-outline" style="margin-right: 15px;">Заказать картину</a>
+                        <a href="#popup:indiv" class="btn btn-primary">Заказать индивидуальную работу</a>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SERVICES SECTION -->
+        <section id="services" class="services-section">
+            <div class="container">
+                <h2 class="section-title">Услуги и Форматы</h2>
+
+                <!-- Service 1: Energy Key -->
+                <div class="service-card flagship">
+                    <div class="service-content">
+                        <h3>ФЛАГМАН — «КЛЮЧ ЭНЕРГИИ»</h3>
+                        <p class="service-subtitle">Денежный маршрут. Авторская программа диагностики и активации через
+                            нумерологию и арт-практики.</p>
+
+                        <div class="service-variants">
+                            <div class="variant">
+                                <h4>Вариант 1 — Онлайн</h4>
+                                <ul>
+                                    <li>Диагностика по дате рождения</li>
+                                    <li>Анализ утечек и точек роста</li>
+                                    <li>Индивидуальная стратегия</li>
+                                    <li>Арт-практика активации (Zoom)</li>
+                                </ul>
+                                <p class="price">6 485 ₽</p>
+                                <a href="#popup:key" class="btn btn-small">Пройти онлайн</a>
+                            </div>
+                            <div class="variant">
+                                <h4>Вариант 2 — Сопровождение</h4>
+                                <ul>
+                                    <li>4–6 недель (онлайн/офлайн)</li>
+                                    <li>Глубокий разбор и план действий</li>
+                                    <li>3-4 арт-практики под ваш путь</li>
+                                    <li>Поддержка и корректировка</li>
+                                </ul>
+                                <p class="price">46 855 ₽</p>
+                                <a href="#popup:key" class="btn btn-small">Записаться на сопровождение</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Service 2: Interior Painting -->
+                <div class="service-card">
+                    <div class="service-content">
+                        <h3>СОЗДАЙ СВОЮ ИНТЕРЬЕРНУЮ КАРТИНУ</h3>
+                        <p>Вы создаёте свою картину — через разные техники, материалы и состояния.</p>
+                        <ul>
+                            <li>2–3 встречи</li>
+                            <li>Работа с цветом, формой, символом</li>
+                            <li>Поддержка и ведение процесса</li>
+                        </ul>
+                        <p class="price">от 15 000 ₽</p>
+                        <a href="#popup:create" class="btn btn-outline">Записаться</a>
+                    </div>
+                </div>
+
+                <!-- Service 3: Events -->
+                <div class="service-card">
+                    <div class="service-content">
+                        <h3>«В ГОСТЯХ У ХУДОЖНИКА»</h3>
+                        <p>Разовые мероприятия и встречи с психологами, искусствоведами, телесными практиками.</p>
+                        <a href="#contact" class="btn btn-outline">Посмотреть расписание</a>
+                    </div>
+                </div>
+
+                <!-- Service 4: Rent -->
+                <div class="service-card">
+                    <div class="service-content">
+                        <h3>АРЕНДА ПРОСТРАНСТВА</h3>
+                        <p>Творческая студия на 8 мест. Подходит для МК, арт-встреч, камерных мероприятий.</p>
+                        <a href="#popup:rent" class="btn btn-outline">Арендовать</a>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- FOOTER -->
+        <footer id="contact" class="footer">
+            <div class="container">
+                <h2>Мои двери открыты. <br> Каждый берёт свой ключ.</h2>
+                <div class="contact-info">
+                    <a href="https://t.me/+79315911207" class="btn btn-primary">Связаться в Telegram</a>
+                    <p>Ефимова 1/4, Санкт-Петербург</p>
+                    <p>+79315911207</p>
+                </div>
+                <div class="copyright">
+                    &copy; 2026 Ирина Визнюк. Web Viznuk.
+                </div>
+            </div>
+        </footer>
+    </div>
+</body>
+
+</html>

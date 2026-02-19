@@ -32,7 +32,20 @@ class FestivalGameCard extends StatelessWidget {
     final timeStr = "${dateFormat.format(game.startTime)} - ${dateFormat.format(game.endTime)}";
 
     // Lookup content
-    final content = festivalContent[game.title] ?? festivalContent.values.firstWhere(
+    FestivalActivityContent? foundContent;
+    
+    // 1. Try exact master name match (High Priority)
+    try {
+       foundContent = festivalContent.values.firstWhere((c) => c.masterName.trim().toLowerCase() == game.masterName.trim().toLowerCase());
+    } catch (_) {}
+
+    // 2. Try exact title match
+    if (foundContent == null) {
+       foundContent = festivalContent[game.title];
+    }
+
+    // 3. Try fuzzy title match
+    foundContent ??= festivalContent.values.firstWhere(
         (c) => c.title.contains(game.title) || game.title.contains(c.title),
         orElse: () => FestivalActivityContent(
             masterName: game.masterName, 
@@ -43,6 +56,8 @@ class FestivalGameCard extends StatelessWidget {
             role: ""
         )
     );
+
+    final content = foundContent!;
 
     return InkWell(
       onTap: () {
@@ -125,7 +140,8 @@ class FestivalGameCard extends StatelessWidget {
                ]
             ),
             
-            const Spacer(), // Push footer to bottom ONLY if there is space
+            const SizedBox(height: 12), // Fixed gap instead of Spacer
+
 
             
             const SizedBox(height: 8),

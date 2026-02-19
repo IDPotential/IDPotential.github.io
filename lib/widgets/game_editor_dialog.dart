@@ -23,7 +23,7 @@ class _GameEditorDialogState extends State<GameEditorDialog> {
   final _masterNameController = TextEditingController();
   final _locationController = TextEditingController();
   final _maxPlayersController = TextEditingController(text: "10");
-  final _durationController = TextEditingController(text: "60");
+  final _durationController = TextEditingController(text: "90");
   final _ageLimitController = TextEditingController(); // New Age Limit
   int? _selectedSlotId; 
   
