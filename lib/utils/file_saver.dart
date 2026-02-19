@@ -1,7 +1,8 @@
+import 'dart:convert';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:universal_io/io.dart';
 import 'package:flutter/foundation.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:universal_html/html.dart' as html;
 
 class FileSaver {
   static Future<String> saveImage(Uint8List bytes, String fileName) async {
@@ -23,23 +24,26 @@ class FileSaver {
     }
   }
 
-  static void _saveWeb(Uint8List bytes, String fileName) {
-    final blob = html.Blob([bytes]);
-    final url = html.Url.createObjectUrlFromBlob(blob);
-    html.AnchorElement(href: url)
-      ..setAttribute("download", fileName)
-      ..click();
-    html.Url.revokeObjectUrl(url);
+  static void _saveWeb(Uint8List bytes, String fileName) async {
+    // WASM compatible: Use Data URI
+    final String base64 = base64Encode(bytes);
+    final String uri = 'data:application/octet-stream;base64,$base64';
+    if (await canLaunchUrl(Uri.parse(uri))) {
+       await launchUrl(Uri.parse(uri));
+    }
   }
 
-  static void _saveWebText(String text, String fileName) {
-    // For text, assume UTF-8
-    final blob = html.Blob([text], 'text/plain;charset=utf-8');
-    final url = html.Url.createObjectUrlFromBlob(blob);
-    html.AnchorElement(href: url)
-      ..setAttribute("download", fileName)
-      ..click();
-    html.Url.revokeObjectUrl(url);
+  static void _saveWebText(String text, String fileName) async {
+    // WASM compatible: Use Data URI
+    final uri = Uri.dataFromString(
+       text, 
+       mimeType: 'text/plain', 
+       encoding: utf8
+    ).toString();
+    
+    if (await canLaunchUrl(Uri.parse(uri))) {
+       await launchUrl(Uri.parse(uri));
+    }
   }
 
   static Future<String> _saveFile(Uint8List bytes, String fileName) async {

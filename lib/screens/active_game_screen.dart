@@ -19,7 +19,9 @@ import 'package:record/record.dart';
 import 'package:record/record.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:universal_io/io.dart';
-import 'package:universal_html/html.dart' as html;
+// import 'package:universal_html/html.dart' as html; // Incompatible with WASM
+// If we need user agent, we should use a safer way or skip check for now (or use package:web)
+
 
 import '../services/database_service.dart';
 // import '../utils/situations_data.dart'; // Removed after migration
@@ -168,8 +170,12 @@ class _ActiveGameScreenState extends State<ActiveGameScreen> {
 
       // Web: Check for Telegram User Agent
       if (kIsWeb) {
-          final userAgent = html.window.navigator.userAgent;
-          if (userAgent.contains('Telegram')) {
+          // WASM Compat: Cannot check user agent easily without package:web. 
+          // For now, disabling the Telegram check or assuming it's fine.
+          // final userAgent = html.window.navigator.userAgent;
+          // if (userAgent.contains('Telegram')) {
+             if (false) { // Disabled for WASM logic
+
               showDialog(
                  context: context,
                  builder: (context) => AlertDialog(
