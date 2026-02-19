@@ -914,8 +914,10 @@ class _FestivalScreenState extends State<FestivalScreen> {
                     onManage: (_userRole == 'admin' || isMyGame) ? () => _showManageGameDialog(g) : null,
                     onShowParticipants: isMyGame ? () => showDialog(context: context, builder: (_) => ParticipantListDialog(game: g)) : null,
                   );
-               }
-            ),
+                },
+             );
+           },
+         ),
            const SizedBox(height: 24),
         ],
      );

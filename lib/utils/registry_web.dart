@@ -4,7 +4,7 @@ import 'package:web/web.dart' as web;
 void registerJitsiViewFactory(String viewType, String url) {
   // ignore: undefined_prefixed_name
   ui_web.platformViewRegistry.registerViewFactory(viewType, (int viewId) {
-    final iframe = web.HTMLIFrameElement()
+    final iframe = web.document.createElement('iframe') as web.HTMLIFrameElement
       ..src = url
       ..style.border = 'none'
       ..style.height = '100%'
@@ -17,7 +17,7 @@ void registerJitsiViewFactory(String viewType, String url) {
 void registerZoomViewFactory(String viewType) {
   // ignore: undefined_prefixed_name
   ui_web.platformViewRegistry.registerViewFactory(viewType, (int viewId) {
-    final div = web.HTMLDivElement()
+    final div = web.document.createElement('div') as web.HTMLDivElement
       ..id = 'zoom-meeting-container'
       ..style.height = '100%'
       ..style.width = '100%'
