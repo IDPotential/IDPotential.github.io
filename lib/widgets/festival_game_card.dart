@@ -45,7 +45,6 @@ class FestivalGameCard extends StatelessWidget {
         )
     );
 
-
     return InkWell(
       onTap: () {
          showDialog(
@@ -54,95 +53,115 @@ class FestivalGameCard extends StatelessWidget {
          );
       },
       child: Container(
-        margin: const EdgeInsets.only(bottom: 16),
-        padding: const EdgeInsets.all(16),
+        // margin: const EdgeInsets.only(bottom: 12), // Handled by GridView spacing
+        padding: const EdgeInsets.all(12), // Reduced padding
         decoration: BoxDecoration(
           color: Colors.white.withOpacity(0.05),
           border: Border.all(color: Colors.white10),
-          borderRadius: BorderRadius.circular(16),
-          // gradient: LinearGradient(colors: [content.color.withOpacity(0.1), Colors.transparent])
+          borderRadius: BorderRadius.circular(12),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // Time & Settings
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                   decoration: BoxDecoration(
                     color: content.color.withOpacity(0.3),
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: BorderRadius.circular(6),
                   ),
                   child: Text(
                     timeStr,
-                    style: TextStyle(color: content.color, fontWeight: FontWeight.bold),
+                    style: TextStyle(color: content.color, fontWeight: FontWeight.bold, fontSize: 11),
                   ),
                 ),
                 if (onManage != null)
-                  IconButton(
-                    icon: const Icon(Icons.settings, color: Colors.white54),
-                    onPressed: onManage,
-                    tooltip: "Управление",
+                  InkWell(
+                     onTap: onManage,
+                     child: const Padding(
+                       padding: EdgeInsets.all(4.0),
+                       child: Icon(Icons.settings, color: Colors.white54, size: 16),
+                     ),
                   ),
               ],
             ),
+            const SizedBox(height: 6),
+            
+            // Title
+            Expanded(
+              child: Column(
+                 crossAxisAlignment: CrossAxisAlignment.start,
+                 children: [
+                    Text(
+                      game.title,
+                      style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      game.masterName,
+                      style: const TextStyle(color: Colors.white70, fontSize: 12),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 4),
+                    // Description (Hidden if too small space, or strictly limited)
+                    Text(
+                      content.description.isNotEmpty ? content.description : game.description,
+                      style: const TextStyle(color: Colors.white54, fontSize: 10),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                 ]
+              ),
+            ),
+            
             const SizedBox(height: 8),
-            Text(
-              game.title,
-              style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              "Мастер: ${game.masterName}",
-              style: const TextStyle(color: Colors.white70, fontSize: 14),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              content.description.isNotEmpty ? content.description : game.description,
-              style: const TextStyle(color: Colors.white54, fontSize: 13),
-              maxLines: 3,
-              overflow: TextOverflow.ellipsis,
-            ),
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                InkWell(
-                   onTap: () {
-                      showDialog(
-                        context: context,
-                        builder: (_) => AlertDialog(
-                           backgroundColor: const Color(0xFF1E293B),
-                           title: Text(game.location, style: const TextStyle(color: Colors.white)),
-                           content: const Text("Карта мероприятия будет доступна позже.", style: TextStyle(color: Colors.white70)),
-                           actions: [
-                              TextButton(onPressed: () => Navigator.pop(context), child: const Text("Закрыть")),
-                           ],
-                        )
-                      );
-                   },
-                   child: Row(
+            
+            // Footer: Location & Action
+            Column(
+               crossAxisAlignment: CrossAxisAlignment.stretch,
+               children: [
+                  // Location
+                  if (game.location.isNotEmpty)
+                  Row(
                      children: [
-                       const Icon(Icons.location_on, color: Colors.white30, size: 16),
+                       const Icon(Icons.location_on, color: Colors.white30, size: 12),
                        const SizedBox(width: 4),
-                       Text(
-                         game.location,
-                         style: const TextStyle(color: Colors.white30, fontSize: 12, decoration: TextDecoration.underline),
+                       Expanded(
+                         child: Text(
+                           game.location,
+                           style: const TextStyle(color: Colors.white30, fontSize: 10),
+                           maxLines: 1,
+                           overflow: TextOverflow.ellipsis,
+                         ),
                        ),
                      ],
-                   ),
-                ),
-                const Spacer(),
-                if (isMaster)
-                   ElevatedButton.icon(
-                      onPressed: onShowParticipants,
-                      icon: const Icon(Icons.people, size: 16),
-                      label: Text("Участники (${game.participants.length})"),
-                      style: ElevatedButton.styleFrom(backgroundColor: Colors.amber, foregroundColor: Colors.black),
-                   )
-                else
-                   _buildActionBtn(content.color),
-              ],
+                  ),
+                  const SizedBox(height: 6),
+                  
+                  // Button
+                  if (isMaster)
+                     SizedBox(
+                        height: 32,
+                        child: ElevatedButton(
+                           onPressed: onShowParticipants,
+                           style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.amber, 
+                              foregroundColor: Colors.black,
+                              padding: EdgeInsets.zero,
+                              textStyle: const TextStyle(fontSize: 12)
+                           ),
+                           child: Text("Игроки (${game.participants.length})"),
+                        ),
+                     )
+                  else
+                     _buildActionBtn(content.color),
+               ],
             )
           ],
         ),
@@ -210,46 +229,55 @@ class FestivalGameCard extends StatelessWidget {
 
   Widget _buildActionBtn(Color color, {bool isDialog = false}) {
     if (isRegistered) {
+      if (isDialog) {
+         return ElevatedButton.icon(
+           onPressed: onRegister, 
+           icon: const Icon(Icons.check, size: 16),
+           label: const Text("Вы записаны"),
+           style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
+         );
+      }
       return InkWell(
-        onTap: onRegister, // Trigger action to allow Unsubscribe
+        onTap: onRegister,
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          height: 32,
+          alignment: Alignment.center,
           decoration: BoxDecoration(
             color: Colors.green.withOpacity(0.2),
-            borderRadius: BorderRadius.circular(20),
+            borderRadius: BorderRadius.circular(8),
             border: Border.all(color: Colors.green),
           ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: const [
-              Icon(Icons.check, size: 16, color: Colors.green),
-              SizedBox(width: 4),
-              Text("Вы записаны", style: TextStyle(color: Colors.green)),
-            ],
-          ),
+          child: const Text("Вы идут", style: TextStyle(color: Colors.green, fontSize: 12, fontWeight: FontWeight.bold)),
         ),
       );
     }
 
     if (game.placesLeft <= 0) {
       return Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        height: 32,
+        alignment: Alignment.center,
         decoration: BoxDecoration(
           color: Colors.grey.withOpacity(0.2),
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(8),
         ),
-        child: const Text("Мест нет", style: TextStyle(color: Colors.grey)),
+        child: const Text("Мест нет", style: TextStyle(color: Colors.grey, fontSize: 12)),
       );
     }
 
-    return ElevatedButton(
-      onPressed: onRegister,
-      style: ElevatedButton.styleFrom(
-        backgroundColor: color == Colors.white ? Colors.blueAccent : color,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        padding: isDialog ? const EdgeInsets.symmetric(horizontal: 32, vertical: 12) : null,
+    return SizedBox(
+      height: 32,
+      child: ElevatedButton(
+        onPressed: onRegister,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: color == Colors.white ? Colors.blueAccent : color,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          padding: EdgeInsets.zero, // Compact
+        ),
+        child: Text(
+           isDialog ? "Записаться" : "Запись (${game.placesLeft})", 
+           style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12)
+        ),
       ),
-      child: Text("Записаться (${game.placesLeft})", style: const TextStyle(fontWeight: FontWeight.bold)),
     );
   }
 }
