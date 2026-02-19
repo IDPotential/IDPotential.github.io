@@ -1,4 +1,5 @@
-import 'package:universal_html/html.dart' as html;
+import 'dart:convert';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import '../models/festival_game.dart';
@@ -121,23 +122,21 @@ class ParticipantListDialog extends StatelessWidget {
            buffer.writeln(line);
         }
         
-        // Trigger Download (Web compatible)
-        if (kIsWeb) {
-           final bytes = utf8.encode(buffer.toString());
-           final blob = html.Blob([bytes]);
-           final url = html.Url.createObjectUrlFromBlob(blob);
-           final anchor = html.AnchorElement(href: url)
-             ..setAttribute("download", "participants_${game.title.replaceAll(' ', '_')}.txt")
-             ..click();
-           html.Url.revokeObjectUrl(url);
+        // Trigger Download via url_launcher (WASM safe)
+        final uri = Uri.dataFromString(
+           buffer.toString(), 
+           mimeType: 'text/plain', 
+           encoding: utf8
+        );
+        
+        if (await canLaunchUrl(uri)) {
+           await launchUrl(uri);
         } else {
-           // Fallback for mobile if needed (not primary target request but good robust code)
-           // For now assume web/simple download. Android needs permission, etc.
-           ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Скачивание доступно только в Web версии (пока)")));
+           if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Не удалось открыть список")));
         }
 
       } catch (e) {
-         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Ошибка скачивания: $e")));
+         if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Ошибка скачивания: $e")));
       }
   }
 }
