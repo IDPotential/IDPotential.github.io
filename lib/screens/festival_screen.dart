@@ -1813,12 +1813,7 @@ class _FestivalScreenState extends State<FestivalScreen> {
     );
   }
 
-  void _showTicketLinkDialog() {
-    showDialog(
-      context: context,
-      builder: (context) => const TicketLinkDialog(),
-    );
-  }
+
 
   void _showProfileSettings() {
     if (_userId == null) {
