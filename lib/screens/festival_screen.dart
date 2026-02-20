@@ -1,4 +1,5 @@
 
+import 'dart:async';
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -52,9 +53,18 @@ class _FestivalScreenState extends State<FestivalScreen> {
   bool _isProfileReady = false; // Prevents immediate navigation and ensures profile is complete
 
   @override
+  StreamSubscription<User?>? _authSubscription;
+
+  @override
   void initState() {
     super.initState();
-    _fetchUserData();
+    _authSubscription = FirebaseAuth.instance.authStateChanges().listen((user) {
+       _fetchUserData();
+    });
+    
+    // Initial fetch is now covered by the listener or we can keep it
+    // _fetchUserData(); 
+    
     if (widget.initialTab == 'schedule') {
       _currentIndex = 1;
     }
@@ -62,6 +72,7 @@ class _FestivalScreenState extends State<FestivalScreen> {
 
   @override
   void dispose() {
+    _authSubscription?.cancel();
     _nameController.dispose();
     _phoneController.dispose();
     _dobController.dispose();
@@ -132,7 +143,20 @@ class _FestivalScreenState extends State<FestivalScreen> {
          if (mounted) setState(() => _isLoadingProfile = false);
       }
     } else {
-       if(mounted) setState(() => _isLoadingProfile = false);
+       // User is logged out - Clear state
+       if(mounted) {
+          setState(() {
+             _userId = null;
+             _firstName = null;
+             _phoneNumber = null;
+             _ticketNumber = null;
+             _userRole = null;
+             _birthDate = null;
+             _dobController.clear();
+             _isProfileReady = false;
+             _isLoadingProfile = false;
+          });
+       }
     }
   }
 
