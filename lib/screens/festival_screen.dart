@@ -14,7 +14,6 @@ import '../widgets/festival_game_card.dart';
 import '../widgets/game_editor_dialog.dart';
 
 import '../widgets/game_manager_dialog.dart';
-import '../widgets/ticket_link_dialog.dart';
 import '../widgets/profile_settings_dialog.dart';
 import '../data/festival_content.dart';
 import '../widgets/participant_list_dialog.dart';
@@ -202,7 +201,7 @@ class _FestivalScreenState extends State<FestivalScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: const Color(0xFF1E293B),
-        title: const Text("Режим Бога (Администратор)", style: TextStyle(color: Colors.amberAccent)),
+        title: const Text("РЕЖИМ БОГА (Вход по билету)", style: TextStyle(color: Colors.amberAccent)),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -357,7 +356,7 @@ class _FestivalScreenState extends State<FestivalScreen> {
             ),
           if (_userRole == 'admin' || _isGodMode)
             IconButton(
-              icon: Icon(_isGodMode ? Icons.close : Icons.link, color: _isGodMode ? Colors.redAccent : Colors.amberAccent),
+              icon: Icon(_isGodMode ? Icons.close : Icons.admin_panel_settings, color: _isGodMode ? Colors.redAccent : Colors.amberAccent),
               tooltip: _isGodMode ? "Выйти из режима" : "Режим Администратора",
               onPressed: _toggleGodMode,
             ),
