@@ -286,7 +286,7 @@ class _FestivalScreenState extends State<FestivalScreen> {
            });
            
            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-              content: Text("Режим Бога: Вы вошли как ${_firstName ?? 'Unknown'}")
+              content: Text("Режим администратора: Вы вошли как ${_firstName ?? 'Unknown'}")
            ));
         }
 
@@ -300,6 +300,7 @@ class _FestivalScreenState extends State<FestivalScreen> {
   void _exitGodMode() {
      if (_godModeOriginalProfile != null && mounted) {
         setState(() {
+           // Restore basic profile info for immediate feedback
            _userId = _godModeOriginalProfile!['userId'];
            _userRole = _godModeOriginalProfile!['userRole'];
            _firstName = _godModeOriginalProfile!['firstName'];
@@ -317,7 +318,11 @@ class _FestivalScreenState extends State<FestivalScreen> {
            _isGodMode = false;
            _godModeOriginalProfile = null;
         });
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Режим Бога отключен")));
+        
+        // CRITICAL: Re-fetch original user data (bookings, etc.) to clear impersonated state
+        _fetchUserData(); 
+
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Режим администратора отключен")));
      }
   }
   // ----------------------
