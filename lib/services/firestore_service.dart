@@ -825,17 +825,6 @@ class FirestoreService {
   }
 
   Future<List<PromoCode>> getValidPromoCodes(String code) async {
-    // Check if user is logged in, if not try anonymous auth
-    if (_auth.currentUser == null) {
-       try {
-          debugPrint("User not logged in, attempting anonymous auth for promo check...");
-          await _auth.signInAnonymously();
-       } catch (e) {
-          debugPrint("Anonymous auth failed: $e");
-          // Continue anyway, maybe rules are public
-       }
-    }
-
     final query = await _db.collection('promo_codes')
       .where('code', isEqualTo: code)
       .get();

@@ -145,7 +145,7 @@ service cloud.firestore {
 
     // 4. Promo Codes
     match /promo_codes/{codeId} {
-      allow read: if isAuthenticated();
+      allow read: if true; // Allow public read for activation in forms
       allow write: if isAdmin();
     }
 
