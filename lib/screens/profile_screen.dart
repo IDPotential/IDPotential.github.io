@@ -633,19 +633,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         style: ElevatedButton.styleFrom(backgroundColor: Colors.purple),
                       ),
                       
-                    if (isAdmin)
-                       ElevatedButton.icon(
-                          onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const FestivalApplicationsScreen())),
-                          icon: const Icon(Icons.list_alt),
-                          label: const Text('Заявки Фестиваля'),
-                          style: ElevatedButton.styleFrom(backgroundColor: Colors.teal),
-                       ),
-                       ElevatedButton.icon(
-                          onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PromoCodesScreen())),
-                          icon: const Icon(Icons.discount),
-                          label: const Text('Промокоды'),
-                          style: ElevatedButton.styleFrom(backgroundColor: Colors.indigo),
-                       ),
+                    if (isAdmin) ...[
+                      ElevatedButton.icon(
+                        onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const FestivalApplicationsScreen())),
+                        icon: const Icon(Icons.list_alt),
+                        label: const Text('Заявки Фестиваля'),
+                        style: ElevatedButton.styleFrom(backgroundColor: Colors.teal),
+                      ),
+                      ElevatedButton.icon(
+                        onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PromoCodesScreen())),
+                        icon: const Icon(Icons.discount),
+                        label: const Text('Промокоды'),
+                        style: ElevatedButton.styleFrom(backgroundColor: Colors.indigo),
+                      ),
+                    ],
                   ],
                 ),
                 
