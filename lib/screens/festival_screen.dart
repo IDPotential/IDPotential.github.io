@@ -52,6 +52,11 @@ class _FestivalScreenState extends State<FestivalScreen> {
   bool _consent = false;
   bool _isProfileReady = false; // Prevents immediate navigation and ensures profile is complete
 
+  // --- GOD MODE STATE ---
+  bool _isGodMode = false;
+  Map<String, dynamic>? _godModeOriginalProfile; // Backup of admin profile
+  // ----------------------
+
   @override
   StreamSubscription<User?>? _authSubscription;
 
@@ -182,7 +187,143 @@ class _FestivalScreenState extends State<FestivalScreen> {
     }
   }
 
-  @override
+  // --- GOD MODE LOGIC ---
+  void _toggleGodMode() {
+    if (_isGodMode) {
+      _exitGodMode();
+    } else {
+      _showGodModeDialog();
+    }
+  }
+
+  void _showGodModeDialog() {
+    final ticketController = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF1E293B),
+        title: const Text("Режим Бога (Администратор)", style: TextStyle(color: Colors.amberAccent)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text("Введите номер билета участника, чтобы войти под его профилем:", style: TextStyle(color: Colors.white70)),
+            const SizedBox(height: 16),
+            TextField(
+              controller: ticketController,
+              style: const TextStyle(color: Colors.white),
+              decoration: const InputDecoration(
+                labelText: "Номер билета",
+                labelStyle: TextStyle(color: Colors.white54),
+                enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: Colors.white24)),
+                focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: Colors.amberAccent)),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("Отмена")),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.amber),
+            onPressed: () {
+               Navigator.pop(ctx);
+               if (ticketController.text.isNotEmpty) {
+                  _enterGodMode(ticketController.text.trim());
+               }
+            }, 
+            child: const Text("Войти", style: TextStyle(color: Colors.black))
+          ),
+        ],
+      )
+    );
+  }
+
+  Future<void> _enterGodMode(String ticket) async {
+     setState(() => _isLoadingProfile = true);
+     try {
+        final query = await FirebaseFirestore.instance.collection('users')
+           .where('ticketLogin', isEqualTo: ticket)
+           .limit(1)
+           .get();
+
+        if (query.docs.isEmpty) {
+           if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Билет не найден")));
+           setState(() => _isLoadingProfile = false);
+           return;
+        }
+
+        final targetUser = query.docs.first;
+        final data = targetUser.data();
+
+        // Backup current Admin profile
+        _godModeOriginalProfile = {
+           'userId': _userId,
+           'userRole': _userRole,
+           'firstName': _firstName,
+           'phoneNumber': _phoneNumber,
+           'ticketNumber': _ticketNumber,
+           'birthDate': _birthDate,
+           'isProfileReady': _isProfileReady,
+        };
+
+        // Switch to Target Profile
+        if (mounted) {
+           setState(() {
+              _userId = targetUser.id; // Impersonate ID
+              _userRole = data['role'] ?? 'participant'; // Likely participant
+              _firstName = data['first_name'];
+              _phoneNumber = data['phoneNumber'];
+              _ticketNumber = data['ticketLogin'] ?? data['ticket'];
+              
+              if (data['birthDate'] != null) {
+                 _birthDate = (data['birthDate'] as Timestamp).toDate();
+                 _dobController.text = "${_birthDate!.day.toString().padLeft(2,'0')}.${_birthDate!.month.toString().padLeft(2,'0')}.${_birthDate!.year}";
+              } else {
+                 _birthDate = null;
+                 _dobController.clear();
+              }
+              
+              _isProfileReady = _firstName != null && _firstName!.isNotEmpty;
+              _isGodMode = true;
+           });
+           
+           ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+              content: Text("Режим Бога: Вы вошли как ${_firstName ?? 'Unknown'}")
+           ));
+        }
+
+     } catch (e) {
+        if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Ошибка: $e")));
+     } finally {
+        if (mounted) setState(() => _isLoadingProfile = false);
+     }
+  }
+
+  void _exitGodMode() {
+     if (_godModeOriginalProfile != null && mounted) {
+        setState(() {
+           _userId = _godModeOriginalProfile!['userId'];
+           _userRole = _godModeOriginalProfile!['userRole'];
+           _firstName = _godModeOriginalProfile!['firstName'];
+           _phoneNumber = _godModeOriginalProfile!['phoneNumber'];
+           _ticketNumber = _godModeOriginalProfile!['ticketNumber'];
+           _birthDate = _godModeOriginalProfile!['birthDate'];
+           
+           if (_birthDate != null) {
+              _dobController.text = "${_birthDate!.day.toString().padLeft(2,'0')}.${_birthDate!.month.toString().padLeft(2,'0')}.${_birthDate!.year}";
+           } else {
+              _dobController.clear();
+           }
+           
+           _isProfileReady = _godModeOriginalProfile!['isProfileReady'];
+           _isGodMode = false;
+           _godModeOriginalProfile = null;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Режим Бога отключен")));
+     }
+  }
+  // ----------------------
+
+  @override // Replaces existing method or add near
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFF0F044C), // Fallback color
@@ -214,11 +355,11 @@ class _FestivalScreenState extends State<FestivalScreen> {
               onPressed: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const LoginScreen(isTicketMode: true))),
               child: const Text("Войти", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
             ),
-          if (_userRole == 'admin')
+          if (_userRole == 'admin' || _isGodMode)
             IconButton(
-              icon: const Icon(Icons.link, color: Colors.amberAccent),
-              tooltip: "Привязать билет",
-              onPressed: _showTicketLinkDialog,
+              icon: Icon(_isGodMode ? Icons.close : Icons.link, color: _isGodMode ? Colors.redAccent : Colors.amberAccent),
+              tooltip: _isGodMode ? "Выйти из режима" : "Режим Администратора",
+              onPressed: _toggleGodMode,
             ),
           IconButton(
              icon: const Icon(Icons.account_circle, color: Colors.white),
@@ -294,6 +435,21 @@ class _FestivalScreenState extends State<FestivalScreen> {
                         Center(
                           child: Column(
                             children: [
+                              if (_isGodMode)
+                                Container(
+                                  margin: const EdgeInsets.only(bottom: 16),
+                                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                  decoration: BoxDecoration(
+                                    color: Colors.redAccent.withValues(alpha: 0.2),
+                                    border: Border.all(color: Colors.redAccent),
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: Text(
+                                    "РЕЖИМ АДМИНИСТРАТОРА: ВЫ - ${_firstName?.toUpperCase() ?? 'УЧАСТНИК'}",
+                                    style: const TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold),
+                                    textAlign: TextAlign.center,
+                                  ),
+                                ),
                               Text(
                                 "21 ФЕВРАЛЯ 2026 • 12:00 – 18:00",
                                 textAlign: TextAlign.center,
