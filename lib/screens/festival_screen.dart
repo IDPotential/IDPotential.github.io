@@ -201,7 +201,7 @@ class _FestivalScreenState extends State<FestivalScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: const Color(0xFF1E293B),
-        title: const Text("РЕЖИМ БОГА (Вход по билету)", style: TextStyle(color: Colors.amberAccent)),
+        title: const Text("Режим Администратора (Вход по билету)", style: TextStyle(color: Colors.amberAccent)),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [

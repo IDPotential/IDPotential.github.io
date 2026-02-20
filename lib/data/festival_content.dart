@@ -20,7 +20,7 @@ final Map<String, FestivalActivityContent> festivalContent = {
 
   // 2. Владимир Папушин
   "РЫБАКОВ. ИГРА НА МИЛЛИАРД": FestivalActivityContent(
-    masterName: "Владимир Папушин / Ирина Абрамова", // Shared Title in Map Key? 
+    masterName: "Владимир Папушин", // Shared Title in Map Key? 
                                                      // Actually we handle uniqueness by using unique keys or looking up by key.
                                                      // Since two masters have same game title "RYBAKOV...", we might need specific keys or a list.
                                                      // For now, let's allow lookup by approximate title.
