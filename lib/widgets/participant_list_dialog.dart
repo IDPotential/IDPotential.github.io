@@ -114,9 +114,13 @@ class ParticipantListDialog extends StatelessWidget {
         for (int i = 0; i < participants.length; i++) {
            final p = participants[i];
            
-           // Format: 1. Name (Contact) [DOB: dd.mm.yyyy] [Registered: HH:mm dd.MM]
+           // Format: 1. Name (Contact) [Ticket: ...] [DOB: dd.mm.yyyy] [Registered: HH:mm dd.MM]
            String line = "${i+1}. ${p['name']} (${p['contact']})";
            
+           if (p['ticket'] != null && p['ticket'].toString().isNotEmpty) {
+              line += " [Билет: ${p['ticket']}]";
+           }
+
            if (p['birthDate'] != null) {
               final dob = (p['birthDate'] as dynamic).toDate();
               line += " [ДР: ${DateFormat('dd.MM.yyyy').format(dob)}]";
