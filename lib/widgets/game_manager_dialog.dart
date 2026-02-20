@@ -3,6 +3,7 @@ import '../models/festival_game.dart';
 import '../services/firestore_service.dart';
 import 'game_editor_dialog.dart';
 import 'package:intl/intl.dart';
+import '../utils/file_saver.dart';
 
 class GameManagerDialog extends StatelessWidget {
   final FestivalGame game;
@@ -23,8 +24,6 @@ class GameManagerDialog extends StatelessWidget {
             Text("Мастер: ${game.masterName}", style: const TextStyle(color: Colors.white70)),
             Text("Записано: ${game.participants.length} / ${game.maxParticipants}", style: const TextStyle(color: Colors.white70)),
             const Divider(color: Colors.white24),
-            const Text("Участники:", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 8),
             const Text("Участники:", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
             const SizedBox(height: 8),
             
@@ -64,6 +63,11 @@ class GameManagerDialog extends StatelessWidget {
         ),
       ),
       actions: [
+        TextButton.icon(
+           onPressed: () => _downloadList(context),
+           icon: const Icon(Icons.download, color: Colors.blueAccent),
+           label: const Text("Скачать", style: TextStyle(color: Colors.blueAccent)),
+        ),
         TextButton(
           onPressed: () => _deleteGame(context), 
           child: const Text("Удалить игру", style: TextStyle(color: Colors.redAccent))
@@ -106,5 +110,51 @@ class GameManagerDialog extends StatelessWidget {
         }
       }
     }
+  }
+
+  Future<void> _downloadList(BuildContext context) async {
+      try {
+        final participants = await FirestoreService().getFestivalGameParticipants(game.id);
+        
+        if (!context.mounted) return;
+        
+        if (participants.isEmpty) {
+           ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Список пуст")));
+           return;
+        }
+
+        final buffer = StringBuffer();
+        buffer.writeln("Игра: ${game.title}");
+        buffer.writeln("Мастер: ${game.masterName}");
+        buffer.writeln("Время игры: ${DateFormat('dd.MM.yyyy HH:mm').format(game.startTime)}");
+        buffer.writeln("------------------------------------------------");
+        
+        for (int i = 0; i < participants.length; i++) {
+           final p = participants[i];
+           
+           // Format: 1. Name (Contact) [DOB: dd.mm.yyyy] [Registered: HH:mm dd.MM]
+           String line = "${i+1}. ${p['name']} (${p['contact']})";
+           
+           if (p['birthDate'] != null) {
+              final dob = (p['birthDate'] as dynamic).toDate();
+              line += " [ДР: ${DateFormat('dd.MM.yyyy').format(dob)}]";
+           }
+           
+           if (p['joinedAt'] != null) {
+               final joined = (p['joinedAt'] as dynamic).toDate();
+               line += " [Записан: ${DateFormat('HH:mm dd.MM').format(joined)}]";
+           }
+           
+           buffer.writeln(line);
+        }
+        
+        final fileName = "participants_${game.title.replaceAll(RegExp(r'[^\w\u0400-\u04FF]'), '_')}.txt";
+        await FileSaver.saveText(buffer.toString(), fileName);
+        
+        if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Скачивание началось")));
+
+      } catch (e) {
+         if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Ошибка скачивания: $e")));
+      }
   }
 }
